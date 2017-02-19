@@ -12,8 +12,8 @@ SWEP.Cost					= 2500
 SWEP.CSSMoveSpeed			= 221										
 
 -- Spawning
-SWEP.Spawnable				= true										
-SWEP.AdminOnly				= true										
+SWEP.Spawnable				= false										
+SWEP.AdminOnly				= false										
 
 -- Slots
 SWEP.Slot					= 3											
@@ -173,6 +173,12 @@ SWEP.Secondary.Automatic	= false
 SWEP.DrawAmmo				= true
 SWEP.DrawCrosshair			= false
 
+SWEP.RichochetSound = {}
+SWEP.RichochetSound[1] = Sound("weapons/fx/rics/ric1.wav")
+SWEP.RichochetSound[2] = Sound("weapons/fx/rics/ric2.wav")
+SWEP.RichochetSound[3] = Sound("weapons/fx/rics/ric3.wav")
+SWEP.RichochetSound[4] = Sound("weapons/fx/rics/ric4.wav")
+SWEP.RichochetSound[5] = Sound("weapons/fx/rics/ric5.wav")
 
 if (CLIENT or game.SinglePlayer()) then
 	SWEP.IsZoomed 			= false -- Data, Client
@@ -725,7 +731,7 @@ function SWEP:GetScopeSway(Cone)
 	return x,y
 end
 
-function SWEP:PreShootBullet() -- Should be predicted
+function SWEP:PreShootBullet() -- Don't predict
 
 	local Damage = self.Primary.Damage
 	local Shots = self.Primary.NumShots
@@ -758,7 +764,7 @@ function SWEP:PreShootBullet() -- Should be predicted
 		self:ShootBullet(Damage,Shots,0,Source,	NewAngle:Forward(),self.Owner)
 	else
 	--]]
-		local ConeMinusPrimary = Cone - self.Primary.Cone
+		local ConeMinusPrimary = math.max(0,Cone - self.Primary.Cone)
 		local Multi01 = math.random(-100,100) / 100
 		local Multi02 = math.random(-100,100) / 100
 		local RandAngle = Angle(ConeMinusPrimary*Multi01*45,ConeMinusPrimary*Multi02*45,0)
@@ -1213,7 +1219,7 @@ function SWEP:AddHeat(Damage,Shots)
 	
 end
 
-function SWEP:ShootPhysicalObject(Source,Cone)
+function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 
 	local EyeTrace = self.Owner:GetEyeTrace()
 	local TheEyePos = self.Owner:EyePos()
@@ -1222,8 +1228,11 @@ function SWEP:ShootPhysicalObject(Source,Cone)
 	
 	Source = Source + self.Owner:GetForward()*self.SourceOverride.y + self.Owner:GetRight()*self.SourceOverride.x + self.Owner:GetUp()*self.SourceOverride.z
 	
-	local Dir = (HitPos - TheEyePos)
+	--local Dir = (HitPos - TheEyePos)
+	local Dir = Direction
 	Dir:Normalize()
+	
+	
 	local FinalAngles = Dir:Angle() + self.BulletAngOffset + Angle(math.Rand(-Cone,Cone),math.Rand(-Cone,Cone),0)*45
 	FinalAngles:Normalize()
 
@@ -1251,7 +1260,7 @@ function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 
 	if self and self.BulletEnt then
 		if SERVER then
-			self:ShootPhysicalObject(Source,Cone)
+			self:ShootPhysicalObject(Source,Cone,Direction)
 		end
 	else
 		local bullet = {}
@@ -1291,18 +1300,17 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 				local Falloff = Weapon.DamageFalloff
 				local Distance = tr.StartPos:Distance(tr.HitPos)
 				local DamageScale = math.Clamp(math.min( (2) - (Distance/Falloff),1),0,1)
+				local FinalValue = math.Clamp(DamageScale,MatterScale,1)
 
-				dmginfo:ScaleDamage(math.Clamp(DamageScale,MatterScale,1))
-				
-			end
-		end
+				dmginfo:ScaleDamage(FinalValue)
 
-		if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_enable_penetration"):GetFloat() == 1 then
-			if not CurrentHitEntity:IsPlayer() then
-				self:WorldBulletSolution(tr.HitPos,Direction,Damage,CurrentHitEntity)
 			end
 		end
 		
+		if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_enable_penetration"):GetFloat() == 1 then
+			self:WorldBulletSolution(tr.HitPos,tr,Direction,Damage,CurrentHitEntity)
+		end
+
 		if SERVER then
 			if tr.Entity:GetClass() == "prop_vehicle_prisoner_pod" or CurrentHitEntity:IsVehicle() then
 				if CurrentHitEntity:GetDriver() ~= NULL then
@@ -1315,20 +1323,21 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 
 end
 
-function SWEP:WorldBulletSolution(Pos,Direction,Damage,PreviousHitEntity)
+function SWEP:StartShortTrace(Pos,Direction,Distance)
 
-	local Amount = 3
-	
 	local data = {}
-	
+
 	data.start = Pos + Direction
-	data.endpos = Pos + Direction*Amount
+	data.endpos = Pos + Direction*Distance
+	data.mask = MASK_SHOT_HULL
 	
-	local trace = util.TraceLine(data)
-	local CurrentHitEntity = trace.Entity
-	
+	return util.TraceLine(data)
+
+end
+
+function SWEP:CalculateMaterialPenetration(mat)
+
 	local MatMul = 1
-	local mat = trace.MatType
 
 	if mat == MAT_GLASS then
 		MatMul = 0.5
@@ -1341,28 +1350,68 @@ function SWEP:WorldBulletSolution(Pos,Direction,Damage,PreviousHitEntity)
 	elseif mat == MAT_METAL then
 		MatMul = 10
 	end
-
-	local DamageMath = math.Round(Damage - (BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat()*MatMul*math.max(0.1,self.PenetrationLossMul)*Amount),2)
 	
-	if DamageMath > 0 then
-		if trace.StartSolid or (PreviousHitEntity == CurrentHitEntity) then
-			self:WorldBulletSolution(data.endpos,Direction,DamageMath,CurrentHitEntity)
+	return MatMul
+
+end
+
+function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntity)
+
+	local Distance = 3
+	
+	local BulletAngleMod = math.Clamp(self.DamageFalloff/5000,0,0.5)
+	local DirectionForRichochet = -2 * OldTrace.Normal:Dot(OldTrace.HitNormal) * OldTrace.HitNormal + OldTrace.Normal
+	local OldDirectionForRichochet = DirectionForRichochet
+	DirectionForRichochet:Normalize()
+	local AngleOfAttack = math.deg( math.acos(DirectionForRichochet:Dot( OldTrace.Normal ) )) / 2
+	DirectionForRichochet = LerpVector(BulletAngleMod,DirectionForRichochet,Direction)
+	DirectionForRichochet:Normalize()
+	
+	
+	local LocalVec, LocalAng = WorldToLocal( Vector(0,0,0), OldTrace.Normal:Angle(), Vector(0,0,0), DirectionForRichochet:Angle() )
+	local mat = OldTrace.MatType
+	local ShouldRichochet = AngleOfAttack < 30 and mat == MAT_METAL
+	local CurrentHitEntity = OldTrace.Entity
+	local ShouldPenetrate = AngleOfAttack < 1 or AngleOfAttack >= 30
+	local DamageMath = 0
+
+	if ShouldPenetrate then
+		if IsValid(PreviousHitEntity) and (PreviousHitEntity:IsPlayer() or PreviousHitEntity:IsNPC()) then
+			local Before = Direction*PreviousHitEntity:OBBMaxs()
+			Distance = (Before):Length()
+		end
+		local MatMul = self:CalculateMaterialPenetration(mat)
+		DamageMath = math.Round(Damage - (BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat()*MatMul*math.max(0.1,self.PenetrationLossMul)*Distance),2)
+	elseif ShouldRichochet then
+		DamageMath = math.Round((Damage * 0.9) - 1)
+		Distance = 0
+		Direction = DirectionForRichochet
+		if IsFirstTimePredicted() then
+			EmitSound(self.RichochetSound[math.random(1,#self.RichochetSound)],Pos, self:EntIndex(), CHAN_AUTO, 0.5, SNDLVL_NORM, SND_NOFLAGS, 100 )
+		end
+	end
+	
+	local ShouldEmit = ( ShouldPenetrate or ShouldRichochet ) and DamageMath > 1
+	local trace = self:StartShortTrace(Pos,Direction,Distance)
+	
+	if ShouldEmit then
+		if trace.StartSolid then
+			if IsFirstTimePredicted() then
+				self:WorldBulletSolution(Pos + Direction*Distance,trace,Direction,DamageMath,CurrentHitEntity)
+			end
 		else
-			self:ShootBullet(DamageMath, 1, 0, data.endpos,Direction,CurrentHitEntity)
-			
+			if IsFirstTimePredicted() then
+				self:ShootBullet(DamageMath, 1, 0, Pos + Direction*Distance,Direction,CurrentHitEntity)
+			end
 			local BackTraceData = {}
 			BackTraceData.start = Pos + Direction
-			BackTraceData.endpos = Pos - Direction*Amount
-			
+			BackTraceData.endpos = Pos - Direction*Distance
 			local BackTrace = util.TraceLine(BackTraceData)
-			
 			if IsFirstTimePredicted() then
 				self:BulletEffect(BackTrace.HitPos,BackTrace.StartPos,BackTrace.Entity,BackTrace.SurfaceProps)
 			end
-			
 		end
 	end
-
 
 end
 
@@ -1617,6 +1666,25 @@ function SWEP:GetViewModelPosition( pos, ang )
 
 	--ang = LocalPlayer():EyeAngles()
 	
+
+	
+	local EyeTrace = self.Owner:GetEyeTrace()
+	
+	local Adjust = 30
+	
+	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
+	
+	if not self.DistanceMod then
+		self.DistanceMod = DesiredDistanceMod
+	else
+		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
+	end
+	
+
+	pos = pos - ang:Forward()*self.DistanceMod
+	
+	
+	
 	if ( !self.IronSightsPos ) then return pos, ang end
 	
 	local bIron = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) ) or self:GetSharedZoom() or self.WasZoomed
@@ -1654,12 +1722,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and self.HasScope == false then
 		Offset = Offset - Vector(Offset.x/2,0,Offset.z/2)
 	end
-	
-	--[[
-	if IsSingleplayer then
-		Offset = Offset - Vector(0,Offset.y,0)
-	end
--	-]]
 
 	if ( self.IronSightsAng ) then
 		

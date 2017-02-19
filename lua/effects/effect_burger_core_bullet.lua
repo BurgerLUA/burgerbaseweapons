@@ -6,12 +6,14 @@ EFFECT.BulletMats[2] = Material( "effects/gunshiptracer")
 EFFECT.BulletMats[3] = Material( "effects/laser_tracer" )
 
 EFFECT.SmokeTrailMat = Material("trails/smoke")
+EFFECT.TubeTrailMat = Material("trails/tube")
 
 function EFFECT:Init( data )
 
 	local Magnitude = data:GetMagnitude()
 	local Range = data:GetRadius()
 	
+	self.Damage = Magnitude
 	self.Position = data:GetStart()
 	self.WeaponEnt = data:GetEntity()
 	self.Attachment = data:GetAttachment()
@@ -25,7 +27,7 @@ function EFFECT:Init( data )
 	
 	local Ratio = self.Length/self.Width
 
-	self.BulletSpeed = math.Clamp(Ratio * 100,2000,6000) + 1000
+	self.BulletSpeed = ( math.Clamp(Ratio * 100,2000,6000) + 1000 )
 	--self.BulletSpeed = 30
 	self.FadeTime = Range
 	self.MaxFade = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
@@ -46,8 +48,8 @@ end
 
 function EFFECT:Think()
 	self.PositionPercent = self.PositionPercent + (self.BulletSpeed/self.Distance)*FrameTime()
-	--return self.PositionPercent < 2*self.Width
-	return self.PositionPercent < 1
+	return self.PositionPercent < 2*self.Width -- for smoke
+	--return self.PositionPercent < 1 -- for non smoke
 end
 
 function EFFECT:Render()
@@ -71,22 +73,20 @@ function EFFECT:Render()
 		
 	end
 	
-	--[[
-	local SmokeMul = self.PositionPercent/(2*self.Width)
 	
-
+	local SmokeMul = self.PositionPercent/(2*self.Width)
 	local SmokeOffset = Vector(0,0,self.PositionPercent)*1
 	local SmokeInverse = (1-SmokeMul)
-	
-	local Size = self.Length 
-	
-
-	
+	local Size = self.Length
+	local Lightness = 100
 	
 	render.SetMaterial( self.SmokeTrailMat )
-	render.DrawBeam( self.StartPos + SmokeOffset , MaxPos + SmokeOffset, self.Width*SmokeMul*2,0, 1, Color(255,255,255, math.max(0,Size) * SmokeInverse ) )
-	--]]
+	render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, self.Width*SmokeMul,0, 1, Color(Lightness,Lightness,Lightness, math.max(0,Size) * SmokeInverse ))
 
+	--[[
+	render.SetMaterial( self.TubeTrailMat )
+	render.DrawBeam( MinPos, MaxPos, self.Width,0, 1, Color(Lightness,Lightness,Lightness, 10 ))
+	--]]
 	
-	
+
 end

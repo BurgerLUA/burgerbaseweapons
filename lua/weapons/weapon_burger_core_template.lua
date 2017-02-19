@@ -6,7 +6,7 @@ end
 -- Weapon Information
 SWEP.Category				= "Other" 												
 SWEP.PrintName				= "Example Weapon" 							
-SWEP.Base					= "weapon_burger_base" 						
+SWEP.Base					= "weapon_burger_core_base" 						
 SWEP.BurgerBase				= true 									
 SWEP.WeaponType				= "Primary"									
 SWEP.Cost					= 2500										

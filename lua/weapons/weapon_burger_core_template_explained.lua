@@ -5,7 +5,7 @@ end
 
 SWEP.Category				= "Counter-Strike" 							-- The Weapon Category this weapon spawns in.							
 SWEP.PrintName				= "Example Weapon" 							-- The name of the weapon.			
-SWEP.Base					= "weapon_burger_base" 						-- The base the weapon uses. Should always be "weapon_burger_base" unless you know exactly what you're doing.
+SWEP.Base					= "weapon_burger_core_base" 						-- The base the weapon uses. Should always be "weapon_burger_base" unless you know exactly what you're doing.
 SWEP.BurgerBase				= true 										-- Confirmation that this uses Burger's Base. Should always be true unless you know exactly what you're doing.
 SWEP.WeaponType				= "Primary"									-- The weapon type of the weapon. Valid Values: Primary, Secondary, Free, Melee.
 

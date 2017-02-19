@@ -135,7 +135,7 @@ function BURGERBASE_FUNC_DropAmmo(ply,weapon,amount)
 		
 		if AllAmmoTable[1] then
 		
-			local dropammo = ents.Create("ent_burger_core_ammo")
+			local dropammo = ents.Create("ent_burger_core_dropped_ammo")
 			dropammo.AmmoTable = AllAmmoTable
 			dropammo.AmmoModel = "models/weapons/w_defuser.mdl"
 			dropammo:SetPos( ply:GetPos() + ply:OBBCenter() )
