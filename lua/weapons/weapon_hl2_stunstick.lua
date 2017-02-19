@@ -86,7 +86,7 @@ function SWEP:PrimaryAttack()
 	self:SendWeaponAnim(ACT_VM_HITCENTER)
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
 	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
-	if self:NewSwing(self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01) ) then
+	if self:NewSwing(self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01),self.Primary.Delay,nil ) then
 		self:AddDurability(-2)
 	end
 end
@@ -151,7 +151,7 @@ function SWEP:BlockDamage(Damage,Attacker)
 	self:EmitGunSound(self.MeleeSoundMiss)
 	self.Owner:EmitSound(Sound("AlyxEMP.Discharge"))
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*0.5)
-	self:NewSwing(self.Primary.Damage * 0.5,Attacker,nil)
+	self:NewSwing(self.Primary.Damage * 0.5,self.Primary.Delay,Attacker,nil)
 	self:AddDurability( -3 )
 end
 

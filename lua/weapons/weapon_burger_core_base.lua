@@ -2900,11 +2900,14 @@ function SWEP:Swing(damage,entoverride)
 	
 		local Data = {}
 
+		local BoxMultiplier = 8
+		
 		Data.start = self.Owner:GetShootPos()
 		Data.endpos = self.Owner:GetShootPos() + self.Owner:EyeAngles():Forward() * (self.MeleeRange)
 		Data.filter = self.Owner
-		Data.mins = Vector( -8 , -8 , -8 )
-		Data.maxs = Vector( 8 , 8 , 8 )
+		Data.mins = Vector( -BoxMultiplier , -BoxMultiplier , -BoxMultiplier )
+		Data.maxs = Vector( BoxMultiplier , BoxMultiplier , BoxMultiplier )
+		Data.mask = MASK_SHOT_HULL
 
 		local Trace = util.TraceHull( Data )
 		
@@ -2955,7 +2958,8 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 						VictimWeapon:BlockDamage(damage,self.Owner)
 						self:SetShouldMelee(false)
 						VictimWeapon:SetShouldMelee(false)	
-						self:EmitGunSound("weapons/samurai/tf_katana_impact_object_02.wav")
+						self:EmitGunSound(self.MeleeSoundWallHit)
+						VictimWeapon:EmitSound(self.MeleeSoundWallHit)
 						ShouldDamage = false
 					end
 				end

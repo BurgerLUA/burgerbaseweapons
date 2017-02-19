@@ -58,4 +58,4 @@ SWEP.IronSightTime			= 0.125
 SWEP.IronSightsPos 			= Vector(-6, 10, 0)
 SWEP.IronSightsAng 			= Vector(2, 0, 0)
 
-SWEP.DamageFalloff			= 2500
+SWEP.DamageFalloff			= 4000
