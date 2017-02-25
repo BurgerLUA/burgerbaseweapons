@@ -1825,6 +1825,14 @@ function SWEP:Think()
 	
 	end
 	
+	if CLIENT then
+		self:SetNextClientThink( CurTime() + FrameTime() )
+	end
+
+	self:NextThink( CurTime() + FrameTime() )
+	
+	return true
+
 end
 
 function SWEP:HandleZoomDelay()
