@@ -103,11 +103,14 @@ function ENT:Use(activator,caller,useType,value)
 			givenweapon.AlreadyGiven = true
 			givenweapon:SetClip1(self:GetNWFloat("clip"))
 			activator:SelectWeapon(self:GetNWString("class"))
-			self:EmitSound("items/itempickup.wav")
+			--self:EmitSound("items/itempickup.wav")
 			
 			if Weapon.WeaponType == "Throwable" then
 				activator:GiveAmmo(1, Weapon.Primary.Ammo )
 			end
+			
+			activator:GiveAmmo(self:GetNWFloat("spare"),Weapon.Primary.Ammo)
+			
 			
 			self:Remove()
 		

@@ -62,3 +62,78 @@ end
 hook.Add("ScalePlayerDamage","BURGERBASE_HOOK_ScalePlayerDamage",BURGERBASE_HOOK_ScalePlayerDamage)
 hook.Add("ScaleNPCDamage","BURGERBASE_HOOK_ScalePlayerDamage",BURGERBASE_HOOK_ScalePlayerDamage)
 
+
+concommand.Add( "nerfme", function( ply,cmd,args,argStr )
+
+	local PlayerHealth = 100
+
+	local AllWeapons = weapons.GetList()
+	
+	local MyWeapons = {}
+	
+	for k,SWEP in pairs(AllWeapons) do
+		if SWEP.Base == "weapon_burger_core_base" and (SWEP.WeaponType == "Primary" or SWEP.WeaponType == "Secondary") then
+		
+			local PrintName = SWEP.PrintName
+			
+			local Damage = SWEP.Primary.NumShots * SWEP.Primary.Damage
+			local Delay = math.Clamp(SWEP.Primary.Delay,FrameTime(),60)
+			
+			if !SWEP.Primary.Automatic and Delay < 0.1 then
+				Delay = 0.1
+			end
+			
+			if SWEP.HasHL2Pump then
+				Delay = Delay + 1
+			end
+			
+			local ClipSize = SWEP.Primary.ClipSize
+		
+			if ClipSize == -1 then
+				ClipSize = 250
+			end
+		
+			local ClipDamage = Damage * ClipSize
+
+			local DPS = math.min(ClipDamage,math.floor(( 1 / Delay) * Damage ))
+			local KillTime = math.Round((math.ceil(PlayerHealth/Damage) - 1) * (Delay),2)
+			
+			MyWeapons[PrintName] = {}
+			MyWeapons[PrintName].DPS = DPS
+			MyWeapons[PrintName].KillTime = KillTime
+
+		end
+	end
+	
+	local Keys = table.GetKeys( MyWeapons )
+
+	if argStr == "time" then
+		table.sort( Keys, function( a, b )
+			if MyWeapons[a].KillTime == MyWeapons[b].KillTime then
+				return a < b
+			else
+				return MyWeapons[a].KillTime < MyWeapons[b].KillTime
+			end
+		end )
+	else
+		table.sort( Keys, function( a, b )
+			if MyWeapons[a].DPS == MyWeapons[b].DPS then
+				return a < b
+			else
+				return MyWeapons[a].DPS < MyWeapons[b].DPS
+			end
+		end )
+	end
+
+	
+	for i=1, #Keys do
+		local k = Keys[i]
+		local v = MyWeapons[k]
+		print("-------------------------")
+		print("Weapon:  ",k)
+		print("DPS:     ",v.DPS)
+		print("KillTime:",v.KillTime)
+	end
+
+end )
+

@@ -86,19 +86,11 @@ function ENT:Detonate(self,pos)
 
 	if table.Count(Players) > 0 then
 		for k,v in pairs(Players) do
-			if v:IsBot() then
-				if SERVER then
-					local distancecount = (maxdistance - self:EyePos():Distance(v:GetPos())) / 100
-					if distancecount > 0 then
-						self:BlindEffects(v,distancecount)
-					end
-				end
-			else
-				if CLIENT then
-					local distancecount = (maxdistance - self:EyePos():Distance(v:GetPos())) / 100
-					if distancecount > 0 then
-						self:BlindEffects(v,distancecount)
-					end
+			if (v:IsBot() and SERVER) or (!v:IsBot() and CLIENT) then
+				local distancecount = (maxdistance - self:EyePos():Distance(v:GetPos())) / 100
+				print(distancecount)
+				if distancecount > 0 then
+					self:BlindEffects(v,distancecount)
 				end
 			end
 		end
@@ -117,7 +109,7 @@ function ENT:BlindEffects(ply,distancecount)
 	if ply:IsLineOfSightClear(self.Entity) then
 
 		if not self:IsPlayerLookingAtSelf(ply) then
-			distancecount = 0.5
+			distancecount = distancecount*0.5
 		end
 		
 		ply.BlindAmount = math.Clamp(distancecount,0,1) * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_flashbang_dur"):GetFloat()/2 + 1

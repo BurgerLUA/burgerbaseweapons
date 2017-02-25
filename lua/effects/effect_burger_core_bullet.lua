@@ -24,6 +24,7 @@ function EFFECT:Init( data )
 	self.Width = ((Magnitude*50)^0.30)*0.3
 	self.Length = (Range*0.03)^1
 	self.DamageType = data:GetDamageType()
+	self.SmokePercent = 0
 	
 	local Ratio = self.Length/self.Width
 
@@ -48,7 +49,8 @@ end
 
 function EFFECT:Think()
 	self.PositionPercent = self.PositionPercent + (self.BulletSpeed/self.Distance)*FrameTime()
-	return self.PositionPercent < 2*self.Width -- for smoke
+	self.SmokePercent = self.SmokePercent + ( FrameTime() * math.max(0.1, 1 - (self.Length)*0.001 ) )
+	return self.PositionPercent < 2*self.Width or self.SmokePercent < 1 -- for smoke
 	--return self.PositionPercent < 1 -- for non smoke
 end
 
@@ -74,19 +76,17 @@ function EFFECT:Render()
 	end
 	
 	
-	local SmokeMul = self.PositionPercent/(2*self.Width)
-	local SmokeOffset = Vector(0,0,self.PositionPercent)*1
-	local SmokeInverse = (1-SmokeMul)
-	local Size = self.Length
-	local Lightness = 100
+	local SmokeMul =(1 - self.SmokePercent)/(2*self.Width)
+	
+	local SmokeOffset = Vector(0,0, self.SmokePercent )*1
+	local Size = self.Length + self.Width
+	
+	local LightColor = render.GetLightColor( EyePos() )
+
+	local Lightness = math.min(150,math.max(LightColor.x*255,LightColor.y*255,LightColor.z*255))
 	
 	render.SetMaterial( self.SmokeTrailMat )
-	render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, self.Width*SmokeMul,0, 1, Color(Lightness,Lightness,Lightness, math.max(0,Size) * SmokeInverse ))
+	render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, (self.Width*0.5)*self.SmokePercent,0, 1, Color(Lightness,Lightness,Lightness, math.max(0,Size) * math.max(0,1-self.SmokePercent) ))
 
-	--[[
-	render.SetMaterial( self.TubeTrailMat )
-	render.DrawBeam( MinPos, MaxPos, self.Width,0, 1, Color(Lightness,Lightness,Lightness, 10 ))
-	--]]
-	
 
 end

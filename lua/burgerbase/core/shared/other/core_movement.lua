@@ -29,3 +29,18 @@ function BURGERBASE_HOOK_Move(ply,mv)
 end
 
 hook.Add("Move","BURGERBASE_HOOK_Move",BURGERBASE_HOOK_Move)
+
+function BURGERBASE_HOOK_PlayerSwitchWeapon(ply,oldweapon,newweapon)
+
+	--print("BOOP")
+
+	--if not IsFirstTimePredicted() then
+	--	if newweapon.BurgerBase then
+	--		newweapon.Primary.Automatic = true
+	--	end
+	--end
+
+end
+
+
+hook.Add("PlayerSwitchWeapon","BURGERBASE_HOOK_PlayerSwitchWeapon",BURGERBASE_HOOK_PlayerSwitchWeapon)
