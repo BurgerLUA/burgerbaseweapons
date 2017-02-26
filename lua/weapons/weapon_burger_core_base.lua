@@ -786,48 +786,34 @@ function SWEP:PreShootBullet() -- Don't predict
 	local WithPunchAngles = (NormalAngle + self.Owner:GetPunchAngle())
 	WithPunchAngles:Normalize()
 
-	--[[
-	if Shots == 1 then
-		local Multi01 = math.random(-100,100) / 100
-		local Multi02 = math.random(-100,100) / 100
-		local RandAngle = Angle(Cone*Multi01*45,Cone*Multi02*45,0)
-		local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),WithPunchAngles,Vector(0,0,0),RandAngle)
-		self:ShootBullet(Damage,Shots,0,Source,	NewAngle:Forward(),self.Owner)
-	else
-	--]]
+	local ConeMinusPrimary = math.max(0,Cone - self.Primary.Cone)
 	
-		local ConeMinusPrimary = math.max(0,Cone - self.Primary.Cone)
+	if Cone < self.Primary.Cone then
+		ConeMinusPrimary = Cone
+	end
+
+	local Multi01 = self:BulletRandomSeed(-100,100,100) / 100
+	local Multi02 = self:BulletRandomSeed(-100,100,1000) / 100
+	local RandAngle = Angle(ConeMinusPrimary*Multi01*45,ConeMinusPrimary*Multi02*45,0)
+	local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),WithPunchAngles,Vector(0,0,0),RandAngle)
+	
+	NewAngle:Normalize()
+	
+	for i=1, Shots do 
+		local NewMulti01 = self:BulletRandomSeed(-100,100,i) / 100
+		local NewMulti02 = self:BulletRandomSeed(-100,100,i + Shots) / 100
+		local NewRandAngle = Angle(self.Primary.Cone*NewMulti01*45,self.Primary.Cone*NewMulti02*45,0) + NewAngle
 		
 		if Cone < self.Primary.Cone then
-			ConeMinusPrimary = Cone
+			NewRandAngle = NewAngle
 		end
-	
-		local Multi01 = math.random(-100,100) / 100
-		local Multi02 = math.random(-100,100) / 100
-		local RandAngle = Angle(ConeMinusPrimary*Multi01*45,ConeMinusPrimary*Multi02*45,0)
-		local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),WithPunchAngles,Vector(0,0,0),RandAngle)
 		
-		NewAngle:Normalize()
-		
-		for i=1, Shots do 
-			math.randomseed(CurTime() + i)
-			local NewMulti01 = math.random(-100,100) / 100
-			math.randomseed(CurTime() + i + Shots)
-			local NewMulti02 = math.random(-100,100) / 100
-			local NewRandAngle = Angle(self.Primary.Cone*NewMulti01*45,self.Primary.Cone*NewMulti02*45,0) + NewAngle
-			
-			if Cone < self.Primary.Cone then
-				NewRandAngle = NewAngle
-			end
-			
-			NewRandAngle:Normalize()
+		NewRandAngle:Normalize()
 
-			
-			self:ShootBullet(Damage,Shots,0,Source,NewRandAngle:Forward(),self.Owner)
-		end
 		
-		
-	--end
+		self:ShootBullet(Damage,Shots,0,Source,NewRandAngle:Forward(),self.Owner)
+	end
+
 	
 	if IsFirstTimePredicted() then
 		if self.HasBuildUp or self.UsesBuildUp then
@@ -1176,7 +1162,7 @@ function SWEP:GetRecoilFinal()
 			end
 		elseif DelayMul == 1 then
 			if AvgBulletsShot > 2*DelayMul then
-				SidePunch = UpPunch*math.random(-1,1)*self.SideRecoilMul
+				SidePunch = UpPunch*self:BulletRandomSeedInt(-1,1)*self.SideRecoilMul
 			end
 		else
 			SidePunch = UpPunch*self.SideRecoilMul
@@ -1185,7 +1171,7 @@ function SWEP:GetRecoilFinal()
 	
 	if self.HasDownRecoil then
 		if AvgBulletsShot > 3*DelayMul then
-			UpPunch = UpPunch*math.random(-1,2)*self.SideRecoilMul
+			UpPunch = UpPunch*self:BulletRandomSeedInt(-1,2)*self.SideRecoilMul
 		end
 	end
 	
@@ -1194,6 +1180,9 @@ function SWEP:GetRecoilFinal()
 		SidePunch = SidePunch*0.5
 	end
 	
+	UpPunch = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_recoilscale"):GetFloat() * UpPunch
+	SidePunch = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_recoilscale"):GetFloat() * SidePunch
+
 	return self:SpecialRecoil(UpPunch), self:SpecialRecoil(SidePunch)
 
 end
@@ -1245,11 +1234,11 @@ function SWEP:AddHeat(Damage,Shots)
 		CoolTime = CoolTime * self.BurstCoolMul
 	end
 	
-	self:SetCoolDown( math.Clamp(self:GetCoolDown() + CoolDown,0,10) )
+	self:SetCoolDown( math.Clamp(self:GetCoolDown() + CoolDown,0,100) )
 	self:SetCoolTime( CurTime() + CoolTime )
 	
 	if CLIENT and self.Owner == LocalPlayer() then
-		self.ClientCoolDown = (math.Clamp(self.ClientCoolDown + CoolDown,0,10) + self:GetCoolDown())/2
+		self.ClientCoolDown = (math.Clamp(self.ClientCoolDown + CoolDown,0,100) + self:GetCoolDown())/2
 		self.ClientCoolTime = CurTime() + CoolTime
 	end
 	
@@ -1269,7 +1258,7 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 	Dir:Normalize()
 	
 	
-	local FinalAngles = Dir:Angle() + self.BulletAngOffset + Angle(math.Rand(-Cone,Cone),math.Rand(-Cone,Cone),0)*45
+	local FinalAngles = Dir:Angle() + self.BulletAngOffset + Angle(self:BulletRandomSeed(-Cone,Cone),self:BulletRandomSeed(-Cone,Cone),0)*45
 	FinalAngles:Normalize()
 
 	local Bullet = ents.Create(self.BulletEnt)	
@@ -1391,20 +1380,56 @@ function SWEP:CalculateMaterialPenetration(mat)
 
 end
 
+function SWEP:BulletRandomGetSeed(seed)
+
+	seed = math.floor(seed)
+	
+	-- Method 1: Bullets per second
+	--returnmath.randomseed(self:GetBulletsPerSecond() + seed)
+	
+	-- Method 2: Heat
+	--math.randomseed(self:GetCoolDown() + seed)
+	
+	--Method 3: Normal
+	math.randomseed(CurTime() + seed)
+	
+end
+
+function SWEP:BulletRandomSeedInt(min,max,seed)
+	if not seed then seed = 0 end
+	
+	self:BulletRandomGetSeed(seed)
+	return math.random(min,max)
+	
+end
+
+
+function SWEP:BulletRandomSeed(min,max,seed)
+	if not seed then seed = 0 end
+
+	self:BulletRandomGetSeed(seed)
+	return math.Rand(min,max)
+	
+end
+
+
+
 function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntity)
 
 	local Distance = 3
 	local Randomness = 0.05
+	
+	--local NewDirection = (OldTrace.HitPos - OldTrace.StartPos):GetNormalized()
+
 	local BulletAngleMod =  math.Clamp(math.Clamp(self.DamageFalloff/5000,0.25,0.5) * math.Rand(1 - (Randomness/2),1 + (Randomness/2)),0,0.5)
-	local DirectionForRichochet = -2 * OldTrace.Normal:Dot(OldTrace.HitNormal) * OldTrace.HitNormal + OldTrace.Normal
+	local DirectionForRichochet = -2 * Direction:Dot(OldTrace.HitNormal) * OldTrace.HitNormal + Direction
 	local OldDirectionForRichochet = DirectionForRichochet
 	DirectionForRichochet:Normalize()
-	local AngleOfAttack = math.deg( math.acos(DirectionForRichochet:Dot( OldTrace.Normal ) )) / 2
+	local AngleOfAttack = math.deg( math.acos(DirectionForRichochet:Dot( Direction ) )) / 2
 	DirectionForRichochet = LerpVector(BulletAngleMod,DirectionForRichochet,Direction)
 	DirectionForRichochet:Normalize()
-	
-	
-	local LocalVec, LocalAng = WorldToLocal( Vector(0,0,0), OldTrace.Normal:Angle(), Vector(0,0,0), DirectionForRichochet:Angle() )
+
+	local LocalVec, LocalAng = WorldToLocal( Vector(0,0,0), Direction:Angle(), Vector(0,0,0), DirectionForRichochet:Angle() )
 	local mat = OldTrace.MatType
 	local ShouldRichochet = AngleOfAttack < 30 and mat == MAT_METAL
 	local CurrentHitEntity = OldTrace.Entity

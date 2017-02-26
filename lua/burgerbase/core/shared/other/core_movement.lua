@@ -13,8 +13,13 @@ function BURGERBASE_HOOK_Move(ply,mv)
 
 		if WeaponSpeed ~= -1 then
 			local PreviousLimit = mv:GetMaxClientSpeed()
+
 			local SpeedMod = (WeaponSpeed / BaseSpeed)
 			local NewLimit = PreviousLimit * SpeedMod
+			
+			if ply:Crouching() then
+				NewLimit = NewLimit * ply:GetCrouchedWalkSpeed()
+			end
 			
 			if SERVER then
 				--print(math.Round(CurTime(),2),"CSS:",PreviousLimit,NewLimit)

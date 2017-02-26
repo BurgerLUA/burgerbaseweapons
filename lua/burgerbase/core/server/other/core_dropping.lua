@@ -94,7 +94,6 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 	end
 
 	if WeaponModel && WeaponModel ~= "" then
-		print("hi")
 		local CreatedWeapon = ents.Create("ent_burger_core_dropped_weapon")
 		CreatedWeapon:SetPos(pos)
 		CreatedWeapon:SetAngles(ang)
@@ -104,7 +103,6 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 		CreatedWeapon:SetNWFloat("spare",spareoverride)	
 		CreatedWeapon:Spawn()
 		CreatedWeapon:Activate()
-		print("bye")
 	end
 
 	return CreatedWeapon

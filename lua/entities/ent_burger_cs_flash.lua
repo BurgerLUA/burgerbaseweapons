@@ -88,7 +88,6 @@ function ENT:Detonate(self,pos)
 		for k,v in pairs(Players) do
 			if (v:IsBot() and SERVER) or (!v:IsBot() and CLIENT) then
 				local distancecount = (maxdistance - self:EyePos():Distance(v:GetPos())) / 100
-				print(distancecount)
 				if distancecount > 0 then
 					self:BlindEffects(v,distancecount)
 				end
