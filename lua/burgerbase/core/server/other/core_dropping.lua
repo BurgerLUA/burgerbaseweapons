@@ -103,10 +103,11 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 		CreatedWeapon:SetNWFloat("spare",spareoverride)	
 		CreatedWeapon:Spawn()
 		CreatedWeapon:Activate()
+		return CreatedWeapon
+	else
+		return NULL
 	end
 
-	return CreatedWeapon
-	
 end
 
 function BURGERBASE_FUNC_CreateAmmo(pos,ang,ammotype,amount,model)

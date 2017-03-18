@@ -215,7 +215,7 @@ end
 
 
 
-function SWEP:SetupDataTables( )
+function SWEP:SetupDataTables()
 
 	self:NetworkVar("Float",0,"CoolDown")
 	self:SetCoolDown(0)
@@ -261,15 +261,20 @@ function SWEP:SetupDataTables( )
 	self:SetSharedZoomMod(0)
 	self:NetworkVar("Float",21,"SharedBoltDelay")
 	self:SetSharedBoltDelay(0)
-	
-	
-	
+
 	self:NetworkVar("Float",31,"SpecialFloat") -- For Special Stuff
 	self:SetSpecialFloat(0)
 
 	self:NetworkVar("Int",0,"BulletQueue")
-	self:SetBulletQueue(0)
+	self:SetBulletQueue(0)	
+	self:NetworkVar("Int",1,"PrimaryAmmo")
+	self:SetPrimaryAmmo( game.GetAmmoID(self.Primary.Ammo) )
+	
+	
 
+	self:NetworkVar("Int",31,"SpecialInt")
+	self:SetSpecialInt(0)
+	
 
 	self:NetworkVar("Bool",0,"IsReloading")
 	self:SetIsReloading( false )
@@ -308,11 +313,14 @@ function SWEP:SetupDataTables( )
 	self:NetworkVar("Bool",15,"SharedWasZoomed")
 	self:SetSharedWasZoomed( false )
 	
+	self:NetworkVar("Bool",31,"SpecialBool")
+	self:SetSpecialBool( false )
+	
 	self:NetworkVar("Entity",1,"NextHolsterWeapon")
 	self:SetNextHolsterWeapon( nil )
 	self:NetworkVar("Entity",2,"NextMeleeEnt")
 	self:SetNextMeleeEnt( nil )
-	
+
 end
 
 function SWEP:Initialize()
@@ -371,14 +379,14 @@ end
 
 function SWEP:SpecialInitialize()
 
-	--self.Primary.Automatic = true
+
 end
 
 function SWEP:EquipAmmo(ply)
 	if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 or self.WeaponType == "Equipment" then
-		ply:GiveAmmo(self.Primary.SpareClip,self.Primary.Ammo,false)
+		ply:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
 	elseif self.WeaponType == "Throwable" then
-		ply:GiveAmmo(1,self.Primary.Ammo,false)
+		ply:GiveAmmo(1,self:GetPrimaryAmmo(),false)
 	end
 end
 
@@ -386,14 +394,22 @@ function SWEP:OwnerChanged()
 	if SERVER then
 		timer.Simple(0.1, function()
 			if self.AlreadyGiven == false then
-			
+
 				if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_loaded"):GetFloat() == 1 then
 					self:SetClip1(self.Primary.ClipSize)
 				end
 
 				if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 then
 					if self.Owner:IsPlayer() then
-						self.Owner:GiveAmmo(self.Primary.SpareClip,self.Primary.Ammo,false)
+					
+						if self.SpecialAmmo then
+							for k,v in pairs(self.SpecialAmmo) do
+								self.Owner:GiveAmmo(self.Primary.SpareClip/2,v,false)
+							end
+						else
+							self.Owner:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
+						end
+						
 					end
 				end
 
@@ -630,9 +646,9 @@ function SWEP:ShootGun()
 
 	if IsFirstTimePredicted() or IsSingleplayer then
 	
-		if CLIENT or IsSingleplayer then
+		--if CLIENT or IsSingleplayer then
 			self:AfterZoom() -- Predict, Client Only
-		end
+		--end
 		
 		self:AddRecoil() -- Predict
 		self:WeaponSound() -- Predict
@@ -732,11 +748,11 @@ end
 
 function SWEP:WeaponDelay()
 
-	if CLIENT or IsSingleplayer then
-		if self.HasBoltAction then
-			self:SetBoltDelay( CurTime() + self.Primary.Delay )
-		end
+	--if CLIENT or IsSingleplayer then
+	if self.HasBoltAction then
+		self:SetBoltDelay( CurTime() + self.Primary.Delay )
 	end
+	--end
 	
 	self:SetNextPrimaryFire( CurTime() + self:GetDelay() )
 	
@@ -746,11 +762,11 @@ function SWEP:AfterZoom()
 	if self.HasScope then
 		if self.HasBoltAction then
 			if self:GetZoomed() then
-				self:SetZoomed(false)
-				if CLIENT or IsSingleplayer then
-					self:SetWasZoomed(true)
-					self:SetBoltDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
+				if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 1 then
+					self:SetZoomed(false)
 				end
+				self:SetWasZoomed(true)
+				self:SetBoltDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 			end
 		end
 	end
@@ -764,8 +780,8 @@ end
 
 function SWEP:PreShootBullet() -- Don't predict
 
-	local Damage = self.Primary.Damage
-	local Shots = self.Primary.NumShots
+	local Damage = self:SpecialDamage(self.Primary.Damage)
+	local Shots = self:SpecialShots( self.Primary.NumShots )
 	
 	local Cone = 0
 	
@@ -884,7 +900,7 @@ function SWEP:WeaponSound()
 	end
 	
 	if GunSound ~= nil then
-		self:EmitGunSound(GunSound, ((50 + self.Primary.Damage)/100)*SoundMul  )
+		self:EmitGunSound(GunSound, ((50 + self:SpecialDamage(self.Primary.Damage) )/100)*SoundMul  )
 	end
 
 end
@@ -943,15 +959,11 @@ end
 
 
 function SWEP:SecondaryAttack()
+
+	local ToggleZoomEnabled = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 1
 	
-	if CLIENT or IsSingleplayer then
-		if self.HasBoltAction and (self.HasScope or self.HasIronsights) and self:GetBoltDelay() > CurTime() then
-			if self:GetWasZoomed() then
-				self:SetWasZoomed(false)
-			else
-				self:SetWasZoomed(true)
-			end
-		end
+	if ToggleZoomEnabled then
+		self:HandleCancelZoom()
 	end
 	
 	if self:IsBusy() then return end
@@ -971,15 +983,43 @@ function SWEP:SecondaryAttack()
 			elseif self.HasSilencer then
 				self:Silencer()
 			end
-		elseif (CLIENT or IsSingleplayer) and (self.HasIronSights or self.HasScope) then
+		elseif (CLIENT or IsSingleplayer) and self:CanZoom() and ToggleZoomEnabled then
 			self:HandleZoom(1)
 		end
 	end
 
 end
 
-function SWEP:SpecialFire()
+function SWEP:HandleCancelZoom()
+	if (CLIENT or IsSingleplayer) then
+		if self.HasBoltAction and (self.HasScope or self.HasIronsights) and self:GetBoltDelay() > CurTime() then
+			if self:GetWasZoomed() then
+				self:SetWasZoomed(false)
+			else
+				self:SetWasZoomed(true)
+			end
+		end
+	end
+end
 
+function SWEP:HandleHoldToZoom()
+
+	if (IsFirstTimePredicted() or IsSingleplayer) and not self:IsBusy() and not self:IsUsing() and BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 0 then
+		if self:GetZoomed() and (!self.Owner:KeyDown(IN_ATTACK2) or !self:CanZoom()) then
+			self:ZoomOut()
+			self.NextZoomTime = CurTime() + 1
+		elseif self.Owner:KeyDown(IN_ATTACK2) and !self:GetZoomed() and self:CanZoom() then
+			self:ZoomIn()
+			self.NextZoomTime = CurTime() + 1
+		end
+	end
+end
+
+function SWEP:CanZoom()
+	return (self:CanBoltZoom() and (self.HasIronSights or self.HasScope))
+end
+
+function SWEP:SpecialFire()
 
 end
 
@@ -1031,48 +1071,52 @@ end
 
 function SWEP:HandleZoom(delay)
 
-	
-
 	if not (IsFirstTimePredicted()) then return end
 	if not self:CanBoltZoom() then return end
 	--if self:IsBusy() then return end
 
 	if self:GetZoomed() then
-		self:SetZoomed(false)		
-		if self.HasScope then
-			self.Owner:EmitSound(self.ZoomOutSound,0.01)
-			if self.ZoomDelay > 0 then
-				self:SetZoomOverlayDelay(0)
-			end
-		end
+		self:ZoomOut()
 	else
-		if self.HasScope then
-			self.Owner:EmitSound(self.ZoomInSound,0.01)
-			if self.ZoomDelay > 0 then
-				self:SetZoomOverlayDelay(CurTime() + self.ZoomDelay)
-			end
-		end
-		self:SetZoomed(true)
+		self:ZoomIn()
 	end
 	
 	self.NextZoomTime = CurTime() + delay
 	
 end
 
-function SWEP:CanBoltZoom()
-
-	if not self.HasBoltAction then 
-		return true
-	else
-		if self:GetBoltDelay() <= CurTime() then
-			return true
-		else
-			return false
+function SWEP:ZoomIn()
+	if self.HasScope then
+		if self.ZoomInSound then
+			if CLIENT then
+				self.Owner:EmitSound(self.ZoomInSound,0.01)
+			end
+		end
+		if self.ZoomDelay > 0 then
+			self:SetZoomOverlayDelay(CurTime() + self.ZoomDelay)
 		end
 	end
+	self:SetZoomed(true)
+end
 
-	return true
-	
+function SWEP:ZoomOut()
+	self:SetZoomed(false)		
+	if self.HasScope then
+		if self.ZoomOutSound then
+			if CLIENT then
+				self.Owner:EmitSound(self.ZoomOutSound,0.01)
+			end
+		end
+		if self.ZoomDelay > 0 then
+			self:SetZoomOverlayDelay(0)
+		end
+	end
+end
+
+
+function SWEP:CanBoltZoom()
+	--print(self:GetBoltDelay())
+	return not self.HasBoltAction or self:GetBoltDelay() <= CurTime()
 end
 
 function SWEP:TranslateFOV(fov)
@@ -1094,7 +1138,7 @@ function SWEP:CanPrimaryAttack()
 	if self:GetNextPrimaryFire() > CurTime() then return false end
 
 	if self:Clip1() == -1 then
-		if self.Owner:GetAmmoCount(self.Primary.Ammo) < 1 then 
+		if self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
 			return false 
 		end
 	elseif self:Clip1() <= 0 then
@@ -1111,8 +1155,18 @@ function SWEP:CanPrimaryAttack()
 	
 end
 
+function SWEP:SpecialDamage(damage)
+	return damage
+end
+
+function SWEP:SpecialShots(shots)
+	return shots
+end
+
+
+
 function SWEP:GetRecoilMath()
-	return self.Primary.Damage*self.Primary.NumShots*self.RecoilMul*self.Primary.Delay*1.875
+	return self:SpecialDamage(self.Primary.Damage)*self:SpecialShots(self.Primary.NumShots)*self.RecoilMul*self.Primary.Delay*1.875
 end
 
 function SWEP:SpecialRecoil(recoil)
@@ -1132,9 +1186,9 @@ function SWEP:GetRecoilFinal()
 	
 	if self.Primary.Automatic == true then
 		if SERVER or IsSingleplayer then
-			AvgBulletsShot = self:GetCoolDown() / self:GetHeatMath(self.Primary.Damage,self.Primary.NumShots)
+			AvgBulletsShot = self:GetCoolDown() / self:GetHeatMath( self:SpecialDamage(self.Primary.Damage) , self:SpecialShots(self.Primary.NumShots) )
 		else
-			AvgBulletsShot = self.ClientCoolDown / self:GetHeatMath(self.Primary.Damage,self.Primary.NumShots)
+			AvgBulletsShot = self.ClientCoolDown / self:GetHeatMath( self:SpecialDamage(self.Primary.Damage) , self:SpecialShots(self.Primary.NumShots) )
 		end
 	end
 	
@@ -1268,10 +1322,8 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 		Bullet:SetOwner(self.Owner)
 		Bullet:Spawn()
 		Bullet:Activate()
-		--print("HELLO?")
 	else
 		SafeRemoveEntity(Bullet)
-		--error("WARNING: INVALID ENTITY: " .. Bullet)
 	end
 
 	if IsFirstTimePredicted() then
@@ -1294,7 +1346,7 @@ function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 		bullet.Spread	= Vector(Cone, Cone, 0)
 		bullet.Src		= Source
 		bullet.Dir		= Direction
-		bullet.AmmoType = self.Primary.Ammo
+		bullet.AmmoType = self:GetPrimaryAmmo()
 		bullet.HullSize = 0
 		bullet.Tracer 	= 0
 		bullet.Force	= nil
@@ -1317,12 +1369,12 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 	
 		local Weapon = attacker:GetActiveWeapon()
 
-		if Weapon and Weapon.DamageFalloff then
-			if Weapon.DamageFalloff > 0 then
+		if Weapon and Weapon.DamageFalloff and Weapon:SpecialFalloff(Weapon.DamageFalloff) then
+			if Weapon:SpecialFalloff(Weapon.DamageFalloff) > 0 then
 			
 				local MatterScale = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
 			
-				local Falloff = Weapon.DamageFalloff
+				local Falloff = Weapon:SpecialFalloff(Weapon.DamageFalloff)
 				local Distance = tr.StartPos:Distance(tr.HitPos)
 				local DamageScale = math.Clamp(math.min( (2) - (Distance/Falloff),1),0,1)
 				local FinalValue = math.Clamp(DamageScale,MatterScale,1)
@@ -1421,7 +1473,7 @@ function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntit
 	
 	--local NewDirection = (OldTrace.HitPos - OldTrace.StartPos):GetNormalized()
 
-	local BulletAngleMod =  math.Clamp(math.Clamp(self.DamageFalloff/5000,0.25,0.5) * math.Rand(1 - (Randomness/2),1 + (Randomness/2)),0,0.5)
+	local BulletAngleMod =  math.Clamp(math.Clamp(self:SpecialFalloff(self.DamageFalloff)/5000,0.25,0.5) * math.Rand(1 - (Randomness/2),1 + (Randomness/2)),0,0.5)
 	local DirectionForRichochet = -2 * Direction:Dot(OldTrace.HitNormal) * OldTrace.HitNormal + Direction
 	local OldDirectionForRichochet = DirectionForRichochet
 	DirectionForRichochet:Normalize()
@@ -1513,8 +1565,8 @@ function SWEP:GenerateEffectData(origin,start,HitEntity,IsCSSTracer)
 	end	
 	
 	if IsCSSTracer then
-		Data:SetMagnitude(self.Primary.Damage)
-		Data:SetRadius(self.DamageFalloff)
+		Data:SetMagnitude( self:SpecialDamage(self.Primary.Damage) )
+		Data:SetRadius(self:SpecialFalloff(self.DamageFalloff))
 		Data:SetDamageType(self.DamageType)
 	end
 
@@ -1566,7 +1618,7 @@ if CLIENT then
 		local RealSoundTable = sound.GetProperties(GunSound)
 		local RealDistance = ply:GetPos():Distance(Gun:GetPos())
 		
-		local Range = (Gun.Primary.Damage * Gun.Primary.NumShots)*500
+		local Range = ( Gun:SpecialDamage(Gun.Primary.Damage) * Gun:SpecialShots(Gun.Primary.NumShots) )*500
 
 		local VolumeMod = math.Clamp( 1 - (RealDistance/Range),0,1)
 
@@ -1621,18 +1673,49 @@ function SWEP:IsUsing()
 	if self.Owner:IsPlayer() and self.Owner:KeyDown(IN_USE) then return true end
 end
 
-function SWEP:Reload()
-	
-	if self:IsBusy() then return end
-	if self:Clip1() >= self.Primary.ClipSize then return end
-	if self:GetNextPrimaryFire() > CurTime() then return end
-	if self.WeaponType == "Throwable" then return end
-	if (self:Clip1() > 0 and self.DisableReloadUntilEmpty) then return end
-	if self.Owner:GetAmmoCount(self:GetPrimaryAmmoType()) == 0 	then
-		if self.Owner:IsBot() then
-			self.Owner:GiveAmmo(self.Primary.ClipSize,self.Primary.Ammo,true)
+function SWEP:ReloadSpecial()
+
+	if self.SpecialAmmo then
+
+		local OldAmmo = self:GetPrimaryAmmo()
+		
+		local ShouldSwitch = false
+
+		if self:GetPrimaryAmmo() == game.GetAmmoID(self.SpecialAmmo[1]) and self.Owner:GetAmmoCount(self.SpecialAmmo[2]) > 0 then
+			self:SetPrimaryAmmo(game.GetAmmoID(self.SpecialAmmo[2]))
+			if CLIENT and IsFirstTimePredicted() then
+				self.Owner:PrintMessage( HUD_PRINTTALK, "Switched to " .. language.GetPhrase("#" .. self.SpecialAmmo[2] .. "_ammo") .. " (Secondary)" )
+			end
+			ShouldSwitch = true
+		elseif self:GetPrimaryAmmo() == game.GetAmmoID(self.SpecialAmmo[2]) and self.Owner:GetAmmoCount(self.SpecialAmmo[1]) > 0 then
+			self:SetPrimaryAmmo(game.GetAmmoID(self.SpecialAmmo[1]))
+			if CLIENT and IsFirstTimePredicted() then
+				self.Owner:PrintMessage( HUD_PRINTTALK, "Switched to " ..  language.GetPhrase("#" .. self.SpecialAmmo[1] .. "_ammo") .. " (Primary)" )
+			end
+			ShouldSwitch = true
 		end
-	return end
+
+		if ShouldSwitch then
+		
+			
+			
+			if SERVER then
+				self.Owner:GiveAmmo(self.Primary.ClipSize,OldAmmo,true)
+			end
+			self:SetClip1(0)
+			self:DoReload()
+		end
+
+	end
+
+end
+
+function SWEP:Ammo1()
+	return self.Owner:GetAmmoCount(self:GetPrimaryAmmo())
+
+end
+
+function SWEP:DoReload()
 	
 	if self.HasZoom or self.HasIronSights then
 		self:SetZoomed(false)
@@ -1641,7 +1724,7 @@ function SWEP:Reload()
 	if SERVER then
 		if self.HasPumpAction == false then
 			if self:Clip1() > 0 then
-				self.Owner:GiveAmmo(self:Clip1(),self.Primary.Ammo,true)
+				self.Owner:GiveAmmo(self:Clip1(),self:GetPrimaryAmmo(),true)
 				self:SetClip1(0)
 			end
 		end
@@ -1720,7 +1803,29 @@ function SWEP:Reload()
 	end
 	
 	self:SetIsReloading(true)
+
+end
+
+function SWEP:Reload()
 	
+	if self:IsBusy() then return end
+	
+	if self.Owner:KeyDown(IN_USE) then
+		self:ReloadSpecial()
+	return end
+	
+	if self:Clip1() >= self.Primary.ClipSize then return end
+	if self:GetNextPrimaryFire() > CurTime() then return end
+	if self.WeaponType == "Throwable" then return end
+	if (self:Clip1() > 0 and self.DisableReloadUntilEmpty) then return end
+	if self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) == 0 	then
+		if self.Owner:IsBot() then
+			self.Owner:GiveAmmo(self.Primary.ClipSize,self:GetPrimaryAmmo(),true)
+		end
+	return end
+	
+	self:DoReload()
+
 end
 
 function SWEP:GetViewModelPosition( pos, ang )
@@ -1816,6 +1921,7 @@ function SWEP:Think()
 		end
 	end
 	
+	self:HandleHoldToZoom()
 	self:HandleCoolDown() -- don't predict
 	self:HandleBuildUp()
 	self:HandleShotgunReloadThinkAnimations() -- don't predict
@@ -1857,6 +1963,11 @@ function SWEP:Think()
 	self:NextThink( CurTime() + FrameTime() )
 	
 	return true
+
+end
+
+function SWEP:HandleAmmoSwitch()
+
 
 end
 
@@ -1932,13 +2043,13 @@ function SWEP:HandleReloadThink()
 
 		if self:GetReloadFinish() <= CurTime() and self:GetIsReloading() then
 
-			if self.Owner:GetAmmoCount( self.Primary.Ammo ) >= self.Primary.ClipSize then
+			if self.Owner:GetAmmoCount( self:GetPrimaryAmmo() ) >= self.Primary.ClipSize then
 				self:SetClip1(self.Primary.ClipSize)
-				self.Owner:RemoveAmmo(self.Primary.ClipSize,self.Primary.Ammo)
+				self.Owner:RemoveAmmo(self.Primary.ClipSize,self:GetPrimaryAmmo())
 				self.HasMagIn = true
 			else
-				self:SetClip1(self.Owner:GetAmmoCount(self.Primary.Ammo))
-				self.Owner:RemoveAmmo(self.Owner:GetAmmoCount(self.Primary.Ammo),self.Primary.Ammo)
+				self:SetClip1(self.Owner:GetAmmoCount(self:GetPrimaryAmmo()))
+				self.Owner:RemoveAmmo(self.Owner:GetAmmoCount(self:GetPrimaryAmmo()),self:GetPrimaryAmmo())
 				self.HasMagIn = true
 			end
 
@@ -1954,10 +2065,10 @@ function SWEP:HandleReloadThink()
 		self:SetIsReloading(true)
 	
 		if self:GetNextShell() <= CurTime() then
-			if self.Owner:GetAmmoCount( self.Primary.Ammo ) > 0 and self:Clip1() < self.Primary.ClipSize then 
+			if self.Owner:GetAmmoCount( self:GetPrimaryAmmo() ) > 0 and self:Clip1() < self.Primary.ClipSize then 
 				self:SendWeaponAnim(ACT_VM_RELOAD)
 				self:SetClip1(self:Clip1()+1)
-				self.Owner:RemoveAmmo(1,self.Primary.Ammo)
+				self.Owner:RemoveAmmo(1,self:GetPrimaryAmmo())
 				self:SetNextShell(CurTime()+self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
 
 				if (CLIENT or IsSingleplayer) then
@@ -2002,13 +2113,30 @@ function SWEP:HL2Pump()
 	end
 end
 
+function SWEP:CustomAmmoDisplay()
+	self.AmmoDisplay = self.AmmoDisplay or {}
+
+	self.AmmoDisplay.Draw = true //draw the display?
+
+	if self.Primary.ClipSize > 0 then
+		self.AmmoDisplay.PrimaryClip = self:Clip1() //amount in clip
+		self.AmmoDisplay.PrimaryAmmo = self:Ammo1() //amount in reserve
+	end
+	if self.Secondary.ClipSize > 0 then
+		self.AmmoDisplay.SecondaryClip = self:Clip2()
+		self.AmmoDisplay.SecondaryAmmo = self:Ammo2()
+	end
+
+	return self.AmmoDisplay //return the table
+end
+
 function SWEP:HandleShotgunReloadThinkAnimations()
 
 	self:HL2Pump()
 
 	if self:GetIsShotgunReload() then
 		if self:GetNextShell() <= CurTime() then
-			if self.Owner:GetAmmoCount( self.Primary.Ammo ) > 0 and self:Clip1() < self.Primary.ClipSize then 
+			if self.Owner:GetAmmoCount( self:GetPrimaryAmmo() ) > 0 and self:Clip1() < self.Primary.ClipSize then 
 				self:SendWeaponAnim(ACT_VM_RELOAD)
 
 				if (CLIENT or IsSingleplayer) then
@@ -2166,7 +2294,7 @@ function SWEP:DrawHUDBackground()
 	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_dynamic",true):GetFloat() == 0 then
 		Cone = math.Clamp(self.Primary.Cone*900,0,x/2)
 	else
-		Cone = math.Clamp(self:HandleCone(self.Primary.Cone,true) * 900,0,x/2)*fovbonus
+		Cone = math.Clamp(self:HandleCone(self.Primary.Cone,true)*900,0,x/2)*fovbonus
 	end
 	
 	local ConeToSend = Cone
@@ -2224,6 +2352,11 @@ function SWEP:DrawHUDBackground()
 	
 end
 
+function SWEP:SpecialFalloff(falloff)
+
+	return falloff
+end
+
 if CLIENT then
 
 	BurgerBase_ContextMenuIsOpen = false
@@ -2264,19 +2397,18 @@ function SWEP:DrawContextMenu(x,y)
 			-- Start Data
 				
 				-- Name
-				local Name = language.GetPhrase(weapon.Primary.Ammo .. "_ammo") .. " " .. weapon.PrintName .. " | " .. weapon.Category
+				local Name = language.GetPhrase(game.GetAmmoName(weapon:GetPrimaryAmmo()) .. "_ammo") .. " " .. weapon.PrintName .. " | " .. weapon.Category
 				
 				-- ClipSize
 				
-				local ClipSize = weapon.Primary.ClipSize
-				
+				local ClipSize = weapon.Primary.ClipSize	
 				
 				-- Damage
 				local Damage = 0
 				if weapon.WeaponType == "Melee" then
 					Damage = weapon.Primary.Damage
 				else
-					Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat() * weapon.Primary.Damage * weapon.Primary.NumShots
+					Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat() * weapon:SpecialDamage(weapon.Primary.Damage) * weapon:SpecialShots(weapon.Primary.NumShots)
 				end
 				Damage = math.Round(Damage, 2 )
 				
@@ -2306,9 +2438,9 @@ function SWEP:DrawContextMenu(x,y)
 				
 
 				-- Range
-				local FullRange = weapon.DamageFalloff
+				local FullRange = weapon:SpecialFalloff(weapon.DamageFalloff)
 				local BaseRange = FullRange*2
-				local PartialRange = weapon.DamageFalloff
+				local PartialRange = weapon:SpecialFalloff(weapon.DamageFalloff)
 				local ViewDistance = ply:GetEyeTrace().HitPos:Distance(EyePos())
 				local MatterScale = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
 				
@@ -3097,7 +3229,7 @@ function SWEP:NewStabDamage(damage, victim)
 	if victim and victim ~= NULL then
 
 		if (victim:IsPlayer() or victim:IsNPC()) then
-			if damage <= self.Primary.Damage then
+			if damage <= self:SpecialDamage(self.Primary.Damage) then
 				self:EmitGunSound(self.MeleeSoundFleshSmall)
 			else
 				self:EmitGunSound(self.MeleeSoundFleshLarge)

@@ -2,6 +2,7 @@ local ClientFCVar = FCVAR_ARCHIVE + FCVAR_USERINFO
 
 BURGERBASE:CONVARS_CreateStoredConvar("cl_burgerbase_language","english",ClientFCVar,"Language",true)
 
+BURGERBASE:CONVARS_CreateStoredConvar("cl_burgerbase_togglezoom", 1, ClientFCVar, "Enables hold to zoom",true )
 BURGERBASE:CONVARS_CreateStoredConvar("cl_burgerbase_customslots", 0, ClientFCVar, "Enables or disables the game forcing primary weapons into slot 3",true )
 BURGERBASE:CONVARS_CreateStoredConvar("cl_burgerbase_viewmodel_fov", 20, ClientFCVar, "Viewmodel FOV to add to the weapon viewmodel.",true )
 

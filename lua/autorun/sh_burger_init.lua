@@ -1,7 +1,7 @@
 BURGERBASE = {}
 
 function BURGERBASE:INIT_Initialize()
-	print("Initializing....")
+	print("[BURGERBASE] Initializing BURGERBASE....")
 	BURGERBASE:INIT_MassInclude("burgerbase/core/","shared",false)
 	BURGERBASE:INIT_MassInclude("burgerbase/modules/","shared",true,1)
 end
@@ -60,6 +60,11 @@ end
 
 BURGERBASE:AddAmmoType("12 Gauge Buckshot",{
 	name = "bb_12gauge",
+	dmgtype = DMG_BULLET,
+})
+
+BURGERBASE:AddAmmoType("12 Gauge Slug",{
+	name = "bb_12gaugeslug",
 	dmgtype = DMG_BULLET,
 })
 
