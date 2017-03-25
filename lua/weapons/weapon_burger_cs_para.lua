@@ -9,7 +9,7 @@ SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 
 SWEP.Cost					= 5750
-SWEP.CSSMoveSpeed				= 220
+SWEP.CSSMoveSpeed			= 220
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
@@ -34,7 +34,7 @@ SWEP.Primary.Automatic 		= true
 
 SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1
+SWEP.MoveConeMul			= 2
 SWEP.HeatMul				= 0.5
 SWEP.CoolMul				= 1.5
 

@@ -64,51 +64,42 @@ SWEP.PenetrationLossScale	= 0.5
 
 SWEP.SpecialAmmo			= {"bb_12gauge","bb_12gaugeslug"}
 
+function SWEP:SpecialGiveAmmo()
+	self.Owner:GiveAmmo(12,"bb_12gaugeslug",false)
+end
 
 function SWEP:SpecialShots(shots)
-
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
 		shots = 1
 	end
-
 	return shots
 end
 
 function SWEP:SpecialDamage(damage)
-
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
 		damage = 150
 	end
-
 	return damage
 end
 
 function SWEP:SpecialFalloff(falloff)
-
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
 		falloff = 3000
 	end
-
 	return falloff
-	
 end
 
 function SWEP:SpecialRecoil(recoil)
-
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
 		recoil = recoil * 2
 	end
-
 	return recoil
 end
 
-
-function SWEP:SpecialCone(cone)
-
+function SWEP:SpecialConePre(cone)
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
 		cone = cone*0.25
 	end
-
 	return cone
 end
 

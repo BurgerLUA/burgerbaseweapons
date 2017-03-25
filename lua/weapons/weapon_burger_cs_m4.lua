@@ -25,7 +25,7 @@ SWEP.HoldType				= "ar2"
 SWEP.Primary.Damage			= 33
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_M4A1.Single")
-SWEP.Primary.Cone			= 0.001
+SWEP.Primary.Cone			= 0.005
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 90
 SWEP.Primary.Delay			= 0.09 --1/(666/60)
@@ -37,13 +37,13 @@ SWEP.WorldModel2 			= "models/weapons/w_rif_m4a1_silencer.mdl"
 SWEP.Secondary.Sound		= Sound("Weapon_M4A1.Silenced")
 
 SWEP.RecoilMul				= 1
-SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1
+SWEP.SideRecoilMul			= 0.5
+SWEP.MoveConeMul			= 1.5
 SWEP.HeatMul				= 1
 SWEP.CoolMul				= 1
 
 SWEP.HasScope 				= false
-SWEP.ZoomAmount 			= 1
+SWEP.ZoomAmount 			= 0.75
 SWEP.HasCrosshair 			= true
 SWEP.HasCSSZoom 			= false
 

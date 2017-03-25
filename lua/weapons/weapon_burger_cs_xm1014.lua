@@ -9,7 +9,7 @@ SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 
 SWEP.Cost					= 3000
-SWEP.CSSMoveSpeed				= 240
+SWEP.CSSMoveSpeed			= 240
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
@@ -61,3 +61,44 @@ SWEP.IronSightsAng 			= Vector(0, -1, 0)
 SWEP.DamageFalloff			= 200
 
 SWEP.PenetrationLossScale	= 0.5
+
+SWEP.SpecialAmmo			= {"bb_12gauge","bb_12gaugeslug"}
+
+function SWEP:SpecialGiveAmmo()
+	self.Owner:GiveAmmo(12,"bb_12gaugeslug",false)
+end
+
+function SWEP:SpecialShots(shots)
+	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
+		shots = 1
+	end
+	return shots
+end
+
+function SWEP:SpecialDamage(damage)
+	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
+		damage = 125
+	end
+	return damage
+end
+
+function SWEP:SpecialFalloff(falloff)
+	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
+		falloff = 3000
+	end
+	return falloff
+end
+
+function SWEP:SpecialRecoil(recoil)
+	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
+		recoil = recoil * 0.5
+	end
+	return recoil
+end
+
+function SWEP:SpecialConePre(cone)
+	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
+		cone = cone*0.25
+	end
+	return cone
+end

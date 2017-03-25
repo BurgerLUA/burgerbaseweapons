@@ -174,10 +174,12 @@ function BURGERBASE_FUNC_DropWeapon(ply,weapon)
 					ply:StripWeapon(Class)
 				end
 			elseif BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_drops_timed",false):GetInt() == 1 then
-				SafeRemoveEntityDelayed(CreatedWeapon,BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_drops_timer",false):GetInt())
+				if CreatedWeapon and CreatedWeapon ~= NULL then
+					SafeRemoveEntityDelayed(CreatedWeapon,BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_drops_timer",false):GetInt())
+				end
 			end
 			
-			if CreatedWeapon then
+			if ply and CreatedWeapon and CreatedWeapon ~= NULL then
 				CreatedWeapon:GetPhysicsObject():SetVelocity(ply:EyeAngles():Forward()*100)
 			end
 			
