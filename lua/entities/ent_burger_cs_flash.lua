@@ -87,9 +87,9 @@ function ENT:Detonate(self,pos)
 	if table.Count(Players) > 0 then
 		for k,v in pairs(Players) do
 			if (v:IsBot() and SERVER) or (!v:IsBot() and CLIENT) then
-				local distancecount = (maxdistance - self:EyePos():Distance(v:GetPos())) / 100
-				if distancecount > 0 then
-					self:BlindEffects(v,distancecount)
+				local DistanceDiff = (maxdistance - v:EyePos():Distance(self:GetPos()))
+				if DistanceDiff > 0 then
+					self:BlindEffects(v,DistanceDiff/100)
 				end
 			end
 		end
@@ -111,7 +111,7 @@ function ENT:BlindEffects(ply,distancecount)
 			distancecount = distancecount*0.5
 		end
 		
-		ply.BlindAmount = math.Clamp(distancecount,0,1) * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_flashbang_dur"):GetFloat()/2 + 1
+		ply.BlindAmount = math.Clamp(distancecount,0,1) * (BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_flashbang_dur"):GetFloat()/2)
 		
 		if ply.BlindAmount > 1 then
 			ply:SetDSP( 37, true )

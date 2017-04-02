@@ -10,6 +10,11 @@ function BURGERBASE_FUNC_TRANSLATEANIM(hitgroup)
 	AnimationTable[HITGROUP_RIGHTLEG] = {"flinch_phys_01","flinch_phys_02"}
 	AnimationTable[HITGROUP_GEAR] = {"flinch_phys_01","flinch_phys_02"}
 	local SelectedAnimationTable = AnimationTable[hitgroup]
+	
+	if not SelectedAnimationTable then
+		SelectedAnimationTable = {"flinch_phys_01","flinch_phys_02"}
+	end
+
 	local SelectedAnimation = SelectedAnimationTable[math.random(1,#SelectedAnimationTable)]
 	
 	return SelectedAnimation

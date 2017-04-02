@@ -1442,13 +1442,13 @@ function SWEP:BulletRandomGetSeed(seed)
 	seed = math.floor(seed)
 	
 	-- Method 1: Bullets per second
-	--returnmath.randomseed(self:GetBulletsPerSecond() + seed)
+	--return math.randomseed(self:GetBulletsPerSecond() + seed)
 	
 	-- Method 2: Heat
-	--math.randomseed(self:GetCoolDown() + seed)
+	return math.randomseed(self:GetCoolDown() + seed)
 	
 	--Method 3: Normal
-	math.randomseed(CurTime() + seed)
+	--math.randomseed(CurTime() + seed)
 	
 end
 
@@ -2449,7 +2449,7 @@ function SWEP:DrawContextMenu(x,y)
 					local TestKillTime = -1
 					--local Delay = weapon:GetDelay()
 					
-					for i=1, 20 do
+					for i=1, math.max(1,math.min(weapon.Primary.ClipSize-1,20)) do
 					
 						if TestKillTime == -1 then
 							if BulletsFired*FullDamage >= 100 then
@@ -2474,6 +2474,8 @@ function SWEP:DrawContextMenu(x,y)
 					local RPM = (1/AverageDelay)*60
 					local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
 					local KillTime = TestKillTime
+					
+					DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
 					
 				--end
 				

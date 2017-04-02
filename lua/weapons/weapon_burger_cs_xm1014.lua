@@ -77,14 +77,14 @@ end
 
 function SWEP:SpecialDamage(damage)
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
-		damage = 125
+		damage = 80
 	end
 	return damage
 end
 
 function SWEP:SpecialFalloff(falloff)
 	if self:GetPrimaryAmmo() == game.GetAmmoID("bb_12gaugeslug") then
-		falloff = 3000
+		falloff = 1000
 	end
 	return falloff
 end
