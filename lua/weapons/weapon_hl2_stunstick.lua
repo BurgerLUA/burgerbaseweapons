@@ -70,13 +70,14 @@ SWEP.AddFOV					= 10
 
 SWEP.EnableBlocking			= true
 
-
 SWEP.DamageFalloff			= 40
-SWEP.MeleeRange				= 40
+SWEP.MeleeRange				= 30
+SWEP.MeleeSize				= 24
 SWEP.MeleeDamageType		= DMG_SHOCK
 SWEP.MeleeDelay				= 0
 
-
+SWEP.HasDurability 			= true
+SWEP.DurabilityPerHit 		= -5
 
 function SWEP:PrimaryAttack()
 	if self:IsUsing() then return end
@@ -86,9 +87,7 @@ function SWEP:PrimaryAttack()
 	self:SendWeaponAnim(ACT_VM_HITCENTER)
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
 	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
-	if self:NewSwing(self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01),self.Primary.Delay,nil ) then
-		self:AddDurability(-2)
-	end
+	self:NewSwing(self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01),self.Primary.Delay,nil)
 end
 
 function SWEP:SpareThink()
@@ -119,19 +118,6 @@ end
 
 function SWEP:Reload()
 	--PrintTable(GetActivities(self))
-end
-
-function SWEP:AddDurability(amount)
-
-	self:SetClip1( math.Clamp(self:Clip1() + amount,0,100) )
-
-	if self:Clip1() <= 0 then
-		self.Owner:EmitSound("physics/metal/sawblade_stick1.wav")
-		if self and SERVER then
-			self.Owner:StripWeapon(self:GetClass())
-		end
-	end
-	
 end
 
 function SWEP:Deploy()

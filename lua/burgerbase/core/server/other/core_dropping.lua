@@ -92,6 +92,8 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 	if StoredWeapon.DisplayModel then
 		WeaponModel = StoredWeapon.DisplayModel
 	end
+	
+	--print(WeaponModel)
 
 	if WeaponModel && WeaponModel ~= "" then
 		local CreatedWeapon = ents.Create("ent_burger_core_dropped_weapon")

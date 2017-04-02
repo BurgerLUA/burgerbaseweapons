@@ -58,6 +58,7 @@ SWEP.MeleeSoundFleshLarge	= Sound("Weapon_Knife.Stab")
 
 SWEP.DamageFalloff			= 40
 SWEP.MeleeRange				= 40
+SWEP.MeleeSize				= 32
 SWEP.MeleeDelay				= 0.1
 
 function SWEP:PrimaryAttack()

@@ -101,7 +101,6 @@ SWEP.IgnoreDrawDelay		= false
 SWEP.EnableDropping 		= true
 
 -- Burst Settings
-
 SWEP.BurstSpeedOverride 	= 1
 SWEP.BurstConeMul			= 1
 SWEP.BurstHeatMul			= 1
@@ -121,6 +120,7 @@ SWEP.EnableBlocking			= false
 SWEP.MeleeDelay				= 0.05
 SWEP.MeleeDamageType		= DMG_SLASH
 SWEP.MeleeRange				= 40
+SWEP.MeleeSize 				= 8
 
 -- Zooming
 SWEP.HasIronCrosshair		= true
@@ -189,7 +189,6 @@ util.PrecacheSound("weapons/fx/rics/ric4.wav")
 util.PrecacheSound("weapons/fx/rics/ric5.wav")
 --]]
 
-
 if (CLIENT or game.SinglePlayer()) then
 	SWEP.IsZoomed 			= false -- Data, Client
 	SWEP.PunchAngleUp 		= Angle(0,0,0) -- Data, Client
@@ -207,11 +206,6 @@ if SERVER then
 	SWEP.AlreadyGiven			= false -- Data, Server
 	SWEP.HasMagIn				= true -- Data, Server
 end
-
-
-
-
-
 
 function SWEP:SetupDataTables()
 
@@ -923,8 +917,8 @@ function SWEP:HandleCone(Cone,IsCrosshair)
 	
 	
 		
-	if self.Owner:IsPlayer() and self.Owner:Crouching() then
-		Cone = Cone * 0.75
+	if self.Owner:IsPlayer() and !self.Owner:Crouching() then
+		Cone = Cone * 1.25
 	end
 	
 	Cone = Cone * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_baseconescale",false):GetFloat()
@@ -956,7 +950,7 @@ end
 
 function SWEP:SecondaryAttack()
 
-	local ToggleZoomEnabled = ToggleZoom == true
+	local ToggleZoomEnabled = ToggleZoom
 	--BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 1
 	
 	if IsFirstTimePredicted() then
@@ -1111,7 +1105,7 @@ end
 
 
 function SWEP:CanBoltZoom()
-	return not self.HasBoltAction or self:GetBoltDelay() <= CurTime()
+	return !self.HasBoltAction or self:GetBoltDelay() <= CurTime()
 end
 
 function SWEP:SpecialZoom(fov)
@@ -1413,7 +1407,17 @@ function SWEP:StartShortTrace(Pos,Direction,Distance)
 	data.endpos = Pos + Direction*Distance
 	data.mask = MASK_SHOT_HULL
 	
-	return util.TraceLine(data)
+	if self.Owner:IsPlayer() then
+		self.Owner:LagCompensation( true )
+	end
+	
+	local Trace = util.TraceLine(data)
+	
+	if self.Owner:IsPlayer() then
+		self.Owner:LagCompensation( false )
+	end
+	
+	return Trace
 
 end
 
@@ -1524,7 +1528,7 @@ function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntit
 			end
 			local BackTraceData = {}
 			BackTraceData.start = Pos + Direction
-			BackTraceData.endpos = Pos - Direction*Distance
+			BackTraceData.endpos = Pos - Direction*Distance	
 			local BackTrace = util.TraceLine(BackTraceData)
 			if IsFirstTimePredicted() then
 				self:BulletEffect(BackTrace.HitPos,BackTrace.StartPos,BackTrace.Entity,BackTrace.SurfaceProps)
@@ -2407,17 +2411,16 @@ function SWEP:DrawContextMenu(x,y)
 				local ClipSize = weapon.Primary.ClipSize	
 				
 				-- Damage
-				local Damage = 0
+				local Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat() * weapon:SpecialDamage(weapon.Primary.Damage)
+				local Shots = weapon:SpecialShots(weapon.Primary.NumShots)
 
 				if weapon.WeaponType == "Melee" then
 					Damage = weapon.Primary.Damage
-				else
-					Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat() * weapon:SpecialDamage(weapon.Primary.Damage)
+					Shots = 1
 				end
+				
 				Damage = math.Round(Damage, 2 )
-				
-				local Shots = weapon:SpecialShots(weapon.Primary.NumShots)
-				
+
 				local FullDamage = Damage * Shots
 				
 				
@@ -2449,7 +2452,14 @@ function SWEP:DrawContextMenu(x,y)
 					local TestKillTime = -1
 					--local Delay = weapon:GetDelay()
 					
-					for i=1, math.max(1,math.min(weapon.Primary.ClipSize-1,20)) do
+					local ClipSizeMath = math.min(weapon.Primary.ClipSize-1,20)
+					
+					if ClipSizeMath < 0 then
+						ClipSizeMath = 20
+					end
+					
+					
+					for i=1, ClipSizeMath do
 					
 						if TestKillTime == -1 then
 							if BulletsFired*FullDamage >= 100 then
@@ -2470,12 +2480,28 @@ function SWEP:DrawContextMenu(x,y)
 						
 					end
 					
+					if TestKillTime == -1 then
+					
+						TestKillTime = 0
+					
+						--[[
+						if self:GetIsBurst() then
+							TestKillTime = weapon:GetBurstMath()
+						else
+							TestKillTime = weapon:GetDelay()
+						end
+						--]]
+						
+					end
+					
 					local AverageDelay = SecondsPassed/(BulletsFired-1)
 					local RPM = (1/AverageDelay)*60
 					local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
 					local KillTime = TestKillTime
 					
-					DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
+					if !(weapon.Primary.ClipSize == -1) then
+						DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
+					end
 					
 				--end
 				
@@ -3158,6 +3184,22 @@ function SWEP:NewSwing(damage,delay,entoverride,delayoverride)
 	
 end
 
+SWEP.HasDurability = false
+SWEP.DurabilityPerHit = -10
+
+function SWEP:AddDurability(amount)
+
+	self:SetClip1( math.Clamp(self:Clip1() + amount,0,100) )
+
+	if self:Clip1() <= 0 then
+		self.Owner:EmitSound("physics/metal/sawblade_stick1.wav")
+		if self and SERVER then
+			self.Owner:StripWeapon(self:GetClass())
+		end
+	end
+	
+end
+
 function SWEP:SwingThink()
 
 	if self:GetShouldMelee() and self:GetNextMelee() <= CurTime() then
@@ -3177,13 +3219,11 @@ function SWEP:SwingThink()
 
 end
 
-SWEP.MeleeSize = 8
-
 function SWEP:Swing(damage,entoverride)
 
-	if self.Owner:IsPlayer() then
-		self.Owner:LagCompensation( true )
-	end
+
+	
+
 	
 	if entoverride and entoverride ~= NULL then
 	
@@ -3192,7 +3232,7 @@ function SWEP:Swing(damage,entoverride)
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( false )
 		end
-		
+
 		return entoverride
 	else
 	
@@ -3202,13 +3242,23 @@ function SWEP:Swing(damage,entoverride)
 		
 		Data.start = self.Owner:GetShootPos()
 		Data.endpos = self.Owner:GetShootPos() + self.Owner:EyeAngles():Forward() * (self.MeleeRange)
-		Data.filter = self.Owner
-		Data.mins = Vector( -BoxMultiplier , -BoxMultiplier , -BoxMultiplier )
-		Data.maxs = Vector( BoxMultiplier , BoxMultiplier , BoxMultiplier )
-		Data.mask = MASK_SHOT_HULL
+		Data.filter = function(ent)
+			return !(ent == self.Owner) and (ent:IsPlayer() or ent:IsNPC())
+		end
+		Data.mins = Vector( -BoxMultiplier , -BoxMultiplier , -BoxMultiplier*0.5 )
+		Data.maxs = Vector( BoxMultiplier , BoxMultiplier , BoxMultiplier*0.5 )
+		Data.mask = MASK_ALL
 
+		if self.Owner:IsPlayer() then
+			self.Owner:LagCompensation( true )
+		end
+		
 		local Trace = util.TraceHull( Data )
 		
+		if self.Owner:IsPlayer() then
+			self.Owner:LagCompensation( false )
+		end
+
 		local HasHitTarget = nil
 
 		if Trace.Hit then
@@ -3218,11 +3268,7 @@ function SWEP:Swing(damage,entoverride)
 		end
 		
 		self:NewSendHitEvent(HasHitTarget,damage,Data)
-		
-		if self.Owner:IsPlayer() then
-			self.Owner:LagCompensation( false )
-		end
-		
+
 		return HasHitTarget
 	end
 
@@ -3231,7 +3277,7 @@ end
 function SWEP:NewSendHitEvent(victim,damage,TraceData)
 
 	if victim and victim ~= NULL and (victim:IsPlayer() or victim:IsNPC()) then
-							
+				
 		local VictimAngles = victim:EyeAngles()
 		local AttackerAngles = self.Owner:EyeAngles()
 		VictimAngles:Normalize()
@@ -3266,6 +3312,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 
 		if ShouldDamage then
 			self:NewStabDamage(damage, victim)
+
 			if CLIENT then
 				self:NewStabFleshEffect(victim)
 			end
@@ -3274,22 +3321,28 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 	else
 	
 		local NewTraceData = {}
-		
 		NewTraceData.start = TraceData.start
 		NewTraceData.endpos = TraceData.endpos + (TraceData.endpos - TraceData.start):GetNormalized()*20
 		NewTraceData.filter = TraceData.filter
+		NewTraceData.mask = MASK_ALL
+		
+		if self.Owner:IsPlayer() then
+			self.Owner:LagCompensation( true )
+		end
 		
 		local NewTraceResult = util.TraceLine(NewTraceData)
-	
-	
+		
+		if self.Owner:IsPlayer() then
+			self.Owner:LagCompensation( false )
+		end
+
 		if IsFirstTimePredicted() then
-			--util.Decal(self.MeleeDecal,NewTraceResult.HitPos - NewTraceResult.HitNormal ,NewTraceResult.HitPos + NewTraceResult.HitNormal)
 			
 			if NewTraceResult.Hit then
 			
 				local effect = EffectData()
 				effect:SetOrigin(NewTraceResult.HitPos)
-				effect:SetStart(NewTraceResult.HitPos + NewTraceResult.HitNormal)
+				effect:SetStart(NewTraceResult.StartPos)
 				effect:SetNormal(NewTraceResult.HitNormal)
 				effect:SetDamageType(self.MeleeDamageType)
 				
@@ -3337,7 +3390,11 @@ function SWEP:NewStabDamage(damage, victim)
 		else
 			self:EmitGunSound(self.MeleeSoundWallHit)
 		end
-		
+						
+		if IsFirstTimePredicted() and self.HasDurability and HasHitTarget and HasHitTarget ~= NULL then
+			--self:AddDurability(self.DurabilityPerHit)
+		end
+
 		local dmginfo = DamageInfo()
 		dmginfo:SetDamage( damage )
 		dmginfo:SetDamageType( self.MeleeDamageType )

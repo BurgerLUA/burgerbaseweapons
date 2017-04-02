@@ -61,8 +61,9 @@ SWEP.MeleeSoundWallHit		= Sound("Flesh.BulletImpact")
 SWEP.MeleeSoundFleshSmall	= Sound("Weapon_Crowbar.Melee_Hit")
 SWEP.MeleeSoundFleshLarge	= Sound("Weapon_Crowbar.Melee_Hit")
 
-SWEP.DamageFalloff			= 40
-SWEP.MeleeRange				= 40
+SWEP.DamageFalloff			= 55
+SWEP.MeleeRange				= 55
+SWEP.MeleeSize				= 32
 SWEP.MeleeDamageType		= DMG_CLUB
 SWEP.MeleeDelay				= 0
 

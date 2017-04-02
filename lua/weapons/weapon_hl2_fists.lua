@@ -22,7 +22,7 @@ SWEP.WorldModel				= ""
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "fist"
 
-SWEP.Primary.Damage			= 25
+SWEP.Primary.Damage			= 10
 SWEP.Primary.Cone			= 1
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= -1
@@ -31,7 +31,7 @@ SWEP.Primary.Delay			= 0.5
 SWEP.Primary.Ammo			= "none"
 SWEP.Primary.Automatic 		= true 
 
-SWEP.Secondary.Damage		= 50
+SWEP.Secondary.Damage		= 30
 SWEP.Secondary.NumShots		= 1
 SWEP.Secondary.ClipSize		= -1
 SWEP.Secondary.SpareClip	= -1
@@ -59,6 +59,7 @@ SWEP.MeleeSoundFleshLarge	= Sound( "Flesh.ImpactHard" )
 
 SWEP.DamageFalloff			= 30
 SWEP.MeleeRange				= 30
+SWEP.MeleeSize				= 8
 SWEP.MeleeDamageType		= DMG_CRUSH
 SWEP.MeleeDelay				= 0.2
 

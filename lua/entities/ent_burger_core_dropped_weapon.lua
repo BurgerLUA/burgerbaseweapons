@@ -9,13 +9,16 @@ ENT.AdminSpawnable = false
 AddCSLuaFile()
 
 function ENT:Initialize()
+
+	self:SetColor(Color(255,255,255,255))
+
+
 	if SERVER then
 	
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
 		self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
-		
 		self:SetUseType(SIMPLE_USE)
 	
 		local phys = self:GetPhysicsObject()
@@ -26,10 +29,12 @@ function ENT:Initialize()
 		
 		if self:GetNWString("class","") == "" then
 			SafeRemoveEntity(self)
+			return
 		end
 		
 		if self:GetNWString("class") == "weapon_burger_cs_botgun" then
-			self:Remove()
+			SafeRemoveEntity(self)
+			return
 		end
 		
 		if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_drops_timed"):GetInt() == 1 then
@@ -37,6 +42,10 @@ function ENT:Initialize()
 		end
 		
 	end
+	
+	
+	
+	
 end
 
 function ENT:Use(activator,caller,useType,value)
