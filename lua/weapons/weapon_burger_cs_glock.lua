@@ -50,6 +50,7 @@ SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= false
 SWEP.HasDownRecoil			= false
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.BurstSpeedAbs			= 0.6	
 SWEP.BurstConeMul			= 1.5
@@ -61,8 +62,10 @@ SWEP.BurstAnimationOnce		= true
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.125
+SWEP.IronSightTime			= 0.25
 SWEP.IronSightsPos 			= Vector(-5.75, 5, 1)
 SWEP.IronSightsAng 			= Vector(1, 0, 0)
 
 SWEP.DamageFalloff			= 2000
+
+SWEP.RandomSeed				= 100

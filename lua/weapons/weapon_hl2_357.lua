@@ -51,6 +51,7 @@ SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= false
 SWEP.HasDryFire				= false
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.BurstOverride			= 6
 SWEP.BurstConeMul			= 10

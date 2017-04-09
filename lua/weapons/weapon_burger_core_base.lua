@@ -64,6 +64,8 @@ SWEP.TracerType				= 1
 SWEP.DamageFalloff			= 3000
 SWEP.ReloadTimeAdd			= 0
 
+SWEP.RandomSeed				= 0
+
 SWEP.ShootOffsetStrength	= Angle(0,0,0) -- Recoil for OP Snipers
 
 -- Sounds
@@ -87,6 +89,7 @@ SWEP.HasBurstFire 			= false
 SWEP.HasSilencer 			= false
 SWEP.HasSideRecoil			= false
 SWEP.HasDownRecoil			= false
+SWEP.HasFirstShotAccurate	= false
 
 SWEP.HasBuildUp				= false -- Uses Minigun Buildup
 SWEP.UsesBuildUp			= false -- Uses Buildup for Custom Reasons
@@ -173,6 +176,8 @@ SWEP.Secondary.DefaultClip 	= -1
 SWEP.Secondary.Automatic	= false
 SWEP.DrawAmmo				= true
 SWEP.DrawCrosshair			= false
+
+SWEP.CustomScopeSizeMul		= 1
 
 --[[
 SWEP.RichochetSound = {}
@@ -746,11 +751,7 @@ function SWEP:AfterZoom()
 	if self.HasScope then
 		if self.HasBoltAction then
 			if self:GetZoomed() then
-
-				
-				self:SetZoomOverlayDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
-				
-				
+				self:SetZoomOverlayDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )	
 				self:SetBoltDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 			end
 		end
@@ -793,26 +794,32 @@ function SWEP:PreShootBullet() -- Don't predict
 		ConeMinusPrimary = Cone
 	end
 
-	local Multi01 = self:BulletRandomSeed(-100,100,100) / 100
-	local Multi02 = self:BulletRandomSeed(-100,100,1000) / 100
-	local RandAngle = Angle(ConeMinusPrimary*Multi01*45,ConeMinusPrimary*Multi02*45,0)
-	local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),WithPunchAngles,Vector(0,0,0),RandAngle)
+	local PitchMulti = self:BulletRandomSeed(-100,100,0) / 100
+	local YawMulti = self:BulletRandomSeed(-100,100,0 + 100) / 100
+	local AngleToAdd = Angle(ConeMinusPrimary*PitchMulti*45,ConeMinusPrimary*YawMulti*45,0)
+	AngleToAdd:Normalize()
+	local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),AngleToAdd,Vector(0,0,0),WithPunchAngles)
+	--NewAngle = WithPunchAngles + AngleToAdd
+	
 	
 	NewAngle:Normalize()
 	
 	for i=1, Shots do 
-		local NewMulti01 = self:BulletRandomSeed(-100,100,i) / 100
-		local NewMulti02 = self:BulletRandomSeed(-100,100,i + Shots) / 100
-		local NewRandAngle = Angle(self.Primary.Cone*NewMulti01*45,self.Primary.Cone*NewMulti02*45,0) + NewAngle
+		local NewPitchMulti = self:BulletRandomSeed(-100,100,i + Shots + self:GetBulletQueue()) / 100
+		local NewYawMulti = self:BulletRandomSeed(-100,100,i + Shots + 100 + self:GetBulletQueue()) / 100
+		local NewAngleToAdd = Angle(self.Primary.Cone*NewPitchMulti*45,self.Primary.Cone*NewYawMulti*45,0)
+		NewAngleToAdd:Normalize()
+		local NewNewVector, NewNewAngle =  LocalToWorld(Vector(0,0,0),NewAngleToAdd,Vector(0,0,0),NewAngle)
+		--NewNewAngle = NewAngle + NewAngleToAdd
 		
 		if Cone < self.Primary.Cone then
-			NewRandAngle = NewAngle
+			NewNewAngle = NewAngle
 		end
 		
-		NewRandAngle:Normalize()
+		NewNewAngle:Normalize()
 
 		
-		self:ShootBullet(Damage,Shots,0,Source,NewRandAngle:Forward(),self.Owner)
+		self:ShootBullet(Damage,Shots,0,Source,NewNewAngle:Forward(),self.Owner)
 	end
 
 	
@@ -915,6 +922,16 @@ function SWEP:HandleCone(Cone,IsCrosshair)
 		end
 	end
 	
+	if SERVER then
+		print("WHAT",self.HasFirstShotAccurate,self:GetCoolDown() == 0,IsCrosshair == false)
+	end
+	
+	if self.HasFirstShotAccurate and self:GetCoolDown() == 0 and IsCrosshair == false then
+		Cone = 0
+	else
+		Cone = Cone + (self:GetCoolDown()*self.HeatMul*0.01)
+	end
+	
 	
 		
 	if self.Owner:IsPlayer() and !self.Owner:Crouching() then
@@ -922,8 +939,6 @@ function SWEP:HandleCone(Cone,IsCrosshair)
 	end
 	
 	Cone = Cone * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_baseconescale",false):GetFloat()
-
-	Cone = Cone + (self:GetCoolDown()*self.HeatMul*0.01)
 
 	Cone = self:SpecialConePost(Cone,IsCrosshair)
 	
@@ -1259,8 +1274,9 @@ function SWEP:GetHeatMath(Damage,Shots)
 
 	local DamageMod = Damage*Shots*0.01
 	local ConeMod = (math.max(0.001,self.Primary.Cone)^-0.1)
-	local WeightMod = (self.CSSMoveSpeed / 250 )
+	local WeightMod = math.Clamp(self.CSSMoveSpeed / 250,0.1,2)
 	local BurstMod = 1
+	local HeatMod = 0.5 + math.Clamp(self.DamageFalloff/3000,0.1,2)*0.5
 
 	if (self.HasBurstFire or self.AlwaysBurst) and self:GetIsBurst() then
 		BurstMod = self.BurstHeatMul
@@ -1399,7 +1415,7 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 
 end
 
-function SWEP:StartShortTrace(Pos,Direction,Distance)
+function SWEP:StartShortTrace(Pos,Direction,Distance,shouldcomp)
 
 	local data = {}
 
@@ -1407,13 +1423,13 @@ function SWEP:StartShortTrace(Pos,Direction,Distance)
 	data.endpos = Pos + Direction*Distance
 	data.mask = MASK_SHOT_HULL
 	
-	if self.Owner:IsPlayer() then
+	if shouldcomp and self.Owner:IsPlayer() then
 		self.Owner:LagCompensation( true )
 	end
 	
 	local Trace = util.TraceLine(data)
 	
-	if self.Owner:IsPlayer() then
+	if shouldcomp and self.Owner:IsPlayer() then
 		self.Owner:LagCompensation( false )
 	end
 	
@@ -1449,7 +1465,7 @@ function SWEP:BulletRandomGetSeed(seed)
 	--return math.randomseed(self:GetBulletsPerSecond() + seed)
 	
 	-- Method 2: Heat
-	return math.randomseed(self:GetCoolDown() + seed)
+	return math.randomseed( math.floor(self:GetCoolDown()) + seed + self.RandomSeed + string.len(self.PrintName))
 	
 	--Method 3: Normal
 	--math.randomseed(CurTime() + seed)
@@ -1515,7 +1531,7 @@ function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntit
 	end
 	
 	local ShouldEmit = ( ShouldPenetrate or ShouldRichochet ) and DamageMath > 1
-	local trace = self:StartShortTrace(Pos,Direction,Distance)
+	local trace = self:StartShortTrace(Pos,Direction,Distance,false)
 	
 	if ShouldEmit then
 		if trace.StartSolid then
@@ -1837,31 +1853,21 @@ function SWEP:Reload()
 
 end
 
+--[[
 function SWEP:GetViewModelPosition( pos, ang )
 
-	--ang = LocalPlayer():EyeAngles()
-	
-
-	
 	local EyeTrace = self.Owner:GetEyeTrace()
-	
 	local Adjust = 30
-	
 	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
 	
-	
-	--COCKS 
 	if not self.DistanceMod then
 		self.DistanceMod = DesiredDistanceMod
 	else
 		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
 	end
-	
 
 	pos = pos - ang:Forward()*self.DistanceMod
-	
-	
-	
+
 	if ( !self.IronSightsPos ) then return pos, ang end
 	
 	local bIron = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) )
@@ -1875,6 +1881,11 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.BobScale 	= math.Clamp(self.MoveConeMul * 0.5,0.5,2)
 	
 	end
+	
+	if self:GetBoltDelay() >= CurTime() then
+		pos = pos - ang:Up()*2
+	end
+	
 	
 	local fIronTime = self.fIronTime or 0
 
@@ -1921,6 +1932,91 @@ function SWEP:GetViewModelPosition( pos, ang )
 	return pos, ang
 	
 end
+--]]
+
+
+SWEP.IronSightPosCurrent = Vector(0,0,0)
+SWEP.IronSightAngCurrent = Angle(0,0,0)
+
+function SWEP:GetViewModelPosition( pos, ang )
+
+	local DesiredPosOffset = Vector(0,0,0)
+	local DesiredAngOffset = Angle(0,0,0)
+	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) )
+	local EyeTrace = self.Owner:GetEyeTrace()
+	local Adjust = 30
+	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
+
+	local ZoomSpeed = 1
+	
+	-- Start Angle
+	if ShouldSight then
+		local BaseAngOffset = self.IronSightsAng
+		if BaseAngOffset then
+			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	BaseAngOffset.x)
+			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		BaseAngOffset.y)
+			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	BaseAngOffset.z)
+		end
+	end
+	
+	if self:IsBusy() then
+		DesiredAngOffset = DesiredAngOffset + Angle(10,0,0)
+	end
+	
+	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+	
+	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*FrameTime()*(1/math.Clamp(self.IronSightTime,0.01,3))
+	ang = ang + self.IronSightAngCurrent
+	-- End Angle
+		
+	-- Start Position
+	if ShouldSight then	
+		local BasePosOffset = self.IronSightsPos
+		if BasePosOffset then
+			if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and self.HasScope == false then
+				BasePosOffset = BasePosOffset - Vector(BasePosOffset.x/2,0,BasePosOffset.z/2)
+			end
+			DesiredPosOffset = DesiredPosOffset + BasePosOffset.x * ang:Right()
+			DesiredPosOffset = DesiredPosOffset + BasePosOffset.y * ang:Forward()
+			DesiredPosOffset = DesiredPosOffset + BasePosOffset.z * ang:Up()
+		end
+	end
+	
+	if not self.DistanceMod then
+		self.DistanceMod = DesiredDistanceMod
+	else
+		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
+	end
+	DesiredPosOffset = DesiredPosOffset - ang:Forward()*self.DistanceMod
+	
+	if self.Owner:Crouching() and not self.HasGoodSights then
+		DesiredPosOffset = DesiredPosOffset + ang:Up()*2
+	end
+	
+	
+	--Start BoltZoom mod
+	if self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
+		DesiredPosOffset = DesiredPosOffset - ang:Up()*2
+	end
+	--End BoltZoom Mod
+	
+	-- End Postion
+
+	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*FrameTime()*(1/math.Clamp(self.IronSightTime,0.01,3))
+	pos = pos + self.IronSightPosCurrent
+
+	return pos, ang
+end
+
+--[[
+	if not self.DistanceMod then
+		self.DistanceMod = DesiredDistanceMod
+	else
+		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
+	end
+--]]
+
+
 
 function SWEP:Think()
 
@@ -2977,7 +3073,7 @@ function SWEP:DrawCustomScope(x,y,Cone,r,g,b,a)
 	
 		surface.SetDrawColor(self.CustomScopeCOverride)
 		surface.SetMaterial(self.CustomScope)
-		surface.DrawTexturedRectRotated(x/2 + PositionOffsetX,y/2 + PositionOffsetY,Size,Size,0)
+		surface.DrawTexturedRectRotated(x/2 + PositionOffsetX,y/2 + PositionOffsetY,Size*self.CustomScopeSizeMul,Size*self.CustomScopeSizeMul,0)
 		
 		if self.EnableDefaultScope then
 			surface.SetDrawColor(Color(0,0,0,255))

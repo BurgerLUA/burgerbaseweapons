@@ -56,6 +56,7 @@ SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
 SWEP.HasDryFire				= false
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true

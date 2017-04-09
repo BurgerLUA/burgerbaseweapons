@@ -25,7 +25,7 @@ SWEP.HoldType				= "smg"
 SWEP.Primary.Damage			= 26
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Sound			= Sound("Weapon_TMP.Single")
-SWEP.Primary.Cone			= 0.005
+SWEP.Primary.Cone			= 0.02
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 120
 SWEP.Primary.Delay			= 0.07 --1/(857/60)
@@ -50,11 +50,13 @@ SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= true
+SWEP.HasFirstShotAccurate	= true
+
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
-SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.125
+SWEP.HasGoodSights			= false
+SWEP.IronSightTime			= 0.25
 SWEP.IronSightsPos 			= Vector(-5.921, 0, 1.679)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 

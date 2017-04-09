@@ -50,6 +50,7 @@ SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= false
 SWEP.HasDownRecoil			= false
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
@@ -60,6 +61,6 @@ SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 5000
 
-SWEP.ZoomDelay				= 0.25
+SWEP.ZoomDelay				= 0.125
 
 SWEP.HasIdle				= false

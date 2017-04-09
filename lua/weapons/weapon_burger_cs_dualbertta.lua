@@ -33,10 +33,10 @@ SWEP.Primary.Ammo			= "bb_9mm"
 SWEP.Primary.Automatic 		= false
 
 SWEP.RecoilMul				= 1
-SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1
-SWEP.HeatMul				= 1
-SWEP.CoolMul				= 1
+SWEP.SideRecoilMul			= -0.5
+SWEP.MoveConeMul			= 1
+SWEP.HeatMul				= 0.5
+SWEP.CoolMul				= 0.5
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount				= 0.5
@@ -48,14 +48,15 @@ SWEP.HasBoltAction			= false
 SWEP.HasBurstFire 			= false
 SWEP.HasSilencer 			= false 
 SWEP.HasDoubleZoom			= false
-SWEP.HasSideRecoil			= false
+SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
 SWEP.HasDual				= true
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.125
+SWEP.IronSightTime			= 0.25
 SWEP.IronSightsPos 			= Vector(0, 20, 3)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
@@ -63,4 +64,6 @@ SWEP.DamageFalloff			= 1000
 
 SWEP.GetMagModel			= "models/weapons/unloaded/pist_fiveseven_mag.mdl"
 
-SWEP.EnableTracer			= false
+SWEP.SideRecoilBasedOnDual	= true
+
+

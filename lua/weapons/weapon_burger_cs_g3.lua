@@ -50,10 +50,11 @@ SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
-SWEP.HasGoodSights			= false
+SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
 SWEP.IronSightsPos 			= Vector(-6, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)

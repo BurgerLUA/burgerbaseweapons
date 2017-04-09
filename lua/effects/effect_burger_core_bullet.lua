@@ -1,7 +1,8 @@
 -- Copied from garry's tooltracer
 
 EFFECT.BulletMats = {}
-EFFECT.BulletMats[1] = Material( "vgui/peen" )
+EFFECT.BulletMats[1] = Material( "effects/spark" )
+--EFFECT.BulletMats[1] = Material( "vgui/peen" )
 EFFECT.BulletMats[2] = Material( "effects/gunshiptracer")
 EFFECT.BulletMats[3] = Material( "effects/laser_tracer" )
 
@@ -23,11 +24,11 @@ function EFFECT:Init( data )
 	self.EndPos = data:GetOrigin()
 	self.Direction = (self.StartPos - self.EndPos):GetNormalized()
 	self.Distance = self.StartPos:Distance(self.EndPos)
-	--self.Width = ((Magnitude*50)^0.30)*0.3
-	--self.Length = (Range*0.03)^1
+	self.Width = ((Magnitude*50)^0.30)*0.3
+	self.Length = (Range*0.03)^1
 	
-	self.Width = 149 * 0.05
-	self.Length = 320 * 0.1
+	--self.Width = 149 * 0.05
+	--self.Length = 320 * 0.1
 	
 	
 	self.DamageType = data:GetDamageType()
@@ -35,7 +36,7 @@ function EFFECT:Init( data )
 	
 	local Ratio = self.Length/self.Width
 
-	self.BulletSpeed = ( math.Clamp(Ratio * 100,2000,6000) + 1000 ) * 0.25
+	self.BulletSpeed = ( math.Clamp(Ratio * 100,2000,6000) + 1000 )
 	--self.BulletSpeed = 30
 	self.FadeTime = Range
 	self.MaxFade = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()

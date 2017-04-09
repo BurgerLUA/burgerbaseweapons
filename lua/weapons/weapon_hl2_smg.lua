@@ -57,6 +57,7 @@ SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
 SWEP.HasDryFire				= false
 SWEP.HasSpecialFire 		= true
+SWEP.HasFirstShotAccurate	= true
 
 SWEP.Object					= "grenade_ar2"
 
