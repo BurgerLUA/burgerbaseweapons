@@ -32,11 +32,13 @@ SWEP.Primary.Delay			= 0.075 --1/(800/60)
 SWEP.Primary.Ammo			= "bb_45acp"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 1
+SWEP.RecoilMul				= 2
 SWEP.SideRecoilMul			= 0.25
+SWEP.RecoilSpeedMul			= 1.25
 SWEP.MoveConeMul			= 0.75
 SWEP.HeatMul				= 1
 SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 2
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 0.5
@@ -56,7 +58,12 @@ SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(-7, 0, -1)
 SWEP.IronSightsAng 			= Vector(6, -2, 0)
 
-SWEP.DamageFalloff			= 800
+SWEP.DamageFalloff			= 600
+
+SWEP.CanShootWhileSprinting = true
+SWEP.IronRunPos				= Vector(0,0,0)
+SWEP.IronRunAng				= Vector(0,0,0)

@@ -2,7 +2,6 @@
 
 EFFECT.BulletMats = {}
 EFFECT.BulletMats[1] = Material( "effects/spark" )
---EFFECT.BulletMats[1] = Material( "vgui/peen" )
 EFFECT.BulletMats[2] = Material( "effects/gunshiptracer")
 EFFECT.BulletMats[3] = Material( "effects/laser_tracer" )
 
@@ -80,22 +79,25 @@ function EFFECT:Render()
 			render.SetMaterial( self.BulletMats[DMG_BULLET] )
 		end
 
-		render.DrawBeam( MaxPos , MinPos, self.Width,0, 1, Color(255,255,255,255) )
+		render.DrawBeam( MinPos , MaxPos, self.Width,0, 1, Color(255,255,255,255) )
 		
 	end
 	
+	if self.DamageType == 1 then
 	
-	local SmokeMul =(1 - self.SmokePercent)/(2*self.Width)
-	
-	local SmokeOffset = Vector(0,0, self.SmokePercent )*1
-	local Size = self.Length + self.Width
-	
-	local LightColor = render.GetLightColor( EyePos() )
+		local SmokeMul =(1 - self.SmokePercent)/(2*self.Width)
+		
+		local SmokeOffset = Vector(0,0, self.SmokePercent )*1
+		local Size = self.Length + self.Width
+		
+		local LightColor = render.GetLightColor( EyePos() )
 
-	local Lightness = math.min(150,math.max(LightColor.x*255,LightColor.y*255,LightColor.z*255))
+		local Lightness = math.min(150,math.max(LightColor.x*255,LightColor.y*255,LightColor.z*255))
+		
+		render.SetMaterial( self.SmokeTrailMat )
+		render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, (self.Width*0.5)*self.SmokePercent,0, 1, Color(Lightness,Lightness,Lightness, math.max(0,Size) * math.max(0,1-self.SmokePercent) ))
+
+	end
 	
-	render.SetMaterial( self.SmokeTrailMat )
-	render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, (self.Width*0.5)*self.SmokePercent,0, 1, Color(Lightness,Lightness,Lightness, math.max(0,Size) * math.max(0,1-self.SmokePercent) ))
-
-
+	
 end

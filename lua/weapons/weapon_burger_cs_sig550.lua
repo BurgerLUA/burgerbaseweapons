@@ -25,7 +25,7 @@ SWEP.HoldType				= "ar2"
 SWEP.Primary.Damage			= 70
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_SG550.Single")
-SWEP.Primary.Cone			= 0.00075
+SWEP.Primary.Cone			= 0
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 90
 SWEP.Primary.Delay			= 0.25 --1/(240/60)
@@ -34,9 +34,11 @@ SWEP.Primary.Automatic 		= true
 
 SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 10
+SWEP.RecoilSpeedMul			= 0.75
+SWEP.MoveConeMul			= 5
 SWEP.HeatMul				= 0.5
-SWEP.CoolMul				= 1.25
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 2
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount 			= 7
@@ -56,9 +58,14 @@ SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0
 SWEP.IronSightsPos 			= Vector(-7, -10, 1)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 4000
 
-SWEP.ZoomDelay				= 0.25
+SWEP.ZoomDelay				= 0.125
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(4,-5,-20)
+SWEP.IronRunAng				= Vector(45,10,0)

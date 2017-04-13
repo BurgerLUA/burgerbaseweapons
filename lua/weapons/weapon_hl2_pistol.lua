@@ -22,26 +22,24 @@ SWEP.WorldModel				= "models/weapons/w_pistol.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "revolver"
 
-SWEP.Primary.Damage			= 25
+SWEP.Primary.Damage			= 30
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Sound			= Sound("weapons/pistol/pistol_fire2.wav")
-SWEP.Primary.Cone			= 0.01
+SWEP.Primary.Cone			= 0.005
 SWEP.Primary.ClipSize		= 18
 SWEP.Primary.SpareClip		= 150
-SWEP.Primary.Delay			= 1/(700/60)
+SWEP.Primary.Delay			= 0.1
 SWEP.Primary.Ammo			= "pistol"
-SWEP.Primary.Automatic 		= true
+SWEP.Primary.Automatic 		= false
 SWEP.ReloadSound			= Sound("weapons/pistol/pistol_reload1.wav")
 
-SWEP.RecoilMul				= 1
-SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1
-SWEP.HeatMul				= 1.5
-
-SWEP.BurstOverride			= 3
-SWEP.BurstConeMul			= 0.1
-SWEP.BurstSpeedOverride 	= 1
-SWEP.BurstHeatMul			= 0.5
+SWEP.RecoilMul				= 2
+SWEP.SideRecoilMul			= 1
+SWEP.RecoilSpeedMul			= 0.75
+SWEP.MoveConeMul			= 0.5
+SWEP.HeatMul				= 0.25
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 0.75
@@ -50,7 +48,7 @@ SWEP.HasCSSZoom 			= false
 
 SWEP.HasPumpAction 			= false
 SWEP.HasBoltAction 			= false
-SWEP.HasBurstFire 			= true
+SWEP.HasBurstFire 			= false
 SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
@@ -66,3 +64,7 @@ SWEP.IronSightsPos 			= Vector(0, 20, 0)
 SWEP.IronSightsAng 			= Vector(0, 5, -45)
 
 SWEP.DamageFalloff			= 1000
+
+SWEP.CanShootWhileSprinting = true
+SWEP.IronRunPos				= Vector(0,0,0)
+SWEP.IronRunAng				= Vector(0,0,0)

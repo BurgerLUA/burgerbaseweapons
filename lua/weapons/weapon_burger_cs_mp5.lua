@@ -25,18 +25,20 @@ SWEP.HoldType				= "smg"
 SWEP.Primary.Damage			= 26
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_MP5Navy.Single")
-SWEP.Primary.Cone			= 0.006
+SWEP.Primary.Cone			= 0.003
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 120
 SWEP.Primary.Delay			= 0.08 --1/(750/60)
 SWEP.Primary.Ammo			= "bb_9mm"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 1
+SWEP.RecoilMul				= 1.25
 SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 0.75
-SWEP.HeatMul				= 1
-SWEP.CoolMul				= 0.5
+SWEP.RecoilSpeedMul			= 1.25
+SWEP.MoveConeMul			= 0.75
+SWEP.HeatMul				= 0.5
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 0.5
@@ -56,7 +58,12 @@ SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(-4, 0, 1)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(4,-1,-20)
+SWEP.IronRunAng				= Vector(45,10,0)
 
 SWEP.DamageFalloff			= 1500

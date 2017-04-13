@@ -25,7 +25,7 @@ SWEP.HoldType				= "duel"
 SWEP.Primary.Damage			= 45
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_ELITE.Single")
-SWEP.Primary.Cone			= 0.0075
+SWEP.Primary.Cone			= 0.0025
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 120
 SWEP.Primary.Delay			= 0.12 --1/(750/60)
@@ -33,10 +33,12 @@ SWEP.Primary.Ammo			= "bb_9mm"
 SWEP.Primary.Automatic 		= false
 
 SWEP.RecoilMul				= 1
-SWEP.SideRecoilMul			= -0.5
+SWEP.SideRecoilMul			= -1
+SWEP.RecoilSpeedMul			= 1.25
 SWEP.MoveConeMul			= 1
-SWEP.HeatMul				= 0.5
-SWEP.CoolMul				= 0.5
+SWEP.HeatMul				= 2
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 0.5
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount				= 0.5
@@ -56,7 +58,8 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.25
+SWEP.IronSightTime			= 0.5
+SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(0, 20, 3)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
@@ -65,5 +68,9 @@ SWEP.DamageFalloff			= 1000
 SWEP.GetMagModel			= "models/weapons/unloaded/pist_fiveseven_mag.mdl"
 
 SWEP.SideRecoilBasedOnDual	= true
+
+SWEP.CanShootWhileSprinting = true
+SWEP.IronRunPos				= Vector(0,0,0)
+SWEP.IronRunAng				= Vector(0,0,0)
 
 

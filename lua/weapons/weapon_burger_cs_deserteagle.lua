@@ -25,18 +25,20 @@ SWEP.HoldType				= "revolver"
 SWEP.Primary.Damage			= 54
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_DEagle.Single")
-SWEP.Primary.Cone			= 0.003
+SWEP.Primary.Cone			= 0.001
 SWEP.Primary.ClipSize		= 7
 SWEP.Primary.SpareClip		= 35
 SWEP.Primary.Delay			= 0.225
 SWEP.Primary.Ammo			= "bb_50ae"
 SWEP.Primary.Automatic 		= false
 
-SWEP.RecoilMul				= 1.5
+SWEP.RecoilMul				= 2
 SWEP.SideRecoilMul			= 1
-SWEP.MoveConeMul			= 0.5
+SWEP.RecoilSpeedMul			= 0.8
+SWEP.MoveConeMul			= 1
 SWEP.HeatMul				= 3
-SWEP.CoolMul				= 0.75
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 0.75
@@ -56,7 +58,12 @@ SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0.25
 SWEP.IronSightsPos 			= Vector(-6.3, 0, 1)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 3000
+
+SWEP.CanShootWhileSprinting = true
+SWEP.IronRunPos				= Vector(0,0,0)
+SWEP.IronRunAng				= Vector(0,0,0)

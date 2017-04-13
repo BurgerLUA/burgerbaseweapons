@@ -32,11 +32,13 @@ SWEP.Primary.Delay			= 0.88 --1/(68/60)
 SWEP.Primary.Ammo			= "bb_12gauge"
 SWEP.Primary.Automatic 		= false
 
-SWEP.RecoilMul				= 0.05
+SWEP.RecoilMul				= 0.2
 SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1
-SWEP.HeatMul				= 2
-SWEP.CoolMul				= 0.75
+SWEP.RecoilSpeedMul			= 0.75
+SWEP.MoveConeMul			= 1
+SWEP.HeatMul				= 1.5
+SWEP.CoolMul				= 0.5
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 0.25
@@ -55,13 +57,18 @@ SWEP.HasFirstShotAccurate	= false
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= false
-SWEP.IronSightTime			= 0.125
+SWEP.IronSightTime			= 0.5
+SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(-6, 0, 1.5)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 300
 
 SWEP.PenetrationLossScale	= 0.5
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(0,-5,-10)
+SWEP.IronRunAng				= Vector(15,10,0)
 
 SWEP.SpecialAmmo			= {"bb_12gauge","bb_12gaugeslug"}
 

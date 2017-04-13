@@ -35,10 +35,13 @@ SWEP.Primary.Automatic 		= true
 SWEP.ReloadSound			= Sound("weapons/smg1/smg1_reload.wav")
 --SWEP.BurstSound				= Sound("weapons/smg1/smg1_fireburst1.wav")
 
-SWEP.RecoilMul				= 1
+SWEP.RecoilMul				= 2
 SWEP.SideRecoilMul			= 0.25
-SWEP.MoveConeMul				= 1.25
+SWEP.RecoilSpeedMul			= 1.5
+SWEP.MoveConeMul			= 1
 SWEP.HeatMul				= 0.5
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 1
 
 SWEP.BurstConeMul			= 0.5
 SWEP.BurstRecoilMul			= 0.5
@@ -69,6 +72,10 @@ SWEP.IronSightsPos 			= Vector(-6.43, 0, 0)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 1000
+
+SWEP.CanShootWhileSprinting = true
+SWEP.IronRunPos				= Vector(0,0,0)
+SWEP.IronRunAng				= Vector(0,0,0)
 
 function SWEP:SpecialFire()
 

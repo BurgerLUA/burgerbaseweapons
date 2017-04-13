@@ -25,7 +25,7 @@ SWEP.HoldType				= "smg"
 SWEP.Primary.Damage			= 32
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_AUG.Single")
-SWEP.Primary.Cone			= 0
+SWEP.Primary.Cone			= 0.001
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 90
 SWEP.Primary.Delay			= 0.09
@@ -34,9 +34,11 @@ SWEP.Primary.Automatic 		= true
 
 SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.5
-SWEP.MoveConeMul			= 2
-SWEP.HeatMul				= 1
-SWEP.CoolMul				= 1
+SWEP.RecoilSpeedMul			= 0.9
+SWEP.MoveConeMul			= 1.5
+SWEP.HeatMul				= 0.25
+SWEP.CoolMul				= 0.75
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount				= 3
@@ -56,9 +58,14 @@ SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0
 SWEP.IronSightsPos 			= Vector(-7, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, -30)
 
-SWEP.DamageFalloff			= 4000
+SWEP.DamageFalloff			= 3000
 
-SWEP.ZoomDelay				= 0.25
+SWEP.ZoomDelay				= 0.125
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(0,-5,-20)
+SWEP.IronRunAng				= Vector(45,10,0)

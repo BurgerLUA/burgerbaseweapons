@@ -32,11 +32,14 @@ SWEP.Primary.Delay			= 1.5
 SWEP.Primary.Ammo			= "bb_338"
 SWEP.Primary.Automatic 		= false
 
-SWEP.RecoilMul				= 0.25
-SWEP.SideRecoilMul			= 0.5
+SWEP.RecoilMul				= 0.5
+SWEP.SideRecoilMul			= 0.25
+SWEP.RecoilSpeedMul			= 0.75
 SWEP.MoveConeMul			= 3
 SWEP.HeatMul				= 1
 SWEP.CoolMul				= 0.75
+SWEP.CoolSpeedMul			= 1
+
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount 			= 9
@@ -56,9 +59,14 @@ SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
+SWEP.ZoomTime				= 0
 SWEP.IronSightsPos 			= Vector(-7, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.DamageFalloff			= 9000
 
-SWEP.ZoomDelay				= 0.25
+SWEP.ZoomDelay				= 0.125
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(0,-5,-20)
+SWEP.IronRunAng				= Vector(45,10,0)

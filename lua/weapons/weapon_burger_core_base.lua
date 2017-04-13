@@ -10,7 +10,10 @@ SWEP.Base					= "weapon_base"
 SWEP.BurgerBase				= true 									
 SWEP.WeaponType				= "Primary"									
 SWEP.Cost					= 2500										
-SWEP.CSSMoveSpeed			= 221										
+SWEP.CSSMoveSpeed			= 221		
+
+SWEP.SwayScale 				= 2
+SWEP.BobScale 				= 1				
 
 -- Spawning
 SWEP.Spawnable				= false										
@@ -53,16 +56,23 @@ SWEP.BulletAngOffset		= Angle(0,0,0) -- Rotate the Projectile by this amount
 -- General Weapon Statistics
 SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.5
+SWEP.SideRecoilBasedOnDual	= false
+SWEP.RecoilSpeedMul			= 1
 SWEP.MoveConeMul			= 1
 SWEP.HeatMul				= 1
+SWEP.MaxHeat 				= 10
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 1
-SWEP.PenetrationLossMul		= 1
+
+
 SWEP.SideRecoilBasedOnDual	= false
+
+SWEP.PenetrationLossMul		= 1
 SWEP.FatalHeadshot			= false
 SWEP.TracerType				= 1
 SWEP.DamageFalloff			= 3000
 SWEP.ReloadTimeAdd			= 0
+
 
 SWEP.RandomSeed				= 0
 
@@ -90,6 +100,7 @@ SWEP.HasSilencer 			= false
 SWEP.HasSideRecoil			= false
 SWEP.HasDownRecoil			= false
 SWEP.HasFirstShotAccurate	= false
+SWEP.CanShootWhileSprinting	= true
 
 SWEP.HasBuildUp				= false -- Uses Minigun Buildup
 SWEP.UsesBuildUp			= false -- Uses Buildup for Custom Reasons
@@ -132,6 +143,7 @@ SWEP.IronSightsPos 			= Vector(-3, 20, 0)
 SWEP.IronSightsAng 			= Vector(1.25, 1, 0)
 SWEP.ZoomAmount 			= 1
 SWEP.ZoomDelay				= 0
+SWEP.ZoomTime				= 0.5
 
 -- Scope
 SWEP.HasScope 				= false
@@ -200,6 +212,8 @@ if (CLIENT or game.SinglePlayer()) then
 	SWEP.PunchAngleDown 	= Angle(0,0,0) -- Data, Client
 	SWEP.ClientCoolDown 	= 0	-- Data, Client
 	SWEP.ClientCoolTime 	= 0 -- Data, Client
+	SWEP.ClientCoolDownLeft = 0	-- Data, Client
+	SWEP.ClientCoolTimeLeft = 0 -- Data, Client
 	SWEP.StoredCrosshair 	= nil -- Data, Client
 	SWEP.BoltDelay 			= 0 -- Data, Client
 	SWEP.DesiredFOV			= GetConVar("fov_desired"):GetFloat()
@@ -230,8 +244,8 @@ function SWEP:SetupDataTables()
 	self:SetBuildUp(0)
 	self:NetworkVar("Float",7,"NextHL2Pump")
 	self:SetNextHL2Pump(0)
-	self:NetworkVar("Float",8,"ThrowAnimationTime")
-	self:SetThrowAnimationTime(0)
+	self:NetworkVar("Float",8,"ThrowDelay")
+	self:SetThrowDelay(0)
 	self:NetworkVar("Float",9,"ThrowRemoveTime")
 	self:SetThrowRemoveTime(0)
 	self:NetworkVar("Float",10,"ThrowTime")
@@ -258,6 +272,13 @@ function SWEP:SetupDataTables()
 	self:SetSharedZoomMod(0)
 	self:NetworkVar("Float",21,"SharedBoltDelay")
 	self:SetSharedBoltDelay(0)
+	self:NetworkVar("Float",22,"GrenadeExplosion")
+	self:SetGrenadeExplosion(0)
+	self:NetworkVar("Float",23,"CoolDownLeft")
+	self:SetCoolDownLeft(0)
+	self:NetworkVar("Float",24,"CoolTimeLeft")
+	self:SetCoolTimeLeft(0)
+
 
 	self:NetworkVar("Float",31,"SpecialFloat") -- For Special Stuff
 	self:SetSpecialFloat(0)
@@ -666,6 +687,7 @@ end
 
 function SWEP:CanShoot()
 	if self:IsBusy() then return false end
+	if not self.CanShootWhileSprinting and self:IsSprinting() then return false end
 	if self:IsUsing() then return false end
 	if self.WeaponType == "Throwable" then 
 		self:PreThrowObject() 
@@ -772,7 +794,7 @@ function SWEP:PreShootBullet() -- Don't predict
 	local Cone = 0
 	
 	if IsFirstTimePredicted() then
-		Cone = self:HandleCone(self.Primary.Cone,false)
+		Cone = self:HandleCone(self.Primary.Cone,false, (self.HasDual and self:GetIsLeftFire()) )
 	end
 
 	self:SetBulletsPerSecond( self:GetBulletsPerSecond() + 1 )
@@ -793,10 +815,17 @@ function SWEP:PreShootBullet() -- Don't predict
 	if Cone < self.Primary.Cone then
 		ConeMinusPrimary = Cone
 	end
+	
+	local FireMul = 1
+	
+	if self.HasDual and self:GetIsLeftFire() then
+		FireMul = -1
+	end
+	
 
 	local PitchMulti = self:BulletRandomSeed(-100,100,0) / 100
 	local YawMulti = self:BulletRandomSeed(-100,100,0 + 100) / 100
-	local AngleToAdd = Angle(ConeMinusPrimary*PitchMulti*45,ConeMinusPrimary*YawMulti*45,0)
+	local AngleToAdd = Angle(ConeMinusPrimary*PitchMulti*45,ConeMinusPrimary*YawMulti*45*FireMul,0)
 	AngleToAdd:Normalize()
 	local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),AngleToAdd,Vector(0,0,0),WithPunchAngles)
 	--NewAngle = WithPunchAngles + AngleToAdd
@@ -906,7 +935,7 @@ function SWEP:SpecialConePost(Cone,IsCrosshair)
 end
 
 
-function SWEP:HandleCone(Cone,IsCrosshair)
+function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
 
 	--IsCrosshair = false
 
@@ -922,18 +951,16 @@ function SWEP:HandleCone(Cone,IsCrosshair)
 		end
 	end
 	
-	if SERVER then
-		print("WHAT",self.HasFirstShotAccurate,self:GetCoolDown() == 0,IsCrosshair == false)
-	end
-	
-	if self.HasFirstShotAccurate and self:GetCoolDown() == 0 and IsCrosshair == false then
+	if self.HasFirstShotAccurate and (self:GetCoolDown() + self:GetCoolDownLeft()) == 0 and IsCrosshair == false then
 		Cone = 0
 	else
-		Cone = Cone + (self:GetCoolDown()*self.HeatMul*0.01)
+		if IsLeftFire then
+			Cone = Cone + (self:GetCoolDownLeft()*self.HeatMul*0.01)
+		else
+			Cone = Cone + (self:GetCoolDown()*self.HeatMul*0.01)
+		end
 	end
 	
-	
-		
 	if self.Owner:IsPlayer() and !self.Owner:Crouching() then
 		Cone = Cone * 1.25
 	end
@@ -974,6 +1001,7 @@ function SWEP:SecondaryAttack()
 
 	
 	if self:IsBusy() then return end
+	if self:IsSprinting() then return end
 
 	if self:IsUsing() then
 		if self.HasSpecialFire then
@@ -993,6 +1021,12 @@ function SWEP:SecondaryAttack()
 		end
 	end
 
+end
+
+function SWEP:HandleSprintCancelZoom()
+	if self:IsSprinting() and self:GetZoomed() then
+		self:ZoomOut()
+	end
 end
 
 function SWEP:HandleCancelZoom()
@@ -1199,11 +1233,23 @@ function SWEP:GetRecoilFinal()
 	local AvgBulletsShot = 0
 	
 	if self.Primary.Automatic == true then
-		if SERVER or IsSingleplayer then
-			AvgBulletsShot = self:GetCoolDown() / self:GetHeatMath( self:SpecialDamage(self.Primary.Damage) , self:SpecialShots(self.Primary.NumShots) )
+	
+		local HeatMath = self:GetHeatMath( self:SpecialDamage(self.Primary.Damage) , self:SpecialShots(self.Primary.NumShots) )
+		
+		if self.HasDual and self:GetIsLeftFire() then
+			if SERVER or IsSingleplayer then
+				AvgBulletsShot = (self:GetCoolDownLeft() / HeatMath )
+			else
+				AvgBulletsShot = (self.ClientCoolDownLeft / HeatMath )
+			end
 		else
-			AvgBulletsShot = self.ClientCoolDown / self:GetHeatMath( self:SpecialDamage(self.Primary.Damage) , self:SpecialShots(self.Primary.NumShots) )
+			if SERVER or IsSingleplayer then
+				AvgBulletsShot = (self:GetCoolDown() / HeatMath )
+			else
+				AvgBulletsShot = (self.ClientCoolDown / HeatMath )
+			end
 		end
+		
 	end
 	
 	UpPunch = UpPunch * ( 1 + AvgBulletsShot/ (1/self.Primary.Delay) )
@@ -1290,12 +1336,6 @@ end
 
 function SWEP:AddHeat(Damage,Shots)
 
-	--[[
-	if self.Owner and self.Owner:IsPlayer() and self.Owner:IsBot() then
-		Damage = Damage*2
-	end
-	--]]
-	
 	local CoolDown = self:GetHeatMath(Damage,Shots)
 	local CoolTime = (self.Primary.Delay + 0.1)*self.CoolMul
 	
@@ -1303,12 +1343,22 @@ function SWEP:AddHeat(Damage,Shots)
 		CoolTime = CoolTime * self.BurstCoolMul
 	end
 	
-	self:SetCoolDown( math.Clamp(self:GetCoolDown() + CoolDown,0,100) )
-	self:SetCoolTime( CurTime() + CoolTime )
-	
-	if CLIENT and self.Owner == LocalPlayer() then
-		self.ClientCoolDown = (math.Clamp(self.ClientCoolDown + CoolDown,0,100) + self:GetCoolDown())/2
-		self.ClientCoolTime = CurTime() + CoolTime
+	if self.HasDual and self:GetIsLeftFire() then
+		self:SetCoolDownLeft( math.Clamp(self:GetCoolDownLeft() + CoolDown,0,self.MaxHeat) )
+		self:SetCoolTimeLeft( CurTime() + CoolTime )
+
+		if CLIENT and self.Owner == LocalPlayer() then
+			self.ClientCoolDownLeft = (math.Clamp(self.ClientCoolDownLeft + CoolDown,0,self.MaxHeat) + self:GetCoolDownLeft())/2
+			self.ClientCoolTimeLeft = CurTime() + CoolTime
+		end
+	else
+		self:SetCoolDown( math.Clamp(self:GetCoolDown() + CoolDown,0,self.MaxHeat) )
+		self:SetCoolTime( CurTime() + CoolTime )
+		
+		if CLIENT and self.Owner == LocalPlayer() then
+			self.ClientCoolDown = (math.Clamp(self.ClientCoolDown + CoolDown,0,self.MaxHeat) + self:GetCoolDown())/2
+			self.ClientCoolTime = CurTime() + CoolTime
+		end
 	end
 	
 end
@@ -1459,16 +1509,29 @@ end
 
 function SWEP:BulletRandomGetSeed(seed)
 
-	seed = math.floor(seed)
+	seed = math.floor(seed) + self.RandomSeed + string.len(self.PrintName)
 	
-	-- Method 1: Bullets per second
-	--return math.randomseed(self:GetBulletsPerSecond() + seed)
+	local Precision = 1
 	
-	-- Method 2: Heat
-	return math.randomseed( math.floor(self:GetCoolDown()) + seed + self.RandomSeed + string.len(self.PrintName))
+	if !self.Primary.Automatic then
+		Precision = 0
+	end
 	
-	--Method 3: Normal
-	--math.randomseed(CurTime() + seed)
+	if self.HeatMul == 0 then
+		return math.randomseed( CurTime() + seed )
+	elseif self.HasDual and self:GetIsLeftFire() then
+		if self:GetCoolDownLeft() == self.MaxHeat then
+			return math.randomseed( CurTime() + seed )
+		else
+			return math.randomseed( math.Round(self:GetCoolDownLeft(),1) + seed)
+		end
+	else
+		if self:GetCoolDown() == self.MaxHeat then
+			return math.randomseed( CurTime() + seed )
+		else
+			return math.randomseed( math.Round(self:GetCoolDown(),1) + seed)
+		end
+	end
 	
 end
 
@@ -1679,16 +1742,23 @@ function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp)
 	
 end
 
+function SWEP:IsSprinting()
+
+	if self.Owner:KeyDown(IN_SPEED) then
+		return true
+	end
+	
+	return false
+end
+
 function SWEP:IsBusy()
 
 	if not self:GetCanHolster() then
 		return true
 	elseif self:GetIsReloading() then
 		return true
-	elseif self.HasSilencer then
-		if self:GetAttachDelay() > CurTime() then
-			return true
-		end
+	elseif self.HasSilencer and self:GetAttachDelay() > CurTime() then
+		return true
 	end
 	
 	return false
@@ -1934,9 +2004,15 @@ function SWEP:GetViewModelPosition( pos, ang )
 end
 --]]
 
-
 SWEP.IronSightPosCurrent = Vector(0,0,0)
 SWEP.IronSightAngCurrent = Angle(0,0,0)
+
+SWEP.IronDualSpacing 	= 1
+
+SWEP.IronRunPos				= Vector(0,-5,-20)
+SWEP.IronRunAng				= Vector(45,10,0)
+
+SWEP.VelAdd					= 0
 
 function SWEP:GetViewModelPosition( pos, ang )
 
@@ -1946,27 +2022,37 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local EyeTrace = self.Owner:GetEyeTrace()
 	local Adjust = 30
 	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
-
+	local OwnerVelocity = self.Owner:GetVelocity():Length()
 	local ZoomSpeed = 1
+	local TickRate = FrameTime()
 	
-	-- Start Angle
 	if ShouldSight then
-		local BaseAngOffset = self.IronSightsAng
-		if BaseAngOffset then
-			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	BaseAngOffset.x)
-			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		BaseAngOffset.y)
-			DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	BaseAngOffset.z)
-		end
+		self.SwayScale 				= 0.5
+		self.BobScale 				= 0.5
+	else
+		self.SwayScale 				= 4
+		self.BobScale 				= 2	
+	end
+
+	-- Start Angle
+	if self.IronSightsAng and ShouldSight then
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	self.IronSightsAng.x)
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		self.IronSightsAng.y)
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	self.IronSightsAng.z)
 	end
 	
-	if self:IsBusy() then
-		DesiredAngOffset = DesiredAngOffset + Angle(10,0,0)
+	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	self.IronRunAng.x)
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		self.IronRunAng.y)
+		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	self.IronRunAng.z)
 	end
 	
 	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
 	
-	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*FrameTime()*(1/math.Clamp(self.IronSightTime,0.01,3))
+	
+	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(self.IronSightTime,0.01,3))
 	ang = ang + self.IronSightAngCurrent
+	
 	-- End Angle
 		
 	-- Start Position
@@ -1980,20 +2066,45 @@ function SWEP:GetViewModelPosition( pos, ang )
 			DesiredPosOffset = DesiredPosOffset + BasePosOffset.y * ang:Forward()
 			DesiredPosOffset = DesiredPosOffset + BasePosOffset.z * ang:Up()
 		end
+	end	
+
+	if self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then	
+		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.x * ang:Right()
+		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.y * ang:Forward()
+		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.z * ang:Up()
 	end
-	
+
+	if not ShouldSight then 
+		DesiredPosOffset = DesiredPosOffset + math.sin(CurTime()*0.75) * ang:Right() * 0.125
+		DesiredPosOffset = DesiredPosOffset + math.sin(CurTime()*0.75) * ang:Up() * 0.125
+		
+		--local VelMul = (self.Owner:GetVelocity():Length()/100)^2
+		
+		--self.VelAdd = (self.VelAdd + VelMul*FrameTime()) % (math.pi * 2)
+		
+		--DesiredPosOffset = DesiredPosOffset + math.sin(self.VelAdd) * ang:Right() * 1
+		--DesiredPosOffset = DesiredPosOffset + math.sin(self.VelAdd) * ang:Up() * 0.25
+	end
+
 	if not self.DistanceMod then
 		self.DistanceMod = DesiredDistanceMod
 	else
-		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
+		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
 	end
 	DesiredPosOffset = DesiredPosOffset - ang:Forward()*self.DistanceMod
 	
-	if self.Owner:Crouching() and not self.HasGoodSights then
+	if self.Owner:Crouching() and not ShouldSight then
 		DesiredPosOffset = DesiredPosOffset + ang:Up()*2
 	end
 	
-	
+	if self.HasDual and ShouldSight then
+		if self:GetIsLeftFire() then
+			DesiredPosOffset = DesiredPosOffset - ang:Right()*self.IronDualSpacing
+		else
+			DesiredPosOffset = DesiredPosOffset + ang:Right()*self.IronDualSpacing
+		end
+	end
+
 	--Start BoltZoom mod
 	if self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
 		DesiredPosOffset = DesiredPosOffset - ang:Up()*2
@@ -2002,21 +2113,11 @@ function SWEP:GetViewModelPosition( pos, ang )
 	
 	-- End Postion
 
-	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*FrameTime()*(1/math.Clamp(self.IronSightTime,0.01,3))
+	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(self.IronSightTime,0.01,3))
 	pos = pos + self.IronSightPosCurrent
 
 	return pos, ang
 end
-
---[[
-	if not self.DistanceMod then
-		self.DistanceMod = DesiredDistanceMod
-	else
-		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
-	end
---]]
-
-
 
 function SWEP:Think()
 
@@ -2030,6 +2131,7 @@ function SWEP:Think()
 		end
 	end
 	
+	self:HandleSprintCancelZoom()
 	self:HandleHoldToZoom()
 	self:HandleCoolDown() -- don't predict
 	self:HandleBuildUp()
@@ -2270,15 +2372,23 @@ function SWEP:HandleCoolDown()
 	
 	if self:GetCoolTime() <= CurTime() then
 		if self:GetCoolDown() ~= 0 then
-			self:SetCoolDown(math.Clamp(self:GetCoolDown() - CoolMul,0,10))
+			self:SetCoolDown(math.Clamp(self:GetCoolDown() - CoolMul,0,self.MaxHeat))
 		end
 	end
 	
+	if self.HasDual and self:GetCoolTimeLeft() <= CurTime() then
+		if self:GetCoolDownLeft() ~= 0 then
+			self:SetCoolDownLeft(math.Clamp(self:GetCoolDownLeft() - CoolMul,0,self.MaxHeat))
+		end
+	end
+
 	if CLIENT and self.Owner == LocalPlayer() then
-		if self.ClientCoolTime <= CurTime() then
-			if self.ClientCoolDown ~= 0 then 
-				self.ClientCoolDown = math.Clamp(self.ClientCoolDown - CoolMul,0,10)
-			end
+		if self.ClientCoolDown ~= 0 and self.ClientCoolTime <= CurTime() then 
+			self.ClientCoolDown = math.Clamp(self.ClientCoolDown - CoolMul,0,self.MaxHeat)
+		end
+		
+		if self.ClientCoolDownLeft ~= 0 and self.ClientCoolTimeLeft <= CurTime() then 
+			self.ClientCoolDownLeft = math.Clamp(self.ClientCoolDownLeft - CoolMul,0,self.MaxHeat)
 		end
 	end
 
@@ -2288,14 +2398,14 @@ function SWEP:HandleZoomMod()
 	if self:GetZoomed() and self:GetZoomOverlayDelay() <= CurTime() then
 		if self.ZoomDelay <= 0 or self:GetZoomOverlayDelay() == -1 then
 			if self.HasIronSights then
-				self:SetZoomMod( math.min(self:GetZoomMod() + 0.015*6,1) )
+				self:SetZoomMod( math.min(self:GetZoomMod() + FrameTime()*(1/self.ZoomTime),1) )
 			else
 				self:SetZoomMod( 1 )
 			end
 		end
 	else
 		if self.HasIronSights then
-			self:SetZoomMod(math.max(self:GetZoomMod() - 0.015*6,0))
+			self:SetZoomMod(math.max(self:GetZoomMod() - FrameTime()*(1/self.ZoomTime),0))
 		else
 			self:SetZoomMod(0)
 		end
@@ -2312,7 +2422,7 @@ function SWEP:RemoveRecoil()
 	local yDown = self:HandleLimits(self.PunchAngleDown.y)
 	local rDown = self:HandleLimits(self.PunchAngleDown.r)
 
-	local FrameMul = 0.015*15
+	local FrameMul = 0.015*15*self.RecoilSpeedMul
 	local UpMul = 1 * FrameMul
 	local DownMul = 0.75 * FrameMul
 	
@@ -2382,15 +2492,19 @@ function SWEP:DrawHUDBackground()
 	
 	local VelCone = self.Owner:GetVelocity():Length()*0.0001
 	
+	local LeftCone = 0
+	local RightCone = 0
+	
 	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_dynamic",true):GetFloat() == 0 then
-		Cone = math.Clamp(self.Primary.Cone*900,0,x/2)
+		LeftCone = math.Clamp(self.Primary.Cone*900,0,x/2)
+		RightCone = math.Clamp(self.Primary.Cone*900,0,x/2)
 	else
-		Cone = math.Clamp(self:HandleCone(self.Primary.Cone,true)*900,0,x/2)*fovbonus
+		LeftCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,true)*900,0,x/2)*fovbonus
+		RightCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,false)*900,0,x/2)*fovbonus
 	end
 	
-	local ConeToSend = Cone
-	
-	if not IsSingleplayer then
+	--[[
+	if not IsSingleplayer then	
 		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_smoothing",true):GetFloat() == 1 then
 		
 			if not self.StoredCrosshair then
@@ -2409,6 +2523,7 @@ function SWEP:DrawHUDBackground()
 
 		end
 	end
+	--]]
 	
 	if self.HasScope then
 
@@ -2416,9 +2531,9 @@ function SWEP:DrawHUDBackground()
 			if self.ZoomDelay <= 0 or self:GetZoomOverlayDelay() <= CurTime() then
 		
 				if LocalPlayer():ShouldDrawLocalPlayer() then
-					self:DrawCustomCrosshair(x,y,ConeToSend,length,width,r,g,b,a)
+					self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,a)
 				else
-					self:DrawCustomScope(x,y,ConeToSend,r,g,b,a)
+					self:DrawCustomScope(x,y,RightCone,r,g,b,a)
 				end
 
 				if not self.IgnoreScopeHide then
@@ -2434,10 +2549,27 @@ function SWEP:DrawHUDBackground()
 	end
 		
 	if self.HasCrosshair or (self.Owner:IsPlayer() and self.Owner:IsBot()) then
-		self:DrawCustomCrosshair(x,y,ConeToSend,length,width,r,g,b,a)
+	
+		if self.HasDual then
+		
+			local LeftAlpha = a
+			local RightAlpha = a
+
+			if !self:GetIsLeftFire() then
+				RightAlpha = RightAlpha * 0.5
+			else
+				LeftAlpha = LeftAlpha * 0.5
+			end
+
+			self:DrawCustomCrosshair(x,y,LeftCone,length,width,r,g,b,LeftAlpha)
+			self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,RightAlpha)
+			
+		else
+			self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,a)
+		end
 	end
 
-	self:DrawSpecial(ConeToSend)
+	self:DrawSpecial(RightCone)
 	
 end
 
@@ -2464,8 +2596,6 @@ if CLIENT then
 
 end
 
-
-
 function SWEP:DrawContextMenu(x,y)
 
 	if BurgerBase_ContextMenuIsOpen == true then
@@ -2491,17 +2621,11 @@ function SWEP:DrawContextMenu(x,y)
 				
 				-- Name
 				local Name = weapon.PrintName .. " | " .. weapon.Category
-
-				
-				
 				
 				if weapon:GetPrimaryAmmo() and weapon:GetPrimaryAmmo() ~= -1 then
 					Name = language.GetPhrase(game.GetAmmoName(weapon:GetPrimaryAmmo()) .. "_ammo") .. " " ..  Name
 				end
-				
-				
-				
-				
+
 				-- ClipSize
 				
 				local ClipSize = weapon.Primary.ClipSize	
@@ -2518,97 +2642,55 @@ function SWEP:DrawContextMenu(x,y)
 				Damage = math.Round(Damage, 2 )
 
 				local FullDamage = Damage * Shots
-				
-				
-				--[[
-				-- Firerate
-				
-				local Delay = weapon:GetDelay()
-				
-				local RPM = (1/Delay)*60
 
-				-- DPS
-				local ClipMod = ClipSize
-				if ClipMod == -1 then
-					ClipMod = 100000		
+				local BulletsFired = 1
+				local SecondsPassed = 0
+				local TestKillTime = -1
+				--local Delay = weapon:GetDelay()
+				
+				local ClipSizeMath = math.min(weapon.Primary.ClipSize-1,20)
+				
+				if ClipSizeMath < 0 then
+					ClipSizeMath = 20
 				end
-				local DPS = math.min( (1/Delay) * FullDamage , FullDamage * ClipMod)
 				
-				-- Kill Time
-				local KillTime = (100/FullDamage) * (Delay) 
-				--]]
+				for i=1, ClipSizeMath do
 				
-				
-				
-				-- Burst Stuff
-				--if self:GetIsBurst() then
-				
-					local BulletsFired = 1
-					local SecondsPassed = 0
-					local TestKillTime = -1
-					--local Delay = weapon:GetDelay()
-					
-					local ClipSizeMath = math.min(weapon.Primary.ClipSize-1,20)
-					
-					if ClipSizeMath < 0 then
-						ClipSizeMath = 20
+					if TestKillTime == -1 then
+						if BulletsFired*FullDamage >= 100 then
+							TestKillTime = SecondsPassed
+						end
 					end
 					
-					
-					for i=1, ClipSizeMath do
-					
-						if TestKillTime == -1 then
-							if BulletsFired*FullDamage >= 100 then
-								TestKillTime = SecondsPassed
-							end
-						end
-						
-						if self:GetIsBurst() then
-							SecondsPassed = SecondsPassed + weapon:GetBurstMath()
-							if i % self.BurstOverride == 0 then
-								SecondsPassed = SecondsPassed + weapon:GetDelay()
-							end
-						else
+					if self:GetIsBurst() then
+						SecondsPassed = SecondsPassed + weapon:GetBurstMath()
+						if i % self.BurstOverride == 0 then
 							SecondsPassed = SecondsPassed + weapon:GetDelay()
 						end
-						
-						BulletsFired = BulletsFired + 1
-						
+					else
+						SecondsPassed = SecondsPassed + weapon:GetDelay()
 					end
 					
-					if TestKillTime == -1 then
+					BulletsFired = BulletsFired + 1
 					
-						TestKillTime = 0
-					
-						--[[
-						if self:GetIsBurst() then
-							TestKillTime = weapon:GetBurstMath()
-						else
-							TestKillTime = weapon:GetDelay()
-						end
-						--]]
-						
-					end
-					
-					local AverageDelay = SecondsPassed/(BulletsFired-1)
-					local RPM = (1/AverageDelay)*60
-					local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
-					local KillTime = TestKillTime
-					
-					if !(weapon.Primary.ClipSize == -1) then
-						DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
-					end
-					
-				--end
+				end
 				
+				if TestKillTime == -1 then
+					TestKillTime = 0
+				end
 				
+				local AverageDelay = SecondsPassed/(BulletsFired-1)
+				local RPM = (1/AverageDelay)*60
+				local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
+				local KillTime = TestKillTime
 				
+				if !(weapon.Primary.ClipSize == -1) then
+					DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
+				end
 
-
-				
 				-- Accuracy
 				local Cone = weapon.Primary.Cone
-				local NewCone = weapon:HandleCone(Cone,false)
+				local NewCone = weapon:HandleCone(Cone,false,(self.HasDual and self:GetIsLeftFire()))
 				local BaseAccuracy = 0.1
 				local Accuracy = (BaseAccuracy - math.Clamp(NewCone,0,BaseAccuracy)) / BaseAccuracy
 				Accuracy = math.Round(Accuracy, 2 )			
@@ -2626,18 +2708,18 @@ function SWEP:DrawContextMenu(x,y)
 				local PenetrationLossPerUnit = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat() * MatCalc * math.max(0.1,self.PenetrationLossMul) * 1
 				local BulletPenetration = Damage / math.max(3,PenetrationLossPerUnit)
 				
-			-- End Data
-		
-			draw.RoundedBox( 8, ScrW()*0.1 - FontSize , ScrH()*0.1 - FontSize, BasePosX*3 + FontSize*2, FontSize*15, Color(0,0,0,200 ) )
-		
-			local TextColor = Color(239,184,55,255)
-			local PrimaryColor = Color(239,184,55,100)
-			local SecondaryColor = TextColor
-		
-			surface.SetFont( "DermaLarge" )
-			surface.SetTextColor( TextColor )
-			surface.SetDrawColor( PrimaryColor )
-			draw.NoTexture()
+				-- End Data
+			
+				draw.RoundedBox( 8, ScrW()*0.1 - FontSize , ScrH()*0.1 - FontSize, BasePosX*3 + FontSize*2, FontSize*15, Color(0,0,0,200 ) )
+			
+				local TextColor = Color(239,184,55,255)
+				local PrimaryColor = Color(239,184,55,100)
+				local SecondaryColor = TextColor
+			
+				surface.SetFont( "DermaLarge" )
+				surface.SetTextColor( TextColor )
+				surface.SetDrawColor( PrimaryColor )
+				draw.NoTexture()
 				
 				-- Title
 				local PosNumber = 0
@@ -2831,21 +2913,36 @@ function SWEP:DrawCustomCrosshair(x,y,Cone,length,width,r,g,b,a)
 				if CrosshairStyle >= 1 and CrosshairStyle <= 4 then
 				
 					if CrosshairShadow >= 1 then
+					
+						local RealLength = LRound*2
+					
 						-- Start of Shadow Stuff
-						local x1 = XRound + FinalCone + LRound*2
-						local x2 = XRound - FinalCone - LRound*2
-						local y3 = YRound + FinalCone + LRound*2
-						local y4 = YRound - FinalCone - LRound*2
+						local x1 = XRound + FinalCone + RealLength
+						local x2 = XRound - FinalCone - RealLength
+						local y3 = YRound + FinalCone + RealLength
+						local y4 = YRound - FinalCone - RealLength
 
 						local Offset = 1
-						local ShadowWidth = 3
-						local ShadowLength = LRound*2 + Offset*3 - 1
 
-						surface.SetDrawColor(Color(0,0,0,255))
-						surface.DrawRect( x1 - LRound*2, YRound - Offset , ShadowLength, ShadowWidth )
-						surface.DrawRect( x2 - 1, YRound - Offset , ShadowLength, ShadowWidth )
-						surface.DrawRect( XRound - Offset, y3 - LRound*2 , ShadowWidth, ShadowLength )
-						surface.DrawRect( XRound - Offset, y4 - 1 , ShadowWidth, ShadowLength )
+						surface.SetDrawColor(Color(0,0,0,a))
+						
+						--Right
+						surface.DrawLine(x1 - RealLength,YRound - Offset,x1 + Offset*2,YRound - Offset)
+						surface.DrawLine(x1 - RealLength,YRound + Offset,x1 + Offset*2,YRound + Offset)
+						
+						--Left
+						surface.DrawLine(x2 + RealLength,YRound - Offset,x2 - Offset*2,YRound - Offset)
+						surface.DrawLine(x2 + RealLength,YRound + Offset,x2 - Offset*2,YRound + Offset)
+						
+						--Bottom
+						surface.DrawLine(XRound - Offset,y3 - RealLength,XRound - Offset,y3 + Offset*2)
+						surface.DrawLine(XRound + Offset,y3 - RealLength,XRound + Offset,y3 + Offset*2)
+						
+						--Top
+						surface.DrawLine(XRound - Offset,y4 + RealLength,XRound - Offset,y4 - Offset*2)
+						surface.DrawLine(XRound + Offset,y4 + RealLength,XRound + Offset,y4 - Offset*2)
+
+						
 						-- End of Shadow Stuff
 					end
 					
@@ -2891,18 +2988,17 @@ function SWEP:DrawCustomCrosshair(x,y,Cone,length,width,r,g,b,a)
 					local Max = math.max(1,width)
 					
 					if CrosshairShadow >= 1 then
-						--Start of Shadow Stuff
+
 						if width <= 1 then
-							surface.SetDrawColor(Color(0,0,0,255))
+							surface.SetDrawColor(Color(0,0,0,a))
 							surface.DrawRect( XRound - WRound - 1, YRound - WRound - 1 , Max + 2, Max + 2 )
 						end
-						-- End of Shadow Stuff
 					end
 					
 					-- Start of Normal Stuff
 					surface.SetDrawColor(r,g,b,a)
 					surface.DrawRect( XRound - WRound, YRound - WRound , Max, Max )
-					-- End of Shadow Stuff
+
 
 				end
 				
@@ -2932,7 +3028,7 @@ function SWEP:DrawCustomCrosshair(x,y,Cone,length,width,r,g,b,a)
 	
 end
 
-function SWEP:DrawSpecial(ConeToSend)
+function SWEP:DrawSpecial(Cone)
 
 
 end
@@ -3140,36 +3236,67 @@ function SWEP:EquipThink()
 
 	if self:GetIsThrowing() then
 	
-		if self:GetThrowAnimationTime() <= CurTime() then
+		local ShouldExplode = self:GetGrenadeExplosion() ~= 0 and self:GetGrenadeExplosion() <= CurTime()
+	
+		if self.CanCook and ShouldExplode then
+			self:ThrowObject(self.Object,0)
+			if self:Ammo1() > 0 then
+				self:TakePrimaryAmmo(1)
+			end
+			self:SetGrenadeExplosion(0)
+			self:RemoveGrenade()
+			return
+		end
+	
+		if !self.Owner:KeyDown(IN_ATTACK) and self:GetThrowDelay() ~= 0 and self:GetThrowDelay() <= CurTime() then
+		
 			self:SendWeaponAnim(ACT_VM_THROW)
-			self:SetThrowAnimationTime(CurTime() + 10)
+			self.Owner:SetAnimation(PLAYER_ATTACK1) 
+
+			self:SetThrowTime(CurTime() + self.Owner:GetViewModel():SequenceDuration()*0.33)
+			self:SetThrowRemoveTime(CurTime() + self.Owner:GetViewModel():SequenceDuration())
+			self:SetThrowDelay(0)
+			
 		end
 		
-		if self:GetThrowTime() <= CurTime() then
-			self.Owner:SetAnimation(PLAYER_ATTACK1) 
+		if not ShouldExplode and self:GetThrowTime() ~= 0 and self:GetThrowTime() <= CurTime() then
 			self:ThrowObject(self.Object,1000)
 			if self:Ammo1() > 0 then
 				self:TakePrimaryAmmo(1)
 			end
-			self:SetThrowTime(CurTime() + 10)
+			self:SetThrowTime(0)
+			self:SetGrenadeExplosion(0)
 		end
 		
-	if self:GetThrowRemoveTime() <= CurTime() then
-		self:SetCanHolster( true )
-		self:SetIsThrowing( false )
-		if self:Ammo1() > 0 then
-			self:SendWeaponAnim(ACT_VM_DRAW)
-		else
-			self:SwitchToPrimary() -- Removing this does not change the bug
-			if SERVER then
-				self:Remove(self.Weapon)
-			end
+		if self:GetThrowRemoveTime() ~= 0 and self:GetThrowRemoveTime() <= CurTime() then
+			self:RemoveGrenade()
 		end
-	end
-		
+
 	end
 	
 end
+
+SWEP.CanCook = false
+SWEP.FuseTime = 5
+
+function SWEP:RemoveGrenade()
+
+	self:SetCanHolster( true )
+	self:SetIsThrowing( false )
+	
+	if self:Ammo1() > 0 then
+		self:SendWeaponAnim(ACT_VM_DRAW)
+	else
+		self:SwitchToPrimary()
+		if SERVER then
+			self:Remove(self.Weapon)
+		end
+	end
+	
+	self:SetThrowRemoveTime(0)
+	
+end
+
 
 function SWEP:SwitchToPrimary()
 
@@ -3208,16 +3335,15 @@ function SWEP:PreThrowObject(override)
 	
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
 	
+	local ThrowDelay = 0.15
+	
 	if self.HasPreThrow then
-		self:SendWeaponAnim(ACT_VM_PULLPIN)
-		self:SetThrowAnimationTime( CurTime() + 0.85 )
-		self:SetThrowTime(CurTime() + 1.1)
-		self:SetThrowRemoveTime(CurTime() + 2)
-	else			
-		self:SetThrowAnimationTime( 0 )
-		self:SetThrowTime(CurTime() + 0.15)
-		self:SetThrowRemoveTime(CurTime() + 1)
+		self:SendWeaponAnim( ACT_VM_PULLPIN )
+		ThrowDelay = self.Owner:GetViewModel():SequenceDuration()
 	end
+	
+	self:SetThrowDelay(CurTime() + ThrowDelay)
+	self:SetGrenadeExplosion(CurTime() + self.FuseTime)
 	
 	self:SetCanHolster( false )
 	self:SetIsThrowing( true )
@@ -3237,6 +3363,7 @@ function SWEP:ThrowObject(object,force)
 	ent:Activate()
 	ent:Fire()
 	ent:SetOwner(self.Owner)
+	ent.ExplodeTime = self:GetGrenadeExplosion()
 	
 	if ent:GetPhysicsObject():IsValid() then
 		if object == "ent_hl2_gasparticle" then
@@ -3317,10 +3444,6 @@ end
 
 function SWEP:Swing(damage,entoverride)
 
-
-	
-
-	
 	if entoverride and entoverride ~= NULL then
 	
 		self:NewSendHitEvent(entoverride,damage,nil)

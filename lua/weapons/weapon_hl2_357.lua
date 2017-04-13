@@ -24,7 +24,7 @@ SWEP.WorldModel				= "models/weapons/w_357.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "revolver"
 
-SWEP.Primary.Damage			= 70
+SWEP.Primary.Damage			= 80
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("weapons/357/357_fire2.wav")
 SWEP.Primary.Cone			= 0.002
@@ -34,10 +34,13 @@ SWEP.Primary.Delay			= 1/(90/60)
 SWEP.Primary.Ammo			= "357"
 SWEP.Primary.Automatic 		= false
 
-SWEP.RecoilMul				= 0.5
+SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.25
+SWEP.RecoilSpeedMul			= 0.75
 SWEP.MoveConeMul			= 2
 SWEP.HeatMul				= 1
+SWEP.CoolMul				= 1
+SWEP.CoolSpeedMul			= 1
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 1
@@ -62,5 +65,9 @@ SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
 SWEP.IronSightsPos 			= Vector(-4, 4, 0)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
+
+SWEP.CanShootWhileSprinting = false
+SWEP.IronRunPos				= Vector(0,-5,-15)
+SWEP.IronRunAng				= Vector(45,0,0)
 
 SWEP.DamageFalloff			= 6000

@@ -25,7 +25,6 @@ function ENT:Initialize()
 			phys:SetBuoyancyRatio(0)
 		end
 		
-		self.Delay = CurTime() + 2
 	end
 end
 
@@ -37,7 +36,7 @@ end
 
 function ENT:Think()
 	if SERVER then
-		if CurTime() > self.Delay then 
+		if CurTime() > self.ExplodeTime then 
 			self:Detonate(self,self:GetPos())
 		end
 	end

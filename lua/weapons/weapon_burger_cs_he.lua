@@ -47,3 +47,6 @@ SWEP.HasSideRecoil			= false
 SWEP.HasPreThrow			= true
 
 SWEP.Object					= "ent_burger_cs_he"
+
+SWEP.CanCook 				= true
+SWEP.FuseTime				= 3
