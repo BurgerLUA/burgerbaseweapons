@@ -1310,8 +1310,8 @@ end
 function SWEP:AddRecoil()
 	if CLIENT or IsSingleplayer then
 		local UpPunch, SidePunch = self:GetRecoilFinal()
-		self.PunchAngleUp = self.PunchAngleUp + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*math.Rand(-0.5,0.5),self.ShootOffsetStrength.y*math.Rand(-0.5,0.5),0)
-		self.PunchAngleDown = self.PunchAngleDown + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*math.Rand(-0.5,0.5),self.ShootOffsetStrength.y*math.Rand(-0.5,0.5),0)
+		self.PunchAngleUp = self.PunchAngleUp + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,1),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,10),0)
+		self.PunchAngleDown = self.PunchAngleDown + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,100),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,1000),0)
 	end
 
 end
