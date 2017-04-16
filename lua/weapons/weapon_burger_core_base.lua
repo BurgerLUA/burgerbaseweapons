@@ -2124,7 +2124,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	pos = pos + self.IronSightPosCurrent
 	
-	--[[
+
 	if ShouldSight then	
 	
 		local PosDistance = DesiredPosOffset:Distance(self.IronSightPosCurrent)
@@ -2141,7 +2141,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.IronSightAngSnap = false
 		self.IronSightPosSnap = false
 	end
-	--]]
 
 	return pos, ang
 end
