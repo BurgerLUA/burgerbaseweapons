@@ -2016,6 +2016,9 @@ SWEP.VelAdd					= 0
 
 function SWEP:GetViewModelPosition( pos, ang )
 
+	local OldPos = pos
+	local OldAng = ang
+
 	local DesiredPosOffset = Vector(0,0,0)
 	local DesiredAngOffset = Angle(0,0,0)
 	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) )
@@ -2025,10 +2028,15 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local OwnerVelocity = self.Owner:GetVelocity():Length()
 	local ZoomSpeed = 1
 	local TickRate = FrameTime()
+	local TimeRate = self.IronSightTime
+	
+	if self.IronSightAngSnap and self.IronSightPosSnap then
+		TimeRate = 0.1
+	end
 	
 	if ShouldSight then
-		self.SwayScale 				= 0.5
-		self.BobScale 				= 0.5
+		self.SwayScale 				= 0
+		self.BobScale 				= 0
 	else
 		self.SwayScale 				= 4
 		self.BobScale 				= 2	
@@ -2050,7 +2058,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
 	
 	
-	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(self.IronSightTime,0.01,3))
+	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,0.01,3))
 	ang = ang + self.IronSightAngCurrent
 	
 	-- End Angle
@@ -2113,8 +2121,27 @@ function SWEP:GetViewModelPosition( pos, ang )
 	
 	-- End Postion
 
-	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(self.IronSightTime,0.01,3))
+	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	pos = pos + self.IronSightPosCurrent
+	
+	--[[
+	if ShouldSight then	
+	
+		local PosDistance = DesiredPosOffset:Distance(self.IronSightPosCurrent)
+		local AngDistance = Vector(DesiredAngOffset.x,DesiredAngOffset.y,DesiredAngOffset.z):Distance(Vector(self.IronSightAngCurrent.x,self.IronSightAngCurrent.y,self.IronSightAngCurrent.z))
+
+		if PosDistance < 0.25 then
+			self.IronSightPosSnap = true
+		end
+		
+		if AngDistance < 0.25 then
+		self.IronSightAngSnap = true
+		end
+	else
+		self.IronSightAngSnap = false
+		self.IronSightPosSnap = false
+	end
+	--]]
 
 	return pos, ang
 end
