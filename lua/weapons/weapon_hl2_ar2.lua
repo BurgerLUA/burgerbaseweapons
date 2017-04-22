@@ -22,7 +22,7 @@ SWEP.WorldModel				= "models/weapons/w_irifle.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "ar2"
 
-SWEP.Primary.Damage			= 30
+SWEP.Primary.Damage			= 20
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("weapons/ar2/fire1.wav")
 SWEP.Primary.Cone			= 0.006
@@ -32,7 +32,7 @@ SWEP.Primary.Delay			= 0.1
 SWEP.Primary.Ammo			= "ar2"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 0.5
+SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 1
 SWEP.RecoilSpeedMul			= 1.5
 SWEP.MoveConeMul			= 2
@@ -58,14 +58,14 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= false
-SWEP.IronSightTime			= 0.125
+SWEP.IronSightTime			= 0.75
 SWEP.IronSightsPos 			= Vector(-5, 0, 1)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 3000
+SWEP.DamageFalloff			= 2000
 
 SWEP.DamageType				= 2
 
 SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-5,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
+SWEP.IronRunPos				= Vector(0,-10,-20)
+SWEP.IronRunAng				= Vector(45,30,0)

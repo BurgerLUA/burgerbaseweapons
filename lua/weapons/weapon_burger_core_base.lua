@@ -1001,7 +1001,6 @@ function SWEP:SecondaryAttack()
 
 	
 	if self:IsBusy() then return end
-	if self:IsSprinting() then return end
 
 	if self:IsUsing() then
 		if self.HasSpecialFire then
@@ -1016,7 +1015,7 @@ function SWEP:SecondaryAttack()
 			elseif self.HasSilencer then
 				self:Silencer()
 			end
-		elseif self:CanZoom() and ToggleZoomEnabled then
+		elseif self:CanZoom() and ToggleZoomEnabled and not self:IsSprinting() then
 			self:HandleZoom(1)
 		end
 	end
@@ -1372,10 +1371,9 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 	
 	Source = Source + self.Owner:GetForward()*self.SourceOverride.y + self.Owner:GetRight()*self.SourceOverride.x + self.Owner:GetUp()*self.SourceOverride.z
 	
-	--local Dir = (HitPos - TheEyePos)
+	local Dir = (Source - HitPos)
 	local Dir = Direction
 	Dir:Normalize()
-	
 	
 	local FinalAngles = Dir:Angle() + self.BulletAngOffset + Angle(self:BulletRandomSeed(-Cone,Cone),self:BulletRandomSeed(-Cone,Cone),0)*45
 	FinalAngles:Normalize()
@@ -1397,28 +1395,95 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 
 end
 
+function SWEP:ModProjectileTable(datatable)
+	return datatable
+end
+
+function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,LastEntity)
+
+	if IsFirstTimePredicted() then
+	
+		Source = Source + self.Owner:GetForward()*self.SourceOverride.y + self.Owner:GetRight()*self.SourceOverride.x + self.Owner:GetUp()*self.SourceOverride.z	
+		local HitPos = self.Owner:GetEyeTrace().HitPos
+		local DirectionOffset = Direction - self.Owner:GetAimVector()
+		Direction = (HitPos - Source):GetNormalized() + DirectionOffset
+
+		local datatable = {}	
+		datatable.weapon = self
+		datatable.owner = self.Owner
+		datatable.pos = Source
+		datatable.direction = Direction
+		datatable.damage = Damage
+		datatable.hullsize = 8
+		datatable.resistance = Vector(0,0,0)
+		datatable.dietime = CurTime() + 30
+		datatable.special = nil
+		datatable.hitfunction = function(datatable,traceresult)
+		
+			local Victim = traceresult.Entity
+			local Attacker = datatable.owner
+			local Inflictor = datatable.weapon
+			
+			if not IsValid(Attacker) then
+				Attacker = Victim
+			end
+			
+			if not IsValid(Inflictor) then
+				Inflictor = Attacker
+			end
+			
+			if Victim and Victim ~= NULL then
+				local DmgInfo = DamageInfo()
+				DmgInfo:SetDamage( datatable.damage )
+				DmgInfo:SetAttacker( Attacker )
+				DmgInfo:SetInflictor( Inflictor )
+				DmgInfo:SetDamageForce( datatable.direction:GetNormalized() )
+				DmgInfo:SetDamagePosition( datatable.pos )
+				DmgInfo:SetDamageType( DMG_SLASH )
+				traceresult.Entity:DispatchTraceAttack( DmgInfo, traceresult )
+			end
+			
+		end
+
+		datatable.tickfunction = function(datatable) end
+		datatable.diefunction = function(datatable) end
+		datatable.drawfunction = function(datatable) end
+		
+		datatable = self:ModProjectileTable(datatable)
+	
+		BURGERBASE_FUNC_AddBullet(datatable)
+	end
+	
+end
+
+SWEP.UseSpecialProjectile = false
 
 function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 
-	if self and self.BulletEnt then
-		if SERVER then
-			self:ShootPhysicalObject(Source,Cone,Direction)
+	if self then
+
+		if self.UseSpecialProjectile then
+			self:ShootProjectile(Damage, Shots, Cone, Source, Direction,LastEntity)
+		elseif self.BulletEnt then
+			if SERVER then
+				self:ShootPhysicalObject(Source,Cone,Direction)
+			end
+		else
+			local bullet = {}
+			bullet.Damage	= Damage * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat()
+			bullet.Num		= 1
+			bullet.Spread	= Vector(Cone, Cone, 0)
+			bullet.Src		= Source
+			bullet.Dir		= Direction
+			bullet.AmmoType = self:GetPrimaryAmmo()
+			bullet.HullSize = 0
+			bullet.Tracer 	= 0
+			bullet.Force	= nil
+			bullet.Callback = function(attacker,tr,dmginfo)
+				self:BulletCallback(Damage,Direction,LastEntity,attacker,tr,dmginfo)
+			end
+			self.Owner:FireBullets(bullet)
 		end
-	else
-		local bullet = {}
-		bullet.Damage	= Damage * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat()
-		bullet.Num		= 1
-		bullet.Spread	= Vector(Cone, Cone, 0)
-		bullet.Src		= Source
-		bullet.Dir		= Direction
-		bullet.AmmoType = self:GetPrimaryAmmo()
-		bullet.HullSize = 0
-		bullet.Tracer 	= 0
-		bullet.Force	= nil
-		bullet.Callback = function(attacker,tr,dmginfo)
-			self:BulletCallback(Damage,Direction,LastEntity,attacker,tr,dmginfo)
-		end
-		self.Owner:FireBullets(bullet)
 	end
 end
 
@@ -1806,10 +1871,11 @@ function SWEP:ReloadSpecial()
 
 end
 
+--[[
 function SWEP:Ammo1()
 	return self.Owner:GetAmmoCount(self:GetPrimaryAmmo())
-
 end
+--]]
 
 function SWEP:DoReload()
 	
@@ -1854,10 +1920,6 @@ function SWEP:DoReload()
 	end
 	
 	self.Owner:SetAnimation(PLAYER_RELOAD)
-	
-	if self.HasScope then
-		self:SetZoomed(false)
-	end
 	
 	if SERVER then
 		if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_enable_mags"):GetFloat() == 1 then
@@ -2351,6 +2413,7 @@ function SWEP:HL2Pump()
 	end
 end
 
+--[[
 function SWEP:CustomAmmoDisplay()
 	self.AmmoDisplay = self.AmmoDisplay or {}
 
@@ -2367,6 +2430,7 @@ function SWEP:CustomAmmoDisplay()
 
 	return self.AmmoDisplay //return the table
 end
+--]]
 
 function SWEP:HandleShotgunReloadThinkAnimations()
 
@@ -2622,6 +2686,11 @@ if CLIENT then
 
 end
 
+
+function SWEP:GetFakeDelay()
+	return -1
+end
+
 function SWEP:DrawContextMenu(x,y)
 
 	if BurgerBase_ContextMenuIsOpen == true then
@@ -2672,11 +2741,15 @@ function SWEP:DrawContextMenu(x,y)
 				local BulletsFired = 1
 				local SecondsPassed = 0
 				local TestKillTime = -1
-				--local Delay = weapon:GetDelay()
+				local Delay = weapon:GetDelay()
 				
-				local ClipSizeMath = math.min(weapon.Primary.ClipSize-1,20)
+				if self:GetFakeDelay() ~= -1 then
+					Delay = self:GetFakeDelay()
+				end
 				
-				if ClipSizeMath < 0 then
+				local ClipSizeMath = math.Clamp(weapon.Primary.ClipSize-1,0,20)
+				
+				if ClipSizeMath < 1 then
 					ClipSizeMath = 20
 				end
 				
@@ -2691,10 +2764,10 @@ function SWEP:DrawContextMenu(x,y)
 					if self:GetIsBurst() then
 						SecondsPassed = SecondsPassed + weapon:GetBurstMath()
 						if i % self.BurstOverride == 0 then
-							SecondsPassed = SecondsPassed + weapon:GetDelay()
+							SecondsPassed = SecondsPassed + Delay
 						end
 					else
-						SecondsPassed = SecondsPassed + weapon:GetDelay()
+						SecondsPassed = SecondsPassed + Delay
 					end
 					
 					BulletsFired = BulletsFired + 1
@@ -2705,7 +2778,17 @@ function SWEP:DrawContextMenu(x,y)
 					TestKillTime = 0
 				end
 				
-				local AverageDelay = SecondsPassed/(BulletsFired-1)
+				--[[
+				if BulletsFired < 2 then
+					BulletsFired = 2
+				end
+				
+				if SecondsPassed == 0 then
+					SecondsPassed = self.Primary.Delay
+				end
+				--]]
+
+				local AverageDelay = SecondsPassed/(BulletsFired-1)	
 				local RPM = (1/AverageDelay)*60
 				local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
 				local KillTime = TestKillTime
@@ -3512,14 +3595,14 @@ function SWEP:Swing(damage,entoverride)
 			HasHitTarget = nil
 		end
 		
-		self:NewSendHitEvent(HasHitTarget,damage,Data)
+		self:NewSendHitEvent(HasHitTarget,damage,Data,Trace)
 
 		return HasHitTarget
 	end
 
 end
 
-function SWEP:NewSendHitEvent(victim,damage,TraceData)
+function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
 
 	if victim and victim ~= NULL and (victim:IsPlayer() or victim:IsNPC()) then
 				
@@ -3556,11 +3639,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 		end
 
 		if ShouldDamage then
-			self:NewStabDamage(damage, victim)
-
-			if CLIENT then
-				self:NewStabFleshEffect(victim)
-			end
+			self:NewStabDamage(damage, victim, TraceResult)
 		end
 
 	else
@@ -3568,7 +3647,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 		local NewTraceData = {}
 		NewTraceData.start = TraceData.start
 		NewTraceData.endpos = TraceData.endpos + (TraceData.endpos - TraceData.start):GetNormalized()*20
-		NewTraceData.filter = TraceData.filter
+		NewTraceData.filter = self.Owner
 		NewTraceData.mask = MASK_ALL
 		
 		if self.Owner:IsPlayer() then
@@ -3584,7 +3663,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 		if IsFirstTimePredicted() then
 			
 			if NewTraceResult.Hit then
-			
+
 				local effect = EffectData()
 				effect:SetOrigin(NewTraceResult.HitPos)
 				effect:SetStart(NewTraceResult.StartPos)
@@ -3601,7 +3680,10 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 				
 				util.Effect("Impact", effect)
 				
-				self:NewStabDamage(damage, victim)
+				
+				victim = NewTraceResult.Entity
+				
+				self:NewStabDamage(damage, victim, NewTraceResult)
 
 			else
 				if self.MeleeDelay == 0 then
@@ -3610,9 +3692,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData)
 			end
 			
 		end
-		
-		
-		
+
 	end
 
 end
@@ -3622,7 +3702,7 @@ function SWEP:BlockDamage()
 
 end
 
-function SWEP:NewStabDamage(damage, victim)
+function SWEP:NewStabDamage(damage, victim, traceresult)
 
 	if victim and victim ~= NULL then
 
@@ -3635,24 +3715,14 @@ function SWEP:NewStabDamage(damage, victim)
 		else
 			self:EmitGunSound(self.MeleeSoundWallHit)
 		end
-						
-		if IsFirstTimePredicted() and self.HasDurability and HasHitTarget and HasHitTarget ~= NULL then
-			--self:AddDurability(self.DurabilityPerHit)
-		end
 
 		local dmginfo = DamageInfo()
 		dmginfo:SetDamage( damage )
 		dmginfo:SetDamageType( self.MeleeDamageType )
 		dmginfo:SetAttacker( self.Owner )
 		dmginfo:SetInflictor( self )
-		--dmginfo:SetDamageForce( self.Owner:GetForward() )
-			
-		if SERVER then
-			victim:TakeDamageInfo( dmginfo )
-		end
-		
-	else
-		self:EmitGunSound(self.MeleeSoundWallHit)
+		dmginfo:SetDamageForce( self.Owner:GetForward() )
+		victim:DispatchTraceAttack( dmginfo, traceresult )
 	end
 	
 end
