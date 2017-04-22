@@ -639,20 +639,32 @@ function SWEP:PrimaryAttack()
 
 	if not self:CanPrimaryAttack() then	return end
 	if not self:CanShoot() then return end
-	self:TakePrimaryAmmo(1)
-	
-	self:WeaponDelay() -- don't predict, has delay
-	self:AfterPump() -- don't predict, has animations
-	self:HandleBurstDelay() -- don't predict
-	self:HandleShootAnimations() -- don't predict, has animations
 
-	self.Owner:SetAnimation(PLAYER_ATTACK1)
+	self:WeaponDelay() -- don't predict, has delay
+	self:HandleBurstDelay() -- don't predict		
+	self:AfterPump() -- don't predict, has animations
+
 	
-	self:ShootGun() -- don't predict, has firebullets
+	
+	if self.BulletDelay > 0 then
+		if self.BulletDelaySound then
+			self:EmitGunSound(self.BulletDelaySound)
+		end
+		self:SetNextBulletDelay(CurTime() + self.BulletDelay )
+		self:SetBulletQueue(1)
+	else
+		self:ShootGun() -- don't predict, has firebullets
+	end
 	
 end
 
 function SWEP:ShootGun()
+
+	self:HandleShootAnimations() -- don't predict, has animations
+	
+	self:TakePrimaryAmmo(1)
+	
+	self.Owner:SetAnimation(PLAYER_ATTACK1)
 
 	self:PreShootBullet() -- don't predict
 
@@ -693,6 +705,7 @@ function SWEP:CanShoot()
 		self:PreThrowObject() 
 		return false 
 	end
+	if not self:HasAmmoToFire() then return end
 	return true
 end
 
@@ -718,12 +731,9 @@ function SWEP:HandleBurstDelay()
 	if self.HasBurstFire or self.AlwaysBurst then
 		if self:GetIsBurst() then
 			if self:GetBulletQueue() == 0 then
-
 				local NumBullets = self.BurstOverride - 1
-
 				self:SetNextBulletDelay(CurTime() + self:GetBurstMath() )
 				self:SetBulletQueue(NumBullets)
-
 			end			
 		end
 	end
@@ -1183,20 +1193,6 @@ end
 function SWEP:CanPrimaryAttack()
 
 	if self:GetNextPrimaryFire() > CurTime() then return false end
-
-	if self:Clip1() == -1 then
-		if self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
-			return false 
-		end
-	elseif self:Clip1() <= 0 then
-	
-		if (IsFirstTimePredicted() or IsSingleplayer) then
-			self.Owner:EmitSound("weapons/clipempty_pistol.wav")
-		end
-
-		self:SetNextPrimaryFire(CurTime() + 0.25)
-		return false
-	end
 
 	return true
 	
@@ -2307,28 +2303,48 @@ function SWEP:HandleBuildUp()
 	end
 end
 
+SWEP.BulletDelay = 0
+
+
+SWEP.ClipEmptySound = Sound("weapons/clipempty_pistol.wav")
+
+function SWEP:EmitClipEmptySound()
+	if SERVER then
+		self.Owner:EmitSound(self.ClipEmptySound)
+	end
+	self:SetNextPrimaryFire( math.max(self:GetNextPrimaryFire(),CurTime() + 0.25) )
+end
+
+function SWEP:HasAmmoToFire()
+
+	if self:Clip1() == -1 then
+		if self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
+			self:EmitClipEmptySound()
+			return false 
+		else
+			return true
+		end
+	elseif self:Clip1() <= 0 then
+		self:EmitClipEmptySound()
+		return false
+	end
+
+	return true
+	
+end
+
 function SWEP:HandleBurstFireShoot()
-	if self.HasBurstFire or self.AlwaysBurst then
+	if self.HasBurstFire or self.AlwaysBurst or self.BulletDelay > 0 then
 		if self:GetNextBulletDelay() <= CurTime() and self:GetBulletQueue() > 0 then
 		
 			self:SetNextBulletDelay(CurTime() + self:GetBurstMath())
 			self:SetBulletQueue(self:GetBulletQueue() - 1)
-
-			if (self:Clip1() > 0) or self:Clip1() == -1 and self:Ammo1() >= 1 then
 			
-				self:TakePrimaryAmmo(1)
-				
-				
-				if not self.BurstAnimationOnce then
-					if self:GetBulletQueue() ~= self.BurstOverride - 1 then
-						self:HandleShootAnimations()
-					end
-				end
-
-				self:ShootGun()
-				
-			end
+			--if not self:CanPrimaryAttack() then	return end
+			if not self:CanShoot() then return end
 			
+			self:ShootGun()
+
 		end
 	end
 end
