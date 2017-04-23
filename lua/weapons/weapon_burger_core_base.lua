@@ -631,6 +631,8 @@ function SWEP:GetBoltDelay()
 	end
 end
 
+SWEP.FlinchRecoil = Angle(0,0,0)
+
 function SWEP:PrimaryAttack()
 
 	if self:GetIsShotgunReload() and self:GetIsReloading() and not self.Owner:IsBot() then
@@ -644,12 +646,15 @@ function SWEP:PrimaryAttack()
 	self:HandleBurstDelay() -- don't predict		
 	self:AfterPump() -- don't predict, has animations
 
-	
-	
 	if self.BulletDelay > 0 then
 		if self.BulletDelaySound then
 			self:EmitGunSound(self.BulletDelaySound)
 		end
+		
+		if CLIENT then
+			self:AddRecoil( self.FlinchRecoil.p, self.FlinchRecoil.y )
+		end
+		
 		self:SetNextBulletDelay(CurTime() + self.BulletDelay )
 		self:SetBulletQueue(1)
 	else
@@ -674,7 +679,11 @@ function SWEP:ShootGun()
 			self:AfterZoom() -- Predict, Client Only
 		--end
 		
-		self:AddRecoil() -- Predict
+		if CLIENT then
+			local UpPunch, SidePunch = self:GetRecoilFinal()
+			self:AddRecoil(UpPunch,SidePunch) -- Predict
+		end
+		
 		self:WeaponSound() -- Predict
 
 	end
@@ -1302,9 +1311,8 @@ if SERVER then
 end
 --]]
 
-function SWEP:AddRecoil()
+function SWEP:AddRecoil(UpPunch,SidePunch)
 	if CLIENT or IsSingleplayer then
-		local UpPunch, SidePunch = self:GetRecoilFinal()
 		self.PunchAngleUp = self.PunchAngleUp + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,1),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,10),0)
 		self.PunchAngleDown = self.PunchAngleDown + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,100),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,1000),0)
 	end
@@ -1875,7 +1883,7 @@ end
 
 function SWEP:DoReload()
 	
-	if self.HasZoom or self.HasIronSights then
+	if self:GetZoomed() then
 		self:SetZoomed(false)
 	end
 
