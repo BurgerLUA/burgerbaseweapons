@@ -10,6 +10,7 @@ SWEP.WeaponType				= "Primary"
 
 SWEP.Cost					= 4750
 SWEP.CSSMoveSpeed			= 210
+SWEP.CSSZoomSpeed			= 150
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
@@ -58,8 +59,8 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.25
-SWEP.ZoomTime				= 0
+SWEP.IronSightTime			= 0.5
+SWEP.ZoomTime				= 0.125
 SWEP.IronSightsPos 			= Vector(-7, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
@@ -68,5 +69,5 @@ SWEP.DamageFalloff			= 9000
 SWEP.ZoomDelay				= 0.125
 
 SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-5,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
+SWEP.IronRunPos				= Vector(0,0,1)
+SWEP.IronRunAng				= Vector(-10,30,0)

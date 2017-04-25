@@ -25,20 +25,21 @@ SWEP.HoldType				= "smg"
 SWEP.Primary.Damage			= 26
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_P90.Single")
-SWEP.Primary.Cone			= 0.0045
+SWEP.Primary.Cone			= 0.002
 SWEP.Primary.ClipSize		= 50
 SWEP.Primary.SpareClip		= 100
 SWEP.Primary.Delay			= 0.07 --1/(857/60)
 SWEP.Primary.Ammo			= "bb_57mm"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 1.25
+SWEP.RecoilMul				= 1.5
 SWEP.SideRecoilMul			= 0.5
 SWEP.RecoilSpeedMul			= 1.25
-SWEP.MoveConeMul			= 0.75
-SWEP.HeatMul				= 0.5
+SWEP.MoveConeMul			= 1
+SWEP.HeatMul				= 0.75
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 1
+SWEP.MaxHeat				= 5
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount 			= 1
@@ -57,15 +58,15 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= false
-SWEP.IronSightTime			= 0.25
+SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(-5, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 1000
+SWEP.DamageFalloff			= 900
 
 SWEP.ZoomDelay				= 0.125
 
 SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(4,-1,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
+SWEP.IronRunPos				= Vector(0,-10,1)
+SWEP.IronRunAng				= Vector(-10,30,0)

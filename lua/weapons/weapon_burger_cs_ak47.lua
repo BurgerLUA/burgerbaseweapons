@@ -33,12 +33,13 @@ SWEP.Primary.Ammo			= "bb_762mm"
 SWEP.Primary.Automatic 		= true
 
 SWEP.RecoilMul				= 2
-SWEP.SideRecoilMul			= 0.5
+SWEP.SideRecoilMul			= 0.25
 SWEP.RecoilSpeedMul			= 1.125
-SWEP.MoveConeMul			= 2
-SWEP.HeatMul				= 0.25
+SWEP.MoveConeMul			= 3
+SWEP.HeatMul				= 0.5
 SWEP.CoolMul				= 0.75
-SWEP.CoolSpeedMul			= 2
+SWEP.CoolSpeedMul			= 1.25
+SWEP.MaxHeat				= 10
 
 SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 1
@@ -66,5 +67,5 @@ SWEP.IronSightsAng 			= Vector(2, 0, 0)
 SWEP.DamageFalloff			= 3000
 
 SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-10,-20)
-SWEP.IronRunAng				= Vector(45,0,0)
+SWEP.IronRunPos				= Vector(0,-10,1)
+SWEP.IronRunAng				= Vector(-10,30,0)

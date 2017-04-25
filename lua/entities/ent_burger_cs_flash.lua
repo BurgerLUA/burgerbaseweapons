@@ -113,9 +113,11 @@ function ENT:BlindEffects(ply,distancecount)
 		
 		ply.BlindAmount = math.Clamp(distancecount,0,1) * (BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_flashbang_dur"):GetFloat()/2)
 		
-		if ply.BlindAmount > 1 then
+		--[[
+		if ply.BlindAmount < 1 then
 			ply:SetDSP( 37, true )
 		end
+		--]]
 		
 		ply.IsBlinded = true
 

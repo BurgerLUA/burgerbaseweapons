@@ -48,7 +48,9 @@ if CLIENT then
 	function BURGERBASE_NET_FLINCH(len)
 		local victim = net.ReadEntity()
 		local hitgroup = net.ReadInt(4)
-		BURGERBASE_FUNC_SENDSEQUENCE(victim,BURGERBASE_FUNC_TRANSLATEANIM(hitgroup))
+		if victim and victim:IsValid() then
+			BURGERBASE_FUNC_SENDSEQUENCE(victim,BURGERBASE_FUNC_TRANSLATEANIM(hitgroup))
+		end
 	end
 
 	net.Receive( "BURGERBASE_NET_FLINCH", BURGERBASE_NET_FLINCH )

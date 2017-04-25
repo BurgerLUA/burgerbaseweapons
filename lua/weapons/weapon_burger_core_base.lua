@@ -10,7 +10,8 @@ SWEP.Base					= "weapon_base"
 SWEP.BurgerBase				= true 									
 SWEP.WeaponType				= "Primary"									
 SWEP.Cost					= 2500										
-SWEP.CSSMoveSpeed			= 221		
+SWEP.CSSMoveSpeed			= 221	
+SWEP.CSSZoomSpeed			= -1	
 
 SWEP.SwayScale 				= 2
 SWEP.BobScale 				= 1				
@@ -495,7 +496,7 @@ function SWEP:CheckInventory()
 			for k,v in pairs (self.Owner:GetWeapons()) do
 				if v.BurgerBase ~= nil then
 					if v ~= self then
-						if self.WeaponType == v.WeaponType and not (v.WeaponType == "Free" or v.WeaponType == "Throwable") then
+						if self.WeaponType == v.WeaponType and not (v.WeaponType == "Free" or v.WeaponType == "Throwable" or v.WeaponType == "Melee") then
 							BURGERBASE_FUNC_DropWeapon(self.Owner,v)
 						end
 					end
@@ -505,7 +506,7 @@ function SWEP:CheckInventory()
 			for k,v in pairs (self.Owner:GetWeapons()) do
 				if v.BurgerBase ~= nil then
 					if v ~= self then
-						if self.Slot == v.Slot and not (v.WeaponType == "Free" or v.WeaponType == "Throwable") then
+						if self.Slot == v.Slot and not (v.WeaponType == "Free" or v.WeaponType == "Throwable" or v.WeaponType == "Melee") then
 							BURGERBASE_FUNC_DropWeapon(self.Owner,v)
 						end
 					end
@@ -631,8 +632,6 @@ function SWEP:GetBoltDelay()
 	end
 end
 
-SWEP.FlinchRecoil = Angle(0,0,0)
-
 function SWEP:PrimaryAttack()
 
 	if self:GetIsShotgunReload() and self:GetIsReloading() and not self.Owner:IsBot() then
@@ -646,15 +645,12 @@ function SWEP:PrimaryAttack()
 	self:HandleBurstDelay() -- don't predict		
 	self:AfterPump() -- don't predict, has animations
 
+	
+	
 	if self.BulletDelay > 0 then
 		if self.BulletDelaySound then
 			self:EmitGunSound(self.BulletDelaySound)
 		end
-		
-		if CLIENT then
-			self:AddRecoil( self.FlinchRecoil.p, self.FlinchRecoil.y )
-		end
-		
 		self:SetNextBulletDelay(CurTime() + self.BulletDelay )
 		self:SetBulletQueue(1)
 	else
@@ -679,11 +675,7 @@ function SWEP:ShootGun()
 			self:AfterZoom() -- Predict, Client Only
 		--end
 		
-		if CLIENT then
-			local UpPunch, SidePunch = self:GetRecoilFinal()
-			self:AddRecoil(UpPunch,SidePunch) -- Predict
-		end
-		
+		self:AddRecoil() -- Predict
 		self:WeaponSound() -- Predict
 
 	end
@@ -1311,8 +1303,9 @@ if SERVER then
 end
 --]]
 
-function SWEP:AddRecoil(UpPunch,SidePunch)
+function SWEP:AddRecoil()
 	if CLIENT or IsSingleplayer then
+		local UpPunch, SidePunch = self:GetRecoilFinal()
 		self.PunchAngleUp = self.PunchAngleUp + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,1),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,10),0)
 		self.PunchAngleDown = self.PunchAngleDown + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,100),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,1000),0)
 	end

@@ -9,6 +9,11 @@ function BURGERBASE_HOOK_Move(ply,mv)
 		
 		if ActiveWeapon and ActiveWeapon ~= NULL and ActiveWeapon.CSSMoveSpeed then
 			WeaponSpeed = ActiveWeapon.CSSMoveSpeed
+			
+			if ActiveWeapon.CSSZoomSpeed and ActiveWeapon.CSSZoomSpeed ~= -1 and ActiveWeapon:GetSharedZoom() then
+				WeaponSpeed = ActiveWeapon.CSSZoomSpeed
+			end
+			
 		end
 
 		if WeaponSpeed ~= -1 then

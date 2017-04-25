@@ -35,10 +35,11 @@ SWEP.Primary.Automatic 		= true
 SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.5
 SWEP.RecoilSpeedMul			= 0.9
-SWEP.MoveConeMul			= 1.5
+SWEP.MoveConeMul			= 2
 SWEP.HeatMul				= 0.25
 SWEP.CoolMul				= 0.75
 SWEP.CoolSpeedMul			= 1
+SWEP.MaxHeat				= 10
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount				= 3
@@ -57,8 +58,8 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
 SWEP.HasGoodSights			= true
-SWEP.IronSightTime			= 0.25
-SWEP.ZoomTime				= 0
+SWEP.IronSightTime			= 0.5
+SWEP.ZoomTime				= 0.5
 SWEP.IronSightsPos 			= Vector(-7, -5, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, -30)
 
@@ -67,5 +68,5 @@ SWEP.DamageFalloff			= 3000
 SWEP.ZoomDelay				= 0.125
 
 SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-5,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
+SWEP.IronRunPos				= Vector(0,-10,1)
+SWEP.IronRunAng				= Vector(-10,30,0)

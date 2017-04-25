@@ -10,17 +10,17 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		data.direction = data.direction - ( data.resistance * engine.TickInterval() )
 
 		local TraceData = {}
-		local HullSize = data.hullsize --+ (data.direction:Length() * engine.TickInterval())
+		local HullSize = 1
 	
 	
 		TraceData.start = data.pos - data.direction:GetNormalized()*HullSize
 		TraceData.endpos = data.pos + data.direction:GetNormalized()*HullSize
-		--TraceData.maxs = Vector(HullSize,HullSize,HullSize) * (Vector(1,1,1) + data.direction * engine.TickInterval())
-		--TraceData.mins = Vector(-HullSize,-HullSize,-HullSize) * (Vector(1,1,1) + data.direction * engine.TickInterval())
+		TraceData.maxs = Vector(HullSize,HullSize,HullSize)
+		TraceData.mins = Vector(-HullSize,-HullSize,-HullSize)
 		TraceData.mask = MASK_SHOT
 		TraceData.filter = data.owner
 	
-		local TraceResult = util.TraceLine(TraceData)
+		local TraceResult = util.TraceHull(TraceData)
 		
 		data.tickfunction(data)
 		
