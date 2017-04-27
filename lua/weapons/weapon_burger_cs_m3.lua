@@ -53,22 +53,26 @@ SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
 SWEP.HasFirstShotAccurate	= false
+SWEP.CanShootWhileSprinting = false
+
+SWEP.DamageFalloff			= 300
+SWEP.PenetrationLossScale	= 0.5
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.5
-SWEP.IronSightsPos 			= Vector(-6, 0, 1.5)
+
+SWEP.IronRunPos 			= Vector(-2.01, 0.201, 0.602)
+SWEP.IronRunAng 			= Vector(-5, 15, -7.739)
+
+SWEP.IronSightsPos 			= Vector(-7.68, 0, 3.359)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 300
+SWEP.IronMeleePos			= Vector(3.417, -10, -13.87)
+SWEP.IronMeleeAng 			= Vector(-9.146, 70, -70)
 
-SWEP.PenetrationLossScale	= 0.5
-
-SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-5,-10)
-SWEP.IronRunAng				= Vector(15,10,0)
 
 SWEP.SpecialAmmo			= {"bb_12gauge","bb_12gaugeslug"}
 

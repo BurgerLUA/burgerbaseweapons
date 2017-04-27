@@ -86,16 +86,16 @@ SWEP.ReloadSound 			= nil
 SWEP.BurstSound				= nil
 SWEP.LastBulletSound		= nil
 SWEP.PumpSound				= nil
-SWEP.MeleeSoundMiss			= nil
-SWEP.MeleeSoundWallHit		= nil
-SWEP.MeleeSoundFleshSmall	= nil
-SWEP.MeleeSoundFleshLarge	= nil
+SWEP.MeleeSoundMiss			= Sound("weapons/foot/foot_fire.wav")
+SWEP.MeleeSoundWallHit		= Sound("weapons/foot/foot_kickwall.wav")
+SWEP.MeleeSoundFleshSmall	= Sound("weapons/foot/foot_kickbody.wav")
+SWEP.MeleeSoundFleshLarge	= Sound("weapons/foot/foot_kickbody.wav")
 
 -- Features
 SWEP.HasIronSights 			= true
 SWEP.HasPumpAction 			= false
 SWEP.HasBoltAction 			= false
-SWEP.HasSpecialFire			= false
+SWEP.HasSpecialFire			= true
 SWEP.HasBurstFire 			= false
 SWEP.HasSilencer 			= false
 SWEP.HasSideRecoil			= false
@@ -132,8 +132,8 @@ SWEP.HasPreThrow			= true
 
 -- Melee
 SWEP.EnableBlocking			= false
-SWEP.MeleeDelay				= 0.05
-SWEP.MeleeDamageType		= DMG_SLASH
+SWEP.MeleeDelay				= 0.1
+SWEP.MeleeDamageType		= DMG_CLUB
 SWEP.MeleeRange				= 40
 SWEP.MeleeSize 				= 8
 
@@ -226,6 +226,45 @@ if SERVER then
 	SWEP.AlreadyGiven			= false -- Data, Server
 	SWEP.HasMagIn				= true -- Data, Server
 end
+
+SWEP.MeleeModel = Model("models/weapons/c_arms_cstrike.mdl")
+
+SWEP.UseSpecialProjectile = false
+
+SWEP.IronSightPosCurrent = Vector(0,0,0)
+SWEP.IronSightAngCurrent = Angle(0,0,0)
+
+SWEP.IronDualSpacing 	= 1
+
+SWEP.IronRunPos				= Vector(0,-5,-20)
+SWEP.IronRunAng				= Vector(45,10,0)
+
+SWEP.IronMeleePos			= Vector(10,-10,0)
+SWEP.IronMeleeAng			= Vector(-10,120,0)
+
+SWEP.VelAdd					= 0
+
+SWEP.BulletDelay = 0
+
+
+SWEP.ClipEmptySound = Sound("weapons/clipempty_pistol.wav")
+
+SWEP.PumpAnimation = ACT_SHOTGUN_PUMP
+
+if CLIENT then
+	SWEP.DynamicScopeDesiredOffsetX = 0
+	SWEP.DynamicScopeDesiredOffsetY = 0
+	SWEP.DynamicScopeOffsetX = 0
+	SWEP.DynamicScopeOffsetY = 0
+	
+	SWEP.ScopeMoveTime = 0
+	SWEP.ScopeMoveTimeStored = 0
+end
+
+SWEP.CanCook = false
+SWEP.FuseTime = 5
+SWEP.HasDurability = false
+SWEP.DurabilityPerHit = -10
 
 function SWEP:SetupDataTables()
 
@@ -391,9 +430,31 @@ function SWEP:Initialize()
 		self:SCK_Initialize()
 	end
 	
-	self:SetHoldType( self.HoldType )
+	--self:SetHoldType( self.HoldType )
+
 	
 end
+
+
+
+
+function SWEP:CreateFists()
+--[[
+	local FistViewModel = self.Owner:GetViewModel( 2 )
+	if IsValid( FistViewModel) then
+		FistViewModel:SetWeaponModel( self.MeleeModel , self )
+		self:SendSequence("fists_right",2)
+	end
+--]]
+end
+
+function SWEP:RemoveFists()
+	--[[
+	local FistViewModel = self.Owner:GetViewModel( 2 )
+	FistViewModel:SetWeaponModel( self.MeleeModel , nil )
+	--]]
+end
+
 
 function SWEP:NPCInit()
 	self.Owner:SetCurrentWeaponProficiency( WEAPON_PROFICIENCY_PERFECT )
@@ -443,6 +504,56 @@ function SWEP:OwnerChanged()
 	end
 end
 
+function SWEP:SendWeaponAnimation(act,vm_index,rate) -- Thanks to the wiki for the idea
+
+	if not vm_index then
+		vm_index = 0
+	end
+	
+	if not rate then
+		rate = 1
+	end
+
+	local ViewModel = self.Owner:GetViewModel( vm_index )
+
+	if !IsValid(ViewModel) then
+		return
+	end
+
+	local Sequence = ViewModel:SelectWeightedSequence( act )
+
+	if ( Sequence == -1 ) then
+		return
+	end
+
+	ViewModel:SendViewModelMatchingSequence( Sequence )
+	ViewModel:SetPlaybackRate( rate )
+
+end
+
+function SWEP:SendSequence(anim,vm_index)
+
+	if not vm_index then
+		vm_index = 0
+	end
+
+	local ViewModel = self.Owner:GetViewModel( vm_index )
+
+	if !IsValid(ViewModel) then
+		return
+	end
+
+	ViewModel:SendViewModelMatchingSequence( ViewModel:LookupSequence( anim ) )
+	
+end
+
+function SWEP:SendSequencePlayer(anim)
+	local Seq = self.Owner:LookupSequence(anim)
+	local SeqDur = self.Owner:SequenceDuration(Seq)
+	self.Owner:AddVCDSequenceToGestureSlot( GESTURE_SLOT_ATTACK_AND_RELOAD, Seq, 0, true )
+	return SeqDur
+end
+
 function SWEP:Deploy()
 
 	self:SetZoomed(false)
@@ -461,23 +572,27 @@ function SWEP:Deploy()
 	if not self.IgnoreDrawDelay then
 		if self.HasSilencer then
 			if self:GetIsSilenced() then
-				self:SendWeaponAnim(ACT_VM_DRAW_SILENCED)
+				self:SendWeaponAnimation(ACT_VM_DRAW_SILENCED)
 				self.WorldModel = self.WorldModel2
 			else
-				self:SendWeaponAnim(ACT_VM_DRAW)
+				self:SendWeaponAnimation(ACT_VM_DRAW)
 				self.WorldModel = self.WorldModel1
 			end
 		else
-			self:SendWeaponAnim(ACT_VM_DRAW)
+			self:SendWeaponAnimation(ACT_VM_DRAW)
 		end
 	else
-		self:SendWeaponAnim(ACT_VM_RELOAD)
+		self:SendWeaponAnimation(ACT_VM_RELOAD)
 		self:EmitGunSound(self.ReloadSound)
 	end
 	
 	if self.WeaponType ~= "Throwable" then
 		self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 	end
+	
+	--if CLIENT then
+		self:CreateFists()
+	--end
 	
 	self:SpecialDeploy()
 	
@@ -547,7 +662,7 @@ function SWEP:Holster(nextweapon)
 		
 		
 			self:SetQueueHolster( true )
-			self:SendWeaponAnim( ACT_VM_HOLSTER )
+			self:SendWeaponAnimation( ACT_VM_HOLSTER )
 			
 			if self.Owner and self.Owner ~= NULL and self.Owner:GetViewModel() and self.Owner:GetViewModel() ~= NULL then
 				local ViewDur = self.Owner:GetViewModel():SequenceDuration()
@@ -564,6 +679,8 @@ function SWEP:Holster(nextweapon)
 			return false
 		end
 	end
+	
+	self:RemoveFists()
 	
 	self:SCK_Holster()
 	return true
@@ -640,6 +757,7 @@ function SWEP:PrimaryAttack()
 
 	if not self:CanPrimaryAttack() then	return end
 	if not self:CanShoot() then return end
+	if self:IsUsing() then return end
 
 	self:WeaponDelay() -- don't predict, has delay
 	self:HandleBurstDelay() -- don't predict		
@@ -701,7 +819,7 @@ end
 function SWEP:CanShoot()
 	if self:IsBusy() then return false end
 	if not self.CanShootWhileSprinting and self:IsSprinting() then return false end
-	if self:IsUsing() then return false end
+	--if self:IsUsing() then return false end
 	if self.WeaponType == "Throwable" then 
 		self:PreThrowObject() 
 		return false 
@@ -721,7 +839,7 @@ function SWEP:AfterPump()
 	if self:GetIsShotgunReload() then
 		self:SetIsShotgunReload(false)
 		self:SetIsReloading(false)
-		self:SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH )
+		self:SendWeaponAnimation( ACT_SHOTGUN_RELOAD_FINISH )
 		self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
 		return 
 	end
@@ -887,21 +1005,21 @@ end
 function SWEP:WeaponAnimation(clip,animation)
 
 	if self:GetIsShotgunReload() then
-		self:SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH )
+		self:SendWeaponAnimation( ACT_SHOTGUN_RELOAD_FINISH )
 		return
 	end
 	
 	if self:GetIsSilenced() then
 		if clip == 0 and self.HasDryFire then
-			self:SendWeaponAnim(ACT_VM_DRYFIRE_SILENCED)
+			self:SendWeaponAnimation(ACT_VM_DRYFIRE_SILENCED)
 		else
-			self:SendWeaponAnim(ACT_VM_PRIMARYATTACK_SILENCED)
+			self:SendWeaponAnimation(ACT_VM_PRIMARYATTACK_SILENCED)
 		end
 	else
 		if clip == 0 and self.HasDryFire then
-			self:SendWeaponAnim(ACT_VM_DRYFIRE)
+			self:SendWeaponAnimation(ACT_VM_DRYFIRE)
 		else
-			self:SendWeaponAnim(animation)
+			self:SendWeaponAnimation(animation)
 		end
 	end
 
@@ -1000,6 +1118,9 @@ function SWEP:GetMovementIntensity()
 	return math.Clamp( ( (self:GetMovementVelocity() * self.MoveConeMul * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_movementconescale"):GetFloat()) ^ 1.75 ) * 0.000001, 0, 0.1)
 end
 
+function SWEP:SpecialFire()
+	self:Melee()
+end
 
 function SWEP:SecondaryAttack()
 
@@ -1017,16 +1138,8 @@ function SWEP:SecondaryAttack()
 		if self.HasSpecialFire then
 			self:SpecialFire()
 		end
-	end
-
-	if (IsFirstTimePredicted() or IsSingleplayer) then
-		if self:IsUsing() then
-			if self.HasBurstFire then
-				self:SwitchFireMode()
-			elseif self.HasSilencer then
-				self:Silencer()
-			end
-		elseif self:CanZoom() and ToggleZoomEnabled and not self:IsSprinting() then
+	elseif (IsFirstTimePredicted() or IsSingleplayer) then
+		if self:CanZoom() and ToggleZoomEnabled and not self:IsSprinting() then
 			self:HandleZoom(1)
 		end
 	end
@@ -1070,13 +1183,22 @@ function SWEP:CanZoom()
 	return (self:CanBoltZoom() and (self.HasIronSights or self.HasScope))
 end
 
-function SWEP:SpecialFire()
 
+
+function SWEP:Melee()
+
+	if self:IsBusy() then return end
+	if self:GetNextPrimaryFire() > CurTime() then return end
+	self:SetNextPrimaryFire(CurTime() + 1)
+	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND )
+	self:NewSwing(50)
+	
 end
 
 function SWEP:SwitchFireMode()
 
 	if not (IsFirstTimePredicted() or IsSingleplayer) then return end
+	if not (self:GetNextPrimaryFire() <= CurTime()) then return end
 	
 	local Message = "Semi-Automatic"
 
@@ -1097,6 +1219,8 @@ function SWEP:SwitchFireMode()
 		end
 		self.Owner:PrintMessage( HUD_PRINTCENTER, "Switched to Burst Fire Mode" )
 	end
+	
+	self:SetNextPrimaryFire(CurTime() + 0.25)
 
 end
 
@@ -1105,12 +1229,12 @@ function SWEP:Silencer()
 	if self:IsBusy() then return end
 		
 	if self:GetIsSilenced() then
-		self:SendWeaponAnim(ACT_VM_DETACH_SILENCER)
+		self:SendWeaponAnimation(ACT_VM_DETACH_SILENCER)
 		if not (IsFirstTimePredicted() or IsSingleplayer) then return end
 		self.WorldModel = self.WorldModel1
 		self:SetIsSilenced(false)
 	else
-		self:SendWeaponAnim(ACT_VM_ATTACH_SILENCER)
+		self:SendWeaponAnimation(ACT_VM_ATTACH_SILENCER)
 		if not (IsFirstTimePredicted() or IsSingleplayer) then return end
 		self.WorldModel = self.WorldModel2
 		self:SetIsSilenced(true)
@@ -1297,12 +1421,6 @@ function SWEP:GetRecoilFinal()
 
 end
 
---[[
-if SERVER then
-	SWEP.BotPunch = Angle(0,0,0)
-end
---]]
-
 function SWEP:AddRecoil()
 	if CLIENT or IsSingleplayer then
 		local UpPunch, SidePunch = self:GetRecoilFinal()
@@ -1452,8 +1570,6 @@ function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,LastEntity)
 	end
 	
 end
-
-SWEP.UseSpecialProjectile = false
 
 function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 
@@ -1833,7 +1949,11 @@ end
 
 function SWEP:ReloadSpecial()
 
-	if self.SpecialAmmo then
+	if self.HasBurstFire then
+		self:SwitchFireMode()
+	elseif self.HasSilencer then
+		self:Silencer()
+	elseif self.SpecialAmmo then
 
 		local OldAmmo = self:GetPrimaryAmmo()
 		
@@ -1891,12 +2011,12 @@ function SWEP:DoReload()
 	
 	if self.HasSilencer then
 		if self:GetIsSilenced() then
-			self:SendWeaponAnim(ACT_VM_RELOAD_SILENCED)
+			self:SendWeaponAnimation(ACT_VM_RELOAD_SILENCED)
 		else
-			self:SendWeaponAnim(ACT_VM_RELOAD)
+			self:SendWeaponAnimation(ACT_VM_RELOAD)
 		end
 	else
-		self:SendWeaponAnim(ACT_VM_RELOAD)
+		self:SendWeaponAnimation(ACT_VM_RELOAD)
 	end
 	
 	if (CLIENT or IsSingleplayer) then
@@ -1908,7 +2028,7 @@ function SWEP:DoReload()
 	end
 
 	if self.HasPumpAction then
-		self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
+		self:SendWeaponAnimation(ACT_SHOTGUN_RELOAD_START)
 		self:SetNextShell(CurTime() + self.Owner:GetViewModel():SequenceDuration())
 		self:SetIsShotgunReload(true)
 	else
@@ -1982,96 +2102,8 @@ function SWEP:Reload()
 
 end
 
---[[
-function SWEP:GetViewModelPosition( pos, ang )
 
-	local EyeTrace = self.Owner:GetEyeTrace()
-	local Adjust = 30
-	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
-	
-	if not self.DistanceMod then
-		self.DistanceMod = DesiredDistanceMod
-	else
-		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*FrameTime()
-	end
 
-	pos = pos - ang:Forward()*self.DistanceMod
-
-	if ( !self.IronSightsPos ) then return pos, ang end
-	
-	local bIron = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) )
-	
-	if ( bIron != self.bLastIron ) then
-	
-		self.bLastIron = bIron 
-		self.fIronTime = CurTime()
-		
-		self.SwayScale 	= math.Clamp(self.MoveConeMul * 0.5,0.5,2)
-		self.BobScale 	= math.Clamp(self.MoveConeMul * 0.5,0.5,2)
-	
-	end
-	
-	if self:GetBoltDelay() >= CurTime() then
-		pos = pos - ang:Up()*2
-	end
-	
-	
-	local fIronTime = self.fIronTime or 0
-
-	if ( !bIron && fIronTime < CurTime() - self.IronSightTime ) then 
-		return pos, ang 
-	end
-	
-	local Mul = 1.0
-	
-	if ( fIronTime > CurTime() - self.IronSightTime ) then
-	
-		Mul = math.Clamp( (CurTime() - fIronTime) / self.IronSightTime, 0, 1 )
-		
-		if (!bIron) then
-			Mul = 1 - Mul 
-		end
-	
-	end
-	
-	local Offset = self.IronSightsPos
-	
-	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and self.HasScope == false then
-		Offset = Offset - Vector(Offset.x/2,0,Offset.z/2)
-	end
-
-	if ( self.IronSightsAng ) then
-		
-		ang = ang * 1
-		
-		ang:RotateAroundAxis( ang:Right(), 		(self.IronSightsAng.x * Mul))-- + CompAngles.p )
-		ang:RotateAroundAxis( ang:Up(), 		(self.IronSightsAng.y * Mul))-- + CompAngles.y )
-		ang:RotateAroundAxis( ang:Forward(), 	(self.IronSightsAng.z * Mul))-- + CompAngles.r )
-
-	end
-	
-	local Right 	= ang:Right()
-	local Up 		= ang:Up()
-	local Forward 	= ang:Forward()
-
-	pos = pos + Offset.x * Right * Mul
-	pos = pos + Offset.y * Forward * Mul
-	pos = pos + Offset.z * Up * Mul
-
-	return pos, ang
-	
-end
---]]
-
-SWEP.IronSightPosCurrent = Vector(0,0,0)
-SWEP.IronSightAngCurrent = Angle(0,0,0)
-
-SWEP.IronDualSpacing 	= 1
-
-SWEP.IronRunPos				= Vector(0,-5,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
-
-SWEP.VelAdd					= 0
 
 function SWEP:GetViewModelPosition( pos, ang )
 
@@ -2088,10 +2120,16 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local ZoomSpeed = 1
 	local TickRate = FrameTime()
 	local TimeRate = self.IronSightTime
+	local IsMelee = self:GetNextMelee() + self.MeleeDelay > CurTime()
 	
 	if self.IronSightAngSnap and self.IronSightPosSnap then
 		TimeRate = 0.1
 	end
+	
+	if IsMelee then
+		TimeRate = self.MeleeDelay
+	end
+	
 	
 	if ShouldSight then
 		self.SwayScale 				= 0
@@ -2101,56 +2139,25 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.BobScale 				= 2	
 	end
 
-	-- Start Angle
-	if self.IronSightsAng and ShouldSight then
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	self.IronSightsAng.x)
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		self.IronSightsAng.y)
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	self.IronSightsAng.z)
-	end
-	
-	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Right(), 	self.IronRunAng.x)
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Up(), 		self.IronRunAng.y)
-		DesiredAngOffset:RotateAroundAxis( DesiredAngOffset:Forward(), 	self.IronRunAng.z)
-	end
-	
-	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
-	
-	
-	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,0.01,3))
-	ang = ang + self.IronSightAngCurrent
-	
-	-- End Angle
-		
 	-- Start Position
-	if ShouldSight then	
+	if self.IronSightsPos and ShouldSight then	
 		local BasePosOffset = self.IronSightsPos
-		if BasePosOffset then
-			if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and self.HasScope == false then
-				BasePosOffset = BasePosOffset - Vector(BasePosOffset.x/2,0,BasePosOffset.z/2)
-			end
-			DesiredPosOffset = DesiredPosOffset + BasePosOffset.x * ang:Right()
-			DesiredPosOffset = DesiredPosOffset + BasePosOffset.y * ang:Forward()
-			DesiredPosOffset = DesiredPosOffset + BasePosOffset.z * ang:Up()
+		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and self.HasScope == false then
+			BasePosOffset = BasePosOffset - Vector(BasePosOffset.x/2,0,BasePosOffset.z/2)
 		end
+		DesiredPosOffset = DesiredPosOffset + BasePosOffset
 	end	
 
 	if self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then	
-		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.x * ang:Right()
-		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.y * ang:Forward()
-		DesiredPosOffset = DesiredPosOffset + self.IronRunPos.z * ang:Up()
+		DesiredPosOffset = DesiredPosOffset + self.IronRunPos
+	end
+	
+	if self.IronMeleePos and IsMelee then
+		DesiredPosOffset = DesiredPosOffset + self.IronMeleePos
 	end
 
 	if not ShouldSight then 
-		DesiredPosOffset = DesiredPosOffset + math.sin(CurTime()*0.75) * ang:Right() * 0.125
-		DesiredPosOffset = DesiredPosOffset + math.sin(CurTime()*0.75) * ang:Up() * 0.125
-		
-		--local VelMul = (self.Owner:GetVelocity():Length()/100)^2
-		
-		--self.VelAdd = (self.VelAdd + VelMul*FrameTime()) % (math.pi * 2)
-		
-		--DesiredPosOffset = DesiredPosOffset + math.sin(self.VelAdd) * ang:Right() * 1
-		--DesiredPosOffset = DesiredPosOffset + math.sin(self.VelAdd) * ang:Up() * 0.25
+		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
 	end
 
 	if not self.DistanceMod then
@@ -2158,30 +2165,66 @@ function SWEP:GetViewModelPosition( pos, ang )
 	else
 		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
 	end
-	DesiredPosOffset = DesiredPosOffset - ang:Forward()*self.DistanceMod
+	DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
 	
 	if self.Owner:Crouching() and not ShouldSight then
-		DesiredPosOffset = DesiredPosOffset + ang:Up()*2
+		DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
 	end
 	
 	if self.HasDual and ShouldSight then
 		if self:GetIsLeftFire() then
-			DesiredPosOffset = DesiredPosOffset - ang:Right()*self.IronDualSpacing
+			DesiredPosOffset = DesiredPosOffset - Vector(self.IronDualSpacing,0,0)
 		else
-			DesiredPosOffset = DesiredPosOffset + ang:Right()*self.IronDualSpacing
+			DesiredPosOffset = DesiredPosOffset + Vector(self.IronDualSpacing,0,0)
 		end
 	end
 
-	--Start BoltZoom mod
 	if self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
-		DesiredPosOffset = DesiredPosOffset - ang:Up()*2
+		DesiredPosOffset = DesiredPosOffset - Vector(0,0,2)
 	end
-	--End BoltZoom Mod
+	
+	
+	
+	
 	
 	-- End Postion
+	
+	-- Start Angle
+	if self.IronSightsAng and ShouldSight then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronSightsAng.x,self.IronSightsAng.y,self.IronSightsAng.z)
+	end
+	
+	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
+	end
+	
+	if self.IronMeleeAng and IsMelee then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronMeleeAng.x,self.IronMeleeAng.y,self.IronMeleeAng.z)
+	end
 
+	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+	
+	-- End Angle
+	
+	DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
+	DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
+	
+	
 	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
-	pos = pos + self.IronSightPosCurrent
+	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,0.01,3))
+	self.IronSightAngCurrent:Normalize()
+	
+
+	--pos, ang = LocalToWorld(self.IronSightPosCurrent,self.IronSightAngCurrent,pos,ang)
+	
+	ang:RotateAroundAxis(ang:Right(), 	self.IronSightAngCurrent.x)
+	ang:RotateAroundAxis(ang:Up(), 	self.IronSightAngCurrent.y)
+	ang:RotateAroundAxis(ang:Forward(), self.IronSightAngCurrent.z)
+
+	pos = pos + self.IronSightPosCurrent.x * ang:Right()
+	pos = pos + self.IronSightPosCurrent.y * ang:Forward()
+	pos = pos + self.IronSightPosCurrent.z * ang:Up()
+	
 	
 
 	if ShouldSight then	
@@ -2194,7 +2237,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 		end
 		
 		if AngDistance < 0.25 then
-		self.IronSightAngSnap = true
+			self.IronSightAngSnap = true
 		end
 	else
 		self.IronSightAngSnap = false
@@ -2202,6 +2245,16 @@ function SWEP:GetViewModelPosition( pos, ang )
 	end
 
 	return pos, ang
+end
+
+function SWEP:HandleHoldType()
+	if !self.CanShootWhileSprinting and self:IsSprinting() then
+		if self:GetHoldType() ~= "passive" then
+			self:SetHoldType("passive")
+		end
+	elseif self:GetHoldType() ~= self.HoldType then
+		self:SetHoldType(self.HoldType)
+	end
 end
 
 function SWEP:Think()
@@ -2216,6 +2269,7 @@ function SWEP:Think()
 		end
 	end
 	
+	self:HandleHoldType()
 	self:HandleSprintCancelZoom()
 	self:HandleHoldToZoom()
 	self:HandleCoolDown() -- don't predict
@@ -2284,7 +2338,7 @@ function SWEP:IdleThink()
 	if self.HasIdle then
 		if self:GetNextIdle() <= CurTime() and self:GetNextPrimaryFire() <= CurTime() then
 			if not self:IsBusy() then
-				self:SendWeaponAnim(ACT_VM_IDLE)
+				self:SendWeaponAnimation(ACT_VM_IDLE)
 				self:SetNextIdle(CurTime() + self.Owner:GetViewModel():SequenceDuration())
 			end
 		end
@@ -2304,10 +2358,7 @@ function SWEP:HandleBuildUp()
 	end
 end
 
-SWEP.BulletDelay = 0
 
-
-SWEP.ClipEmptySound = Sound("weapons/clipempty_pistol.wav")
 
 function SWEP:EmitClipEmptySound()
 	if SERVER then
@@ -2368,7 +2419,7 @@ function SWEP:HandleReloadThink()
 				self.HasMagIn = true
 			end
 
-			--self:SendWeaponAnim(ACT_VM_IDLE)
+			--self:SendWeaponAnimation(ACT_VM_IDLE)
 			
 			self:SetIsNormalReload(false)
 			self:SetIsReloading(false)
@@ -2381,7 +2432,7 @@ function SWEP:HandleReloadThink()
 	
 		if self:GetNextShell() <= CurTime() then
 			if self.Owner:GetAmmoCount( self:GetPrimaryAmmo() ) > 0 and self:Clip1() < self.Primary.ClipSize then 
-				self:SendWeaponAnim(ACT_VM_RELOAD)
+				self:SendWeaponAnimation(ACT_VM_RELOAD)
 				self:SetClip1(self:Clip1()+1)
 				self.Owner:RemoveAmmo(1,self:GetPrimaryAmmo())
 				self:SetNextShell(CurTime()+self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
@@ -2401,24 +2452,24 @@ function SWEP:HandleReloadThink()
 end
 
 function SWEP:FinishShotgunReload()
-	self:SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH )
+	self:SendWeaponAnimation( ACT_SHOTGUN_RELOAD_FINISH )
 	self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
 	self:SetIsShotgunReload(false)
 	self:SetIsReloading(false)
 end
 
 function SWEP:CancelReload()
-	--self:SendWeaponAnim( ACT_VM_IDLE )
+	--self:SendWeaponAnimation( ACT_VM_IDLE )
 	self:SetNextPrimaryFire(CurTime() + 0.1)
 	self:SetIsReloading(false)
 end
 
-SWEP.PumpAnimation = ACT_SHOTGUN_PUMP
+
 
 function SWEP:HL2Pump()
 	if self.HasPumpAction and self.HasHL2Pump then
 		if self:GetNeedsHL2Pump() and self:GetNextHL2Pump() <= CurTime() then
-			self:SendWeaponAnim( self.PumpAnimation )
+			self:SendWeaponAnimation( self.PumpAnimation )
 			self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
 			if CLIENT and IsFirstTimePredicted() then
 				if self.PumpSound then
@@ -2456,7 +2507,7 @@ function SWEP:HandleShotgunReloadThinkAnimations()
 	if self:GetIsShotgunReload() then
 		if self:GetNextShell() <= CurTime() then
 			if self.Owner:GetAmmoCount( self:GetPrimaryAmmo() ) > 0 and self:Clip1() < self.Primary.ClipSize then 
-				self:SendWeaponAnim(ACT_VM_RELOAD)
+				self:SendWeaponAnimation(ACT_VM_RELOAD)
 
 				if (CLIENT or IsSingleplayer) then
 					if self.ReloadSound then
@@ -2465,7 +2516,7 @@ function SWEP:HandleShotgunReloadThinkAnimations()
 				end
 				
 			else
-				self:SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH )
+				self:SendWeaponAnimation( ACT_SHOTGUN_RELOAD_FINISH )
 				self:SetNextPrimaryFire( CurTime() + self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd )
 			end
 		end
@@ -3159,15 +3210,7 @@ function SWEP:DrawSpecial(Cone)
 
 end
 
-if CLIENT then
-	SWEP.DynamicScopeDesiredOffsetX = 0
-	SWEP.DynamicScopeDesiredOffsetY = 0
-	SWEP.DynamicScopeOffsetX = 0
-	SWEP.DynamicScopeOffsetY = 0
-	
-	SWEP.ScopeMoveTime = 0
-	SWEP.ScopeMoveTimeStored = 0
-end
+
 
 function SWEP:DrawCustomScope(x,y,Cone,r,g,b,a)
 
@@ -3376,7 +3419,7 @@ function SWEP:EquipThink()
 	
 		if !self.Owner:KeyDown(IN_ATTACK) and self:GetThrowDelay() ~= 0 and self:GetThrowDelay() <= CurTime() then
 		
-			self:SendWeaponAnim(ACT_VM_THROW)
+			self:SendWeaponAnimation(ACT_VM_THROW)
 			self.Owner:SetAnimation(PLAYER_ATTACK1) 
 
 			self:SetThrowTime(CurTime() + self.Owner:GetViewModel():SequenceDuration()*0.33)
@@ -3402,8 +3445,7 @@ function SWEP:EquipThink()
 	
 end
 
-SWEP.CanCook = false
-SWEP.FuseTime = 5
+
 
 function SWEP:RemoveGrenade()
 
@@ -3411,7 +3453,7 @@ function SWEP:RemoveGrenade()
 	self:SetIsThrowing( false )
 	
 	if self:Ammo1() > 0 then
-		self:SendWeaponAnim(ACT_VM_DRAW)
+		self:SendWeaponAnimation(ACT_VM_DRAW)
 	else
 		self:SwitchToPrimary()
 		if SERVER then
@@ -3464,7 +3506,7 @@ function SWEP:PreThrowObject(override)
 	local ThrowDelay = 0.15
 	
 	if self.HasPreThrow then
-		self:SendWeaponAnim( ACT_VM_PULLPIN )
+		self:SendWeaponAnimation( ACT_VM_PULLPIN )
 		ThrowDelay = self.Owner:GetViewModel():SequenceDuration()
 	end
 	
@@ -3533,8 +3575,7 @@ function SWEP:NewSwing(damage,delay,entoverride,delayoverride)
 	
 end
 
-SWEP.HasDurability = false
-SWEP.DurabilityPerHit = -10
+
 
 function SWEP:AddDurability(amount)
 
@@ -3561,7 +3602,7 @@ function SWEP:SwingThink()
 			
 		self:SetShouldMelee(false)
 		self:SetNextMeleeDamage(0)
-		self:SetNextMelee(0)
+		--self:SetNextMelee(0)
 		self:SetNextMeleeEnt(nil)
 		
 	end
@@ -3793,18 +3834,6 @@ function SWEP:GetActivities()
 		
 	end
   
-end
-
-function SWEP:SendSequence(anim)
-	local vm = self.Owner:GetViewModel()
-	vm:SendViewModelMatchingSequence( vm:LookupSequence( anim ) )
-end
-
-function SWEP:SendSequencePlayer(anim)
-	local Seq = self.Owner:LookupSequence(anim)
-	local SeqDur = self.Owner:SequenceDuration(Seq)
-	self.Owner:AddVCDSequenceToGestureSlot( GESTURE_SLOT_ATTACK_AND_RELOAD, Seq, 0, true )
-	return SeqDur
 end
 
 function SWEP:SCK_OnRemove()

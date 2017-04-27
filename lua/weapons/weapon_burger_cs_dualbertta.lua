@@ -54,23 +54,26 @@ SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= false
 SWEP.HasDual				= true
 SWEP.HasFirstShotAccurate	= true
+SWEP.SideRecoilBasedOnDual	= true
+SWEP.CanShootWhileSprinting = true
+
+SWEP.DamageFalloff			= 1000
+
+SWEP.GetMagModel			= "models/weapons/unloaded/pist_fiveseven_mag.mdl"
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.5
-SWEP.IronSightsPos 			= Vector(0, 20, 3)
+
+SWEP.IronSightsPos 			= Vector(0, 0, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 1000
+SWEP.IronRunPos 			= Vector(0, 0, 0)
+SWEP.IronRunAng 			= Vector(0, 0, 0)
 
-SWEP.GetMagModel			= "models/weapons/unloaded/pist_fiveseven_mag.mdl"
-
-SWEP.SideRecoilBasedOnDual	= true
-
-SWEP.CanShootWhileSprinting = true
-SWEP.IronRunPos				= Vector(0,0,0)
-SWEP.IronRunAng				= Vector(0,0,0)
+SWEP.IronMeleePos 			= Vector(-6, -13.468, -20)
+SWEP.IronMeleeAng 			= Vector(70, 0, 0)
 
 

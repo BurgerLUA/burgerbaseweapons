@@ -113,9 +113,8 @@ function SWEP:Reload()
 	--PrintTable(self:GetSequenceList())
 end
 
-function SWEP:Deploy()
+function SWEP:SpecialDeploy()
 	self.Owner:DrawViewModel(true)
 	self:SendSequence("fists_draw")
 	self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration())	
-	return true
 end
