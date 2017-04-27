@@ -61,22 +61,23 @@ SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= true
 SWEP.HasFirstShotAccurate	= false
 
+SWEP.DamageFalloff			= 200
+SWEP.Primary.Range			= 400
+SWEP.HasHL2Pump				= true
+SWEP.PumpSound				= Sound("weapons/shotgun/shotgun_cock.wav")
+SWEP.PenetrationLossScale	= 0.5
+SWEP.CanShootWhileSprinting = false
+
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
-SWEP.IronSightsPos 			= Vector(-6.3, 0, 1)
+
+SWEP.IronSightsPos 			= Vector(-8.24, 0, 1.72)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 200
-SWEP.Primary.Range			= 400
+SWEP.IronRunPos = Vector(0, 0, 0)
+SWEP.IronRunAng = Vector(0, 26.03, 0)
 
-SWEP.HasHL2Pump				= true
-
-SWEP.PumpSound				= Sound("weapons/shotgun/shotgun_cock.wav")
-
-SWEP.PenetrationLossScale	= 0.5
-
-SWEP.CanShootWhileSprinting = false
-SWEP.IronRunPos				= Vector(0,-5,-20)
-SWEP.IronRunAng				= Vector(45,10,0)
+SWEP.IronMeleePos = Vector(0, -7.035, -3.619)
+SWEP.IronMeleeAng = Vector(-2.814, 42.21, -42.211)

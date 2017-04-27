@@ -131,6 +131,7 @@ SWEP.BurstAnimationOnce		= false
 SWEP.HasPreThrow			= true
 
 -- Melee
+SWEP.MeleeDamage			= 50
 SWEP.EnableBlocking			= false
 SWEP.MeleeDelay				= 0.1
 SWEP.MeleeDamageType		= DMG_CLUB
@@ -239,8 +240,8 @@ SWEP.IronDualSpacing 	= 1
 SWEP.IronRunPos				= Vector(0,-5,-20)
 SWEP.IronRunAng				= Vector(45,10,0)
 
-SWEP.IronMeleePos			= Vector(10,-10,0)
-SWEP.IronMeleeAng			= Vector(-10,120,0)
+SWEP.IronMeleePos			= Vector(0,0,0)
+SWEP.IronMeleeAng			= Vector(0,0,0)
 
 SWEP.VelAdd					= 0
 
@@ -888,10 +889,15 @@ function SWEP:GetDelay()
 
 end
 
+function SWEP:ModBoltDelay()
+	return self.Primary.Delay
+end
+
 function SWEP:WeaponDelay()
 
 	if self.HasBoltAction then
-		self:SetBoltDelay( CurTime() + self.Primary.Delay )
+		self:SetBoltDelay( CurTime() + self:ModBoltDelay() )
+		self:SetZoomOverlayDelay( CurTime() + self:ModBoltDelay() )
 	end
 
 	self:SetNextPrimaryFire( CurTime() + self:GetDelay() )
@@ -902,8 +908,8 @@ function SWEP:AfterZoom()
 	if self.HasScope then
 		if self.HasBoltAction then
 			if self:GetZoomed() then
-				self:SetZoomOverlayDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )	
-				self:SetBoltDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
+				--self:SetZoomOverlayDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )	
+				--self:SetBoltDelay( CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 			end
 		end
 	end
@@ -1191,7 +1197,7 @@ function SWEP:Melee()
 	if self:GetNextPrimaryFire() > CurTime() then return end
 	self:SetNextPrimaryFire(CurTime() + 1)
 	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND )
-	self:NewSwing(50)
+	self:NewSwing(self.MeleeDamage)
 	
 end
 
@@ -2120,7 +2126,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local ZoomSpeed = 1
 	local TickRate = FrameTime()
 	local TimeRate = self.IronSightTime
-	local IsMelee = self:GetNextMelee() + self.MeleeDelay > CurTime()
+	local IsMelee = self:GetNextMelee() + self.MeleeDelay >= CurTime()
+	local MeleeDif = math.Clamp( (self:GetNextMelee() - CurTime())/0.15 , 0 , 1)
 	
 	if self.IronSightAngSnap and self.IronSightPosSnap then
 		TimeRate = 0.1
@@ -2153,7 +2160,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 	end
 	
 	if self.IronMeleePos and IsMelee then
-		DesiredPosOffset = DesiredPosOffset + self.IronMeleePos
+		local Rad = math.rad(MeleeDif*180)
+		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(Rad)*self.IronMeleePos.x,math.cos(Rad)*self.IronMeleePos.y,self.IronMeleePos.z)
 	end
 
 	if not ShouldSight then 

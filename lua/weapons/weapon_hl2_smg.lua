@@ -61,6 +61,9 @@ SWEP.HasDownRecoil			= false
 SWEP.HasDryFire				= false
 SWEP.HasSpecialFire 		= true
 SWEP.HasFirstShotAccurate	= true
+SWEP.CanShootWhileSprinting = true
+
+SWEP.DamageFalloff			= 1000
 
 SWEP.Object					= "grenade_ar2"
 
@@ -68,16 +71,17 @@ SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
-SWEP.IronSightsPos 			= Vector(-6.43, 0, 0)
-SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
-SWEP.DamageFalloff			= 1000
+SWEP.IronSightsPos = Vector(-6.4, 0, 1.039)
+SWEP.IronSightsAng = Vector(0, 0, 0)
 
-SWEP.CanShootWhileSprinting = true
 SWEP.IronRunPos				= Vector(0,0,0)
 SWEP.IronRunAng				= Vector(0,0,0)
 
-function SWEP:SpecialFire()
+SWEP.IronMeleePos = Vector(0, 0, 0)
+SWEP.IronMeleeAng = Vector(-9.146, 30.25, -37.991)
+
+function SWEP:ReloadSpecial()
 
 	if not self:CanPrimaryAttack() then	return end
 	if self:IsBusy() then return end
