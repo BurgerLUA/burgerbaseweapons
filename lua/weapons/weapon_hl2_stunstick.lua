@@ -3,7 +3,7 @@ if CLIENT then
 end
 
 SWEP.Category				= "Extra Weapons"
-SWEP.PrintName				= "STUNSTICK"
+SWEP.PrintName				= "Stunstick"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Melee"
 
