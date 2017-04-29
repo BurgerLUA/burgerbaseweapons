@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/achievements/pistol_round_knife_kill")
 end
 
-SWEP.Category				= "Counter-Strike"
-SWEP.PrintName				= "COMBAT KNIFE"
+SWEP.Category				= "BurgerBase: Counter-Strike"
+SWEP.PrintName				= "Knife"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Melee"
 

@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/sg552")
 end
 
-SWEP.Category				= "Extra Weapons"
-SWEP.PrintName				= "CROSSBOW"
+SWEP.Category				= "BurgerBase: Half Life 2"
+SWEP.PrintName				= "Crossbow"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 

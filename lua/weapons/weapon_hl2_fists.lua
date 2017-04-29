@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/achievements/pistol_round_knife_kill")
 end
 
-SWEP.Category				= "Extra Weapons"
-SWEP.PrintName				= "FISTS"
+SWEP.Category				= "BurgerBase: Half Life 2"
+SWEP.PrintName				= "Fists"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Free"
 

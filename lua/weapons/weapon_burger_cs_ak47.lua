@@ -3,13 +3,15 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/ak47")
 end
 
-SWEP.Category				= "Counter-Strike"
+SWEP.Category				= "BurgerBase: Counter-Strike"
 SWEP.PrintName				= "AK-47"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 
 SWEP.Cost					= 2500
 SWEP.CSSMoveSpeed			= 221
+
+SWEP.Description			= "AW SHEIT"
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false

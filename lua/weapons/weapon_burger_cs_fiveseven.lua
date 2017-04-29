@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/fiveseven")
 end
 
-SWEP.Category				= "Counter-Strike"
-SWEP.PrintName				= "FIVESEVEN"
+SWEP.Category				= "BurgerBase: Counter-Strike"
+SWEP.PrintName				= "Five-seven"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Secondary"
 

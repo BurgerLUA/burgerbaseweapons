@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon = surface.GetTextureID("vgui/gfx/vgui/ump45")
 end
 
-SWEP.Category				= "Counter-Strike"
-SWEP.PrintName				= "UMP"
+SWEP.Category				= "BurgerBase: Counter-Strike"
+SWEP.PrintName				= "UMP45"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 

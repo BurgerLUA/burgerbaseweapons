@@ -5,7 +5,7 @@ if CLIENT then
 --	killicon.AddFont( "ent_cs_smg1_grenade",		"HL2MPTypeDeath",	"7",	Color( 255, 80, 0, 255 ) )
 end
 
-SWEP.Category				= "Extra Weapons"
+SWEP.Category				= "BurgerBase: Half Life 2"
 SWEP.PrintName				= ".357"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Secondary"

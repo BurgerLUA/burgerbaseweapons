@@ -3,8 +3,8 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/galil")
 end
 
-SWEP.Category				= "Counter-Strike"
-SWEP.PrintName				= "GALIL"
+SWEP.Category				= "BurgerBase: Counter-Strike"
+SWEP.PrintName				= "Galil"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 SWEP.Cost					= 2000

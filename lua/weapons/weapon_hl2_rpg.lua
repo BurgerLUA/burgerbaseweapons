@@ -5,7 +5,7 @@ if CLIENT then
 end
 
 
-SWEP.Category				= "Extra Weapons"
+SWEP.Category				= "BurgerBase: Half Life 2"
 SWEP.PrintName				= "RPG"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"

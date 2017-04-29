@@ -54,3 +54,23 @@ BURGERBASE:FUNC_MENU_AddConVarCheckbox("cl_burgerbase_crosshair_neversights",tru
 
 BURGERBASE:FUNC_MENU_AddTitle("Core - Other",true)
 BURGERBASE:FUNC_MENU_AddConVarCheckbox("cl_burgerbase_customslots",true,"Enable Custom Slots")
+
+local function BURGERBASE_HOOK_OnPlayerChat(ply,text,teamChat,isDead)
+
+	--print(text)
+
+	if ply == LocalPlayer() then
+		if text == "!burgerclient" then
+			RunConsoleCommand("burgerbase_client")
+			return true
+		elseif text == "!burgerserver" then
+			RunConsoleCommand("burgerbase_server")
+			return true
+		end
+	end
+
+end
+
+
+hook.Add("OnPlayerChat","BURGERBASE_HOOK_OnPlayerChat",BURGERBASE_HOOK_OnPlayerChat)
+
