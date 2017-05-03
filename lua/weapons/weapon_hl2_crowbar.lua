@@ -22,7 +22,7 @@ SWEP.WorldModel				= "models/weapons/w_crowbar.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "melee"
 
-SWEP.Primary.Damage			= 34
+SWEP.Primary.Damage			= 40
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= -1
 SWEP.Primary.SpareClip		= -1
@@ -75,15 +75,19 @@ function SWEP:PrimaryAttack()
 	
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
 
+	local Delay = self.Primary.Delay
+	
 	if self:NewSwing(self.Primary.Damage) then
 		self:SendWeaponAnim(ACT_VM_HITCENTER)
 	else
 		self:SendWeaponAnim(ACT_VM_MISSCENTER)
+		Delay = Delay*1.25
 	end
 	
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
-	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
+	self:SetNextPrimaryFire(CurTime() + Delay)
+	self:SetNextSecondaryFire(CurTime() + Delay)
 	
+
 end
 
 function SWEP:SecondaryAttack()
@@ -91,27 +95,35 @@ function SWEP:SecondaryAttack()
 end
 
 function SWEP:BlockDamage(Damage,Attacker)
-	self.Owner:SetAnimation(PLAYER_ATTACK1)
-	self:SendWeaponAnim(ACT_VM_HITCENTER)
-	self:EmitGunSound(self.MeleeSoundMiss)
+	--self.Owner:SetAnimation(PLAYER_ATTACK1)
+	--self:SendWeaponAnim(ACT_VM_HITCENTER)
+	--self:EmitGunSound(self.MeleeSoundMiss)
 	self.Owner:EmitSound(Sound("FX_RicochetSound.Ricochet"))
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*0.5)
 	--self:SetNextSecondaryFire(CurTime() + self.Primary.Delay*0.25)
-	self:AddDurability(- math.ceil(Damage*0.1) )
+	--self:AddDurability(- math.ceil(Damage*0.1) )
 end
 
+function SWEP:SpareThink()
+	if self.Owner:KeyDown(IN_ATTACK2) then
+		self.CSSMoveSpeed				= 240*0.25
+	else
+		self.CSSMoveSpeed				= 240
+	end
+end
 
 function SWEP:Reload()
-	--PrintTable(GetActivities(self))
+
 end
 
-function SWEP:Deploy()
+--[[
+function SWEP:SpecialDeploy()
 	self:CheckInventory()
 	self.Owner:DrawViewModel(true)
 	self:SendWeaponAnim(ACT_VM_DRAW)
 	self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration())	
 	return true
 end
-
+--]]
 
 

@@ -1,5 +1,5 @@
 if CLIENT then
-	--killicon.AddFont( "weapon_burger_cs_ar2",			"HL2MPTypeDeath",	"2",	Color( 255, 80, 0, 255 ) )
+	killicon.AddFont( "weapon_hl2_crossbow",			"HL2MPTypeDeath",	"1",	Color( 255, 80, 0, 255 ) )
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/sg552")
 end
 
@@ -27,15 +27,15 @@ SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("weapons/crossbow/fire1.wav")
 SWEP.Primary.Cone			= 0
 SWEP.Primary.ClipSize		= -1
-SWEP.Primary.SpareClip		= 6
+SWEP.Primary.SpareClip		= 36
 SWEP.Primary.Delay			= 0.5
 SWEP.Primary.Ammo			= "XBowBolt"
 SWEP.Primary.Automatic 		= false
 
-SWEP.RecoilMul				= 0.1
-SWEP.SideRecoilMul			= 0
-SWEP.MoveConeMul				= 0
-SWEP.HeatMul				= 0
+SWEP.RecoilMul				= 0.5
+SWEP.SideRecoilMul			= 0.5
+SWEP.MoveConeMul			= 1
+SWEP.HeatMul				= 1
 
 SWEP.HasScope 				= true
 SWEP.ZoomAmount 			= 7

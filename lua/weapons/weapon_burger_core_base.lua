@@ -42,7 +42,7 @@ SWEP.AddFOV					= 0
 -- Bullet Information
 SWEP.Primary.Damage			= 36
 SWEP.Primary.NumShots		= 1
-SWEP.Primary.Sound			= Sound("Weapon_AK47.Single")
+SWEP.Primary.Sound			= nil
 SWEP.Primary.Cone			= 0.0025
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 90
@@ -248,7 +248,7 @@ SWEP.VelAdd					= 0
 SWEP.BulletDelay = 0
 
 
-SWEP.ClipEmptySound = Sound("weapons/clipempty_pistol.wav")
+SWEP.DryFireSound = Sound("weapons/clipempty_pistol.wav")
 
 SWEP.PumpAnimation = ACT_SHOTGUN_PUMP
 
@@ -595,6 +595,8 @@ function SWEP:Deploy()
 		self:CreateFists()
 	--end
 	
+	self:SetNextIdle(CurTime() + self.Owner:GetViewModel():SequenceDuration())
+	
 	self:SpecialDeploy()
 	
 	return true
@@ -750,6 +752,8 @@ function SWEP:GetBoltDelay()
 	end
 end
 
+SWEP.FireAlwaysAnimate = false
+
 function SWEP:PrimaryAttack()
 
 	if self:GetIsShotgunReload() and self:GetIsReloading() and not self.Owner:IsBot() then
@@ -780,7 +784,9 @@ end
 
 function SWEP:ShootGun()
 
-	self:HandleShootAnimations() -- don't predict, has animations
+	--if not self.FireAlwaysAnimate then
+		self:HandleShootAnimations() -- don't predict, has animations
+	--end
 	
 	self:TakePrimaryAmmo(1)
 	
@@ -802,6 +808,7 @@ function SWEP:ShootGun()
 end
 
 function SWEP:HandleShootAnimations()
+
 	if self.BurstAnimationOverride and self:GetIsBurst() then
 		self:WeaponAnimation(self:Clip1(),self.BurstAnimationOverride)
 	elseif self.HasDual then
@@ -815,6 +822,9 @@ function SWEP:HandleShootAnimations()
 	else
 		self:WeaponAnimation(self:Clip1(),ACT_VM_PRIMARYATTACK)
 	end
+	
+	self:SetNextIdle(CurTime() + self.Owner:GetViewModel():SequenceDuration())
+	
 end
 
 function SWEP:CanShoot()
@@ -825,7 +835,11 @@ function SWEP:CanShoot()
 		self:PreThrowObject() 
 		return false 
 	end
-	if not self:HasAmmoToFire() then return end
+	if not self:HasAmmoToFire() then
+		if self.FireAlwaysAnimate then
+			self:HandleShootAnimations()
+		end
+	return end
 	return true
 end
 
@@ -883,6 +897,10 @@ function SWEP:GetDelay()
 				Delay = Delay * (self.BurstOverride*2)
 			end
 		end
+	end
+	
+	if self.Owner:IsBot() and !self.Primary.Automatic then
+		Delay = math.Clamp(Delay,1/8,100)
 	end
 	
 	return self:SpecialDelay(Delay)
@@ -994,9 +1012,11 @@ function SWEP:PreShootBullet() -- Don't predict
 		
 		self:AddHeat(Damage,Shots)
 		
+		--[[
 		if self.HasIdle then
 			self:SetNextIdle(CurTime() + self.IdleOffset)
 		end
+		--]]
 		
 	end
 
@@ -1016,13 +1036,13 @@ function SWEP:WeaponAnimation(clip,animation)
 	end
 	
 	if self:GetIsSilenced() then
-		if clip == 0 and self.HasDryFire then
+		if clip == 1 and self.HasDryFire then
 			self:SendWeaponAnimation(ACT_VM_DRYFIRE_SILENCED)
 		else
 			self:SendWeaponAnimation(ACT_VM_PRIMARYATTACK_SILENCED)
 		end
 	else
-		if clip == 0 and self.HasDryFire then
+		if clip == 1 and self.HasDryFire then
 			self:SendWeaponAnimation(ACT_VM_DRYFIRE)
 		else
 			self:SendWeaponAnimation(animation)
@@ -2155,7 +2175,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 		DesiredPosOffset = DesiredPosOffset + BasePosOffset
 	end	
 
-	if self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then	
+	if self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() and !IsMelee then	
 		DesiredPosOffset = DesiredPosOffset + self.IronRunPos
 	end
 	
@@ -2202,7 +2222,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronSightsAng.x,self.IronSightsAng.y,self.IronSightsAng.z)
 	end
 	
-	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() then
+	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() and !IsMelee then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
 	end
 	
@@ -2292,6 +2312,7 @@ function SWEP:Think()
 	self:IdleThink()
 	self:HandleBulletsPerSecond()
 	self:HandleZoomDelay()
+	self:HandleBlocking()
 	
 	if (CLIENT or IsSingleplayer) then
 		
@@ -2323,6 +2344,28 @@ function SWEP:Think()
 
 end
 
+function SWEP:HandleBlocking()
+
+	if self.EnableBlocking then
+	
+		if self.Owner:KeyDown(IN_ATTACK2) then
+			self:SetNextPrimaryFire(CurTime() + self.IronSightTime)			
+		end
+
+		if SERVER then
+			if self.Owner:KeyDown(IN_ATTACK2) and self:GetNextSecondaryFire() <= CurTime() then
+				self:SetIsBlocking( true )
+				self:SetHoldType("melee2")
+			else
+				self:SetHoldType(self.HoldType)
+				self:SetIsBlocking( false )
+			end
+		end
+		
+	end
+	
+end
+
 function SWEP:HandleAmmoSwitch()
 
 
@@ -2342,11 +2385,16 @@ function SWEP:HandleBulletsPerSecond()
 	end
 end
 
+function SWEP:IdleAnimation()
+	self:SendWeaponAnimation(ACT_VM_IDLE)
+end
+
+
 function SWEP:IdleThink()
 	if self.HasIdle then
-		if self:GetNextIdle() <= CurTime() and self:GetNextPrimaryFire() <= CurTime() then
+		if self:GetNextIdle() <= CurTime() then
 			if not self:IsBusy() then
-				self:SendWeaponAnimation(ACT_VM_IDLE)
+				self:IdleAnimation()	
 				self:SetNextIdle(CurTime() + self.Owner:GetViewModel():SequenceDuration())
 			end
 		end
@@ -2368,9 +2416,9 @@ end
 
 
 
-function SWEP:EmitClipEmptySound()
+function SWEP:EmitDryFireSound()
 	if SERVER then
-		self.Owner:EmitSound(self.ClipEmptySound)
+		self.Owner:EmitSound(self.DryFireSound)
 	end
 	self:SetNextPrimaryFire( math.max(self:GetNextPrimaryFire(),CurTime() + 0.25) )
 end
@@ -2379,13 +2427,13 @@ function SWEP:HasAmmoToFire()
 
 	if self:Clip1() == -1 then
 		if self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
-			self:EmitClipEmptySound()
+			self:EmitDryFireSound()
 			return false 
 		else
 			return true
 		end
 	elseif self:Clip1() <= 0 then
-		self:EmitClipEmptySound()
+		self:EmitDryFireSound()
 		return false
 	end
 
@@ -2806,7 +2854,7 @@ function SWEP:DrawContextMenu(x,y)
 				local Shots = weapon:SpecialShots(weapon.Primary.NumShots)
 
 				if weapon.WeaponType == "Melee" then
-					Damage = weapon.Primary.Damage
+					Damage = weapon:SpecialDamage(weapon.Primary.Damage)
 					Shots = 1
 				end
 				
@@ -3395,7 +3443,7 @@ end
 
 function SWEP:HUDShouldDraw( element )
 
-	if self:GetZoomed() and element == "CHudWeaponSelection" then
+	if self:GetZoomed() and self.HasScope and element == "CHudWeaponSelection" then
 		return false
 	end
 	
@@ -3578,6 +3626,7 @@ function SWEP:NewSwing(damage,delay,entoverride,delayoverride)
 		if not Returner then
 			self:EmitGunSound(self.MeleeSoundMiss)
 		end
+		self:PostSwing(Returner,damage)
 		return Returner
 	end
 	
@@ -3602,18 +3651,23 @@ function SWEP:SwingThink()
 
 	if self:GetShouldMelee() and self:GetNextMelee() <= CurTime() then
 	
-		if self:GetNextMeleeEnt() then
-			self:Swing(self:GetNextMeleeDamage(),self:GetNextMeleeEnt())	
-		else
-			self:Swing(self:GetNextMeleeDamage())
-		end
-			
+		local HitEntity = self:GetNextMeleeEnt()
+		local Damage = self:GetNextMeleeDamage()
+		HitEntity = self:Swing(Damage,HitEntity)	
+	
 		self:SetShouldMelee(false)
 		self:SetNextMeleeDamage(0)
 		--self:SetNextMelee(0)
 		self:SetNextMeleeEnt(nil)
 		
+		self:PostSwing(HitEntity,Damage)
+		
 	end
+
+end
+
+function SWEP:PostSwing(HitEntity,Damage)
+
 
 end
 
@@ -3689,9 +3743,9 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
 		VictimWeapon = victim:GetActiveWeapon()
 
 		if VictimWeapon and VictimWeapon ~= NULL then
-			if VictimWeapon.WeaponType == "Melee" then
+			if VictimWeapon.EnableBlocking then
 				if (VictimWeapon:GetIsBlocking() and VictimWeapon:GetNextSecondaryFire() <= CurTime()) or ( VictimWeapon:GetClashTime() >= CurTime() and math.abs(VictimWeapon:GetClashTime() - self:GetClashTime()) > self.MeleeDelay ) then
-					local Range = 90
+					local Range = 90 + 45
 					if Yaw > 180 - Range/2 and Yaw < 180 + Range/2 then
 						VictimWeapon:BlockDamage(damage,self.Owner)
 						self:SetShouldMelee(false)

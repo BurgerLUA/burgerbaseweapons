@@ -1,7 +1,5 @@
 function BURGERBASE_HOOK_PlayerSay_CC(sender,text,teamChat)
 
-	print(text)
-
 	if sender:IsPlayer() then
 		if text == "!burgerclient" then
 			sender:ConCommand("burgerbase_client")

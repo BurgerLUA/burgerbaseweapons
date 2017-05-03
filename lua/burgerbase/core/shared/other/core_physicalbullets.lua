@@ -10,7 +10,7 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		data.direction = data.direction - ( data.resistance * engine.TickInterval() )
 
 		local TraceData = {}
-		local HullSize = 1
+		local HullSize = 5
 	
 	
 		TraceData.start = data.pos - data.direction:GetNormalized()*HullSize

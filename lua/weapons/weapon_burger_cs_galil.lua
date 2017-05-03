@@ -8,7 +8,7 @@ SWEP.PrintName				= "Galil"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
 SWEP.Cost					= 2000
-SWEP.CSSMoveSpeed				= 215
+SWEP.CSSMoveSpeed			= 215
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
@@ -35,7 +35,7 @@ SWEP.RecoilMul				= 1.25
 SWEP.SideRecoilMul			= 0.25
 SWEP.RecoilSpeedMul			= 1
 SWEP.MoveConeMul			= 1
-SWEP.HeatMul				= 0.5
+SWEP.HeatMul				= 0.75
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 1
 
@@ -43,8 +43,6 @@ SWEP.HasScope 				= false
 SWEP.ZoomAmount 			= 1
 SWEP.HasCrosshair 			= true
 SWEP.HasCSSZoom 			= false
-
-
 
 SWEP.HasPumpAction 			= false
 SWEP.HasBoltAction 			= false
@@ -64,7 +62,7 @@ SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.5
 
-SWEP.IronSightsPos 			= Vector(-6.361, 0, 2.519)
+SWEP.IronSightsPos 			= Vector(-6.361, 0, 2)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.IronRunPos 			= Vector(-2.01, 0.201, 0.602)

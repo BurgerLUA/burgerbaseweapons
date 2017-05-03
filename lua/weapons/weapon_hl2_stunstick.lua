@@ -27,12 +27,12 @@ if CLIENT then
 	language.Add("smod_metal_ammo","Metal")
 end
 
-SWEP.Primary.Damage			= 40
+SWEP.Primary.Damage			= 55
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= 100
 SWEP.Primary.SpareClip		= 0
 SWEP.Primary.Delay			= 0.6
-SWEP.Primary.Ammo			= "smod_weeb"
+SWEP.Primary.Ammo			= "smod_metal"
 SWEP.Primary.Automatic 		= true 
 
 SWEP.Secondary.Damage		= 0
@@ -91,24 +91,11 @@ function SWEP:PrimaryAttack()
 end
 
 function SWEP:SpareThink()
-
 	if self.Owner:KeyDown(IN_ATTACK2) then
-		self:SetNextPrimaryFire(CurTime() + self.IronSightTime*2)
 		self.CSSMoveSpeed				= 240*0.25
 	else
 		self.CSSMoveSpeed				= 240
 	end
-
-	if SERVER then
-		if self.Owner:KeyDown(IN_ATTACK2) and self:GetNextSecondaryFire() <= CurTime() then
-			self:SetIsBlocking( true )
-			self:SetHoldType("melee2")
-		else
-			self:SetHoldType(self.HoldType)
-			self:SetIsBlocking( false )
-		end
-	end
-
 end
 
 
@@ -120,6 +107,7 @@ function SWEP:Reload()
 	--PrintTable(GetActivities(self))
 end
 
+--[[
 function SWEP:Deploy()
 
 	self:EmitGunSound(Sound("Weapon_StunStick.Activate"))
@@ -130,6 +118,7 @@ function SWEP:Deploy()
 	
 	return true
 end
+--]]
 
 function SWEP:BlockDamage(Damage,Attacker)
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
