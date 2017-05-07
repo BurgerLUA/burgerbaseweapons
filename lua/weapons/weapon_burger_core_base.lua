@@ -252,7 +252,7 @@ SWEP.DryFireSound = Sound("weapons/clipempty_pistol.wav")
 
 SWEP.PumpAnimation = ACT_SHOTGUN_PUMP
 
-if CLIENT then
+if CLIENT or game.SinglePlayer() then
 	SWEP.DynamicScopeDesiredOffsetX = 0
 	SWEP.DynamicScopeDesiredOffsetY = 0
 	SWEP.DynamicScopeOffsetX = 0
@@ -385,8 +385,9 @@ function SWEP:Initialize()
 	if game.SinglePlayer() then
 		IsSingleplayer = true
 	end
-	
+
 	if CLIENT then
+	
 		if not self.Owner.BURGERBASE_ZoomMul then
 			self.Owner.BURGERBASE_ZoomMul = {}
 		end
@@ -394,9 +395,12 @@ function SWEP:Initialize()
 		if not self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
 			self.Owner.BURGERBASE_ZoomMul[self:GetClass()] = 1
 		end
+
 	end	
 	
-	if CLIENT then
+	
+	
+	if CLIENT or IsSingleplayer then
 		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_customslots",true):GetFloat() == 1 then
 			if self.WeaponType == "Primary" then
 				self.Slot = 2
@@ -557,6 +561,17 @@ end
 
 function SWEP:Deploy()
 
+	if IsSingleplayer then
+		if not self.Owner.BURGERBASE_ZoomMul then
+			self.Owner.BURGERBASE_ZoomMul = {}
+		end
+		if not self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
+			self.Owner.BURGERBASE_ZoomMul[self:GetClass()] = 1
+		end
+	end	
+
+
+
 	self:SetZoomed(false)
 
 	self:CheckInventory()
@@ -634,6 +649,9 @@ function SWEP:CheckInventory()
 	end
 end
 
+function SWEP:SpecialHolster()
+
+end
 
 function SWEP:Holster(nextweapon)
 
@@ -641,6 +659,7 @@ function SWEP:Holster(nextweapon)
 	
 	self:CancelReload()
 	self:SetZoomed(false)
+	self:SpecialHolster()
 
 	if self.HasHolster then
 	
@@ -1287,7 +1306,7 @@ end
 function SWEP:ZoomIn()
 	if self.HasScope then
 		if self.ZoomInSound then
-			if CLIENT then
+			if CLIENT or IsSingleplayer then
 				self.Owner:EmitSound(self.ZoomInSound,0.01)
 			end
 		end
@@ -1559,6 +1578,8 @@ function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,LastEntity)
 		datatable.resistance = Vector(0,0,0)
 		datatable.dietime = CurTime() + 30
 		datatable.special = nil
+		
+		--[[
 		datatable.hitfunction = function(datatable,traceresult)
 		
 			local Victim = traceresult.Entity
@@ -1589,6 +1610,7 @@ function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,LastEntity)
 		datatable.tickfunction = function(datatable) end
 		datatable.diefunction = function(datatable) end
 		datatable.drawfunction = function(datatable) end
+		--]]
 		
 		datatable = self:ModProjectileTable(datatable)
 	
@@ -1876,49 +1898,65 @@ end
 function SWEP:EmitGunSound(GunSound,Level)
 	
 	if GunSound and GunSound ~= NULL then
-		self.Weapon:EmitSound(GunSound)	
-	end
+	
+		--if CLIENT or IsSingleplayer then
+			--print("HI?")
+			self.Weapon:EmitSound(GunSound)	
+		--end
+	
 
-	--[[
-	if SERVER then
 	
-		local Position = self.Owner:GetPos()
-	
-		if IsFirstTimePredicted() then
-			net.Start("CSS_GunSounds")
-				net.WriteFloat(self.Weapon:EntIndex())
-			net.Broadcast()
+		--[[
+		if SERVER then
+		
+			local Position = self.Owner:GetPos()
+		
+			if sound.GetProperties(GunSound) then
+		
+				if IsFirstTimePredicted() then
+					net.Start("CSS_GunSounds")
+						net.WriteFloat(self.Weapon:EntIndex())
+					net.Broadcast()
+				end
+				
+			end
+
 		end
+		--]]
 		
 	end
-	--]]
-	
+		
 end
 
 if CLIENT then
 	net.Receive("CSS_GunSounds", function(len)
 	
 		local ply = LocalPlayer()
-	
-		local ID = net.ReadFloat()
-		
+		local ID = net.ReadFloat()	
 		local Gun = Entity(ID)
 		
-		if Gun.Owner == ply then return end
+		if not Gun or Gun == NULL or not Gun.Owner or Gun.Owner == NULL or Gun.Owner == ply then return end
 		
 		local GunSound = Gun.Primary.Sound
-		
 		local RealSoundTable = sound.GetProperties(GunSound)
-		local RealDistance = ply:GetPos():Distance(Gun:GetPos())
 		
-		local Range = ( Gun:SpecialDamage(Gun.Primary.Damage) * Gun:SpecialShots(Gun.Primary.NumShots) )*500
+		local Distance = math.floor(ply:GetPos():Distance(Gun:GetPos()))
+		local FakePos = ply:EyePos() + (- Gun.Owner:GetShootPos() + ply:EyePos() ):GetNormalized()*50
+		local Power = ( Gun:SpecialDamage(Gun.Primary.Damage) * Gun:SpecialShots(Gun.Primary.NumShots) )
+		local Falloff = 1024
+		local Range = 20000
+		local Calc = math.Clamp(1 - ( (Distance - (Falloff*(Power/100)) ) / Range ),0,1 )
 
-		local VolumeMod = math.Clamp( 1 - (RealDistance/Range),0,1)
 
-		local FakePos = ply:GetPos() + (- Gun:GetPos() + ply:GetPos() ):Angle():Forward()*100
 	
+	
+		local SoundToPlay = RealSoundTable.sound
+		if type(SoundToPlay) == "table" then
+			SoundToPlay = SoundToPlay[math.random(1,#SoundToPlay)]
+		end
 		
-		EmitSound(RealSoundTable.sound,FakePos,ID,CHAN_WEAPON,VolumeMod,140,0,80)
+		print(Calc)
+		EmitSound(SoundToPlay,FakePos,ID,CHAN_WEAPON,Calc,140,0,math.Clamp(100*Calc*1.25,0,100))
 
 	end)
 
@@ -1990,13 +2028,13 @@ function SWEP:ReloadSpecial()
 
 		elseif self:GetPrimaryAmmo() == game.GetAmmoID(self.SpecialAmmo[1]) and self.Owner:GetAmmoCount(self.SpecialAmmo[2]) > 0 then
 			self:SetPrimaryAmmo(game.GetAmmoID(self.SpecialAmmo[2]))
-			if CLIENT and IsFirstTimePredicted() then
+			if (CLIENT or IsSingleplayer) and IsFirstTimePredicted() then
 				self.Owner:PrintMessage( HUD_PRINTTALK, "Switched to " .. language.GetPhrase("#" .. self.SpecialAmmo[2] .. "_ammo") .. " (Secondary)" )
 			end
 			ShouldSwitch = true
 		elseif self:GetPrimaryAmmo() == game.GetAmmoID(self.SpecialAmmo[2]) and self.Owner:GetAmmoCount(self.SpecialAmmo[1]) > 0 then
 			self:SetPrimaryAmmo(game.GetAmmoID(self.SpecialAmmo[1]))
-			if CLIENT and IsFirstTimePredicted() then
+			if (CLIENT or IsSingleplayer) and IsFirstTimePredicted() then
 				self.Owner:PrintMessage( HUD_PRINTTALK, "Switched to " ..  language.GetPhrase("#" .. self.SpecialAmmo[1] .. "_ammo") .. " (Primary)" )
 			end
 			ShouldSwitch = true
@@ -2213,8 +2251,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 	
 	
 	
-	
-	
 	-- End Postion
 	
 	-- Start Angle
@@ -2231,6 +2267,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 	end
 
 	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+	
+	DesiredAngOffset = DesiredAngOffset - self.Owner:GetPunchAngle()
 	
 	-- End Angle
 	
@@ -2287,7 +2325,7 @@ end
 
 function SWEP:Think()
 
-	if CLIENT then
+	if CLIENT then -- not singleplayer
 		if self.Owner.BURGERBASE_ZoomMul and self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
 			if input.WasMousePressed( MOUSE_WHEEL_UP ) then
 				self.Owner.BURGERBASE_ZoomMul[self:GetClass()] = math.Clamp(self.Owner.BURGERBASE_ZoomMul[self:GetClass()] + 0.1,0.1,1)
@@ -2334,7 +2372,7 @@ function SWEP:Think()
 	
 	end
 	
-	if CLIENT then
+	if CLIENT then -- Don't Singleplayer
 		self:SetNextClientThink( CurTime() + FrameTime() )
 	end
 
@@ -2527,7 +2565,7 @@ function SWEP:HL2Pump()
 		if self:GetNeedsHL2Pump() and self:GetNextHL2Pump() <= CurTime() then
 			self:SendWeaponAnimation( self.PumpAnimation )
 			self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() + self.ReloadTimeAdd)
-			if CLIENT and IsFirstTimePredicted() then
+			if (CLIENT or IsSingleplayer) and IsFirstTimePredicted() then
 				if self.PumpSound then
 					self.Owner:EmitSound(self.PumpSound)
 				end
@@ -3443,7 +3481,7 @@ end
 
 function SWEP:HUDShouldDraw( element )
 
-	if self:GetZoomed() and self.HasScope and element == "CHudWeaponSelection" then
+	if self:GetZoomed() and element == "CHudWeaponSelection" then
 		return false
 	end
 	
@@ -3791,7 +3829,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
 				effect:SetDamageType(self.MeleeDamageType)
 				
 				if victim and victim ~= NULL then
-					if CLIENT then
+					if CLIENT or IsSingleplayer then
 						effect:SetEntity(victim)
 					else
 						effect:SetEntIndex(victim:EntIndex())
@@ -3862,7 +3900,7 @@ function SWEP:NewStabFleshEffect(victim)
 	effect:SetColor(0)
 	effect:SetDamageType(self.MeleeDamageType)
 		
-	if CLIENT then
+	if CLIENT or IsSingleplayer then
 		effect:SetEntity(victim)
 	else
 		effect:SetEntIndex(victim:EntIndex())

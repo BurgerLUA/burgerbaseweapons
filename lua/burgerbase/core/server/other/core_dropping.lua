@@ -70,6 +70,8 @@ end
 
 hook.Add("PostCleanupMap","BURGERBASE_FUNC_ReplaceHL2Weapons",BURGERBASE_FUNC_ReplaceHL2Weapons)
 
+BURGERBASE_FUNC_ReplaceHL2Weapons()
+
 function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 
 	local StoredWeapon = weapons.GetStored(class)

@@ -1,4 +1,13 @@
-local BURGERBASE_RegisteredBullets = {}
+BURGERBASE_RegisteredBullets = {}
+
+if not BURGERBASE_RegisteredBulletTemplates then
+	BURGERBASE_RegisteredBulletTemplates = {}
+end
+
+function BURGERBASE_RegisterProjectile(id,DataTable)
+	BURGERBASE_RegisteredBulletTemplates[id] = DataTable
+end
+
 
 function BUREGRBASE_HOOK_Tick_Bullets()
 
@@ -10,7 +19,7 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		data.direction = data.direction - ( data.resistance * engine.TickInterval() )
 
 		local TraceData = {}
-		local HullSize = 5
+		local HullSize = data.HullSize or 5
 	
 	
 		TraceData.start = data.pos - data.direction:GetNormalized()*HullSize
@@ -68,21 +77,51 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	
 	NewTable.resistance = datatable.resistance or Vector(0,0,0)
 	NewTable.dietime = datatable.dietime or (CurTime() + 10)
-	NewTable.special = datatable.special or false
 	
-	NewTable.hitfunction = datatable.hitfunction or function(datatable,traceresult) end
-	NewTable.drawfunction = datatable.drawfunction or function(datatable) end
-	NewTable.diefunction = datatable.diefunction or function(datatable) end
-	NewTable.tickfunction = datatable.tickfunction or function(datatable) end
+	NewTable.id = datatable.id or "crossbow_bolt"
+
+	if SERVER then
+		net.Start("BURGERBASE_SendBulletToClient")
+			net.WriteTable(NewTable)
+			net.WriteFloat(SysTime())
+		net.Broadcast()
+	end
 	
+	local RegisteredTable = BURGERBASE_RegisteredBulletTemplates[NewTable.id] or {}
+	NewTable.drawfunction = RegisteredTable.drawfunction or function(data) end
+	NewTable.diefunction = RegisteredTable.diefunction or function(data) end
+	NewTable.tickfunction = RegisteredTable.tickfunction or function(data) end
+	NewTable.hitfunction = RegisteredTable.hitfunction or function(data,traceresult) end
+
 	table.Add(BURGERBASE_RegisteredBullets,{NewTable})
 
 end
 
+if SERVER then
+	util.AddNetworkString( "BURGERBASE_SendBulletToClient" )
+end
+
 local BulletMat = Material( "sprites/physg_glow1" )
 
-
 if CLIENT then
+
+	net.Receive("BURGERBASE_SendBulletToClient", function(len)
+	
+		local DataTable = net.ReadTable()
+		local ServerSysTimeDif = SysTime() - net.ReadFloat()
+		local id = DataTable.id
+		
+		DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
+		
+		
+		
+		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
+
+		if LocalPlayer() ~= DataTable.owner then
+			BURGERBASE_FUNC_AddBullet(DataTable)
+		end
+		
+	end)
 
 	 function BUREGRBASE_HOOK_3D_Bullets()
 	 

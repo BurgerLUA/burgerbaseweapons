@@ -95,30 +95,75 @@ end
 function SWEP:ModProjectileTable(datatable)
 
 	datatable.direction = datatable.direction*3000
-	datatable.hullsize = 16
+	datatable.hullsize = 4
 	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,100)
 	datatable.dietime = CurTime() + 10
-
-	if CLIENT then
-		datatable.special = ClientsideModel(ArrowModel, RENDERGROUP_OPAQUE )
-	end
-
-	datatable.drawfunction = function(datatable)
-		if datatable.special and datatable.special ~= NULL then
-			datatable.special:SetPos(datatable.pos)
-			datatable.special:SetAngles( datatable.direction:GetNormalized():Angle() )
-			datatable.special:DrawModel()
-		end
-	end
-	
-	datatable.diefunction = function(datatable)
-		if CLIENT then
-			if datatable.special and datatable.special ~= NULL then
-				datatable.special:Remove()
-			end
-		end
-	end
+	datatable.id = "crossbow_bolt"
 
 	return datatable
 
 end
+
+-- Register Bullet
+local datatable = {}
+	
+datatable.drawfunction = function(datatable)
+	if datatable.special and datatable.special ~= NULL then
+		datatable.special:SetPos(datatable.pos)
+		datatable.special:SetAngles( datatable.direction:GetNormalized():Angle() )
+		datatable.special:DrawModel()
+	else
+		datatable.special = ClientsideModel(ArrowModel, RENDERGROUP_OPAQUE )
+	end
+end
+
+datatable.diefunction = function(datatable)
+	if CLIENT then
+		if datatable.special and datatable.special ~= NULL then
+			datatable.special:Remove()
+		end
+	end
+end
+
+datatable.hitfunction = function(datatable,traceresult)
+
+	local Victim = traceresult.Entity
+	local Attacker = datatable.owner
+	local Inflictor = datatable.weapon
+	
+	if not IsValid(Attacker) then
+		Attacker = Victim
+	end
+	
+	if not IsValid(Inflictor) then
+		Inflictor = Attacker
+	end
+	
+	if Victim and Victim ~= NULL then
+		local DmgInfo = DamageInfo()
+		DmgInfo:SetDamage( datatable.damage )
+		DmgInfo:SetAttacker( Attacker )
+		DmgInfo:SetInflictor( Inflictor )
+		DmgInfo:SetDamageForce( datatable.direction:GetNormalized() )
+		DmgInfo:SetDamagePosition( datatable.pos )
+		DmgInfo:SetDamageType( DMG_BULLET )
+		traceresult.Entity:DispatchTraceAttack( DmgInfo, traceresult )
+	end
+
+	if SERVER and traceresult.HitWorld then
+		local CreatedAmmo = BURGERBASE_FUNC_CreateAmmo(traceresult.HitPos,datatable.direction:GetNormalized():Angle(),"XBowBolt",1,ArrowModel)
+		local Phys = CreatedAmmo:GetPhysicsObject()
+		--if Phys and Phys:IsValid() then
+		--	Phys:EnableMotion(false)
+		--end	
+		CreatedAmmo:EmitSound(ArrowSound)
+		SafeRemoveEntityDelayed(CreatedAmmo,30)
+	end
+	
+	
+	
+end
+
+
+
+BURGERBASE_RegisterProjectile("crossbow_bolt",datatable)

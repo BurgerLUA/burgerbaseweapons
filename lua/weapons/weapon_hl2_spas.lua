@@ -3,7 +3,7 @@ if CLIENT then
 	SWEP.WepSelectIcon 		= surface.GetTextureID("vgui/gfx/vgui/m3")
 end
 
-SWEP.Category				= "Extra Weapons"
+SWEP.Category				= "BurgerBase: Half Life 2"
 SWEP.PrintName				= "Shotgun"
 SWEP.Base					= "weapon_burger_core_base"
 SWEP.WeaponType				= "Primary"
