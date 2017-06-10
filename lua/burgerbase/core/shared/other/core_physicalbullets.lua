@@ -19,26 +19,38 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		data.direction = data.direction - ( data.resistance * engine.TickInterval() )
 
 		local TraceData = {}
-		local HullSize = data.HullSize or 5
-	
-	
-		TraceData.start = data.pos - data.direction:GetNormalized()*HullSize
-		TraceData.endpos = data.pos + data.direction:GetNormalized()*HullSize
-		TraceData.maxs = Vector(HullSize,HullSize,HullSize)
-		TraceData.mins = Vector(-HullSize,-HullSize,-HullSize)
+		local HullSize = data.hullsize or 1
+		
+		TraceData.start = data.pos - ( data.direction * engine.TickInterval() )
+		TraceData.endpos = data.pos
 		TraceData.mask = MASK_SHOT
 		TraceData.filter = data.owner
+		
+		local TraceResult = {}
+		local TraceResultHull = {}
+		
+		TraceResult = util.TraceLine(TraceData)
 	
-		local TraceResult = util.TraceHull(TraceData)
+		if data.usehull then
+			TraceData.maxs = Vector(HullSize,HullSize,HullSize)
+			TraceData.mins = Vector(-HullSize,-HullSize,-HullSize)
+			TraceResultHull = util.TraceHull(TraceData)
+		end
+		
+		
 		
 		data.tickfunction(data)
 		
 		if TraceResult.Hit then
-		
 			data.hitfunction(data,TraceResult)
 			data.diefunction(data)
 			data = nil
-			
+			--print("LINE HIT")
+		elseif TraceResultHull.Hit and TraceResultHull.Entity and TraceResultHull.Entity:Health() > 0 then
+			data.hitfunction(data,TraceResultHull)
+			data.diefunction(data)
+			data = nil
+			--print("HULL HIT")
 		elseif data.dietime <= CurTime() then
 			data.diefunction(data)
 			data = nil
@@ -74,6 +86,7 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 
 	NewTable.damage = datatable.damage or 10
 	NewTable.hullsize = datatable.hullsize or 1
+	NewTable.usehull = datatable.usehull or false
 	
 	NewTable.resistance = datatable.resistance or Vector(0,0,0)
 	NewTable.dietime = datatable.dietime or (CurTime() + 10)
@@ -111,7 +124,7 @@ if CLIENT then
 		local ServerSysTimeDif = SysTime() - net.ReadFloat()
 		local id = DataTable.id
 		
-		DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
+		--DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
 		
 		
 		

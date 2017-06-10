@@ -66,8 +66,8 @@ SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.5
 
-SWEP.IronSightsPos 			= Vector(-6.64, 0, 1)
-SWEP.IronSightsAng			= Vector(2.813, 0, 0)
+SWEP.IronSightsPos 			= Vector(-6.64, 20, 1)
+SWEP.IronSightsAng			= Vector(2.5, 0, 0)
 
 SWEP.IronRunPos 			= Vector(8.843, -7.035, 0)
 SWEP.IronRunAng 			= Vector(0, 45, 0)

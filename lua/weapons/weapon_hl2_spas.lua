@@ -81,3 +81,83 @@ SWEP.IronRunAng = Vector(0, 26.03, 0)
 
 SWEP.IronMeleePos = Vector(0, -7.035, -3.619)
 SWEP.IronMeleeAng = Vector(-2.814, 42.21, -42.211)
+
+--[[
+
+
+1:
+		act	=	181
+		actname	=	ACT_VM_PRIMARYATTACK
+		id	=	1
+2:
+		act	=	182
+		actname	=	ACT_VM_SECONDARYATTACK
+		id	=	2
+3:
+		act	=	172
+		actname	=	ACT_VM_DRAW
+		id	=	3
+4:
+		act	=	173
+		actname	=	ACT_VM_HOLSTER
+		id	=	4
+5:
+		act	=	267
+		actname	=	ACT_SHOTGUN_RELOAD_START
+		id	=	5
+6:
+		act	=	183
+		actname	=	ACT_VM_RELOAD
+		id	=	6
+7:
+		act	=	268
+		actname	=	ACT_SHOTGUN_RELOAD_FINISH
+		id	=	7
+8:
+		act	=	269
+		actname	=	ACT_SHOTGUN_PUMP
+		id	=	8
+9:
+		act	=	186
+		actname	=	ACT_VM_DRYFIRE
+		id	=	9
+10:
+		act	=	204
+		actname	=	ACT_VM_IDLE_LOWERED
+		id	=	10
+11:
+		act	=	205
+		actname	=	ACT_VM_LOWERED_TO_IDLE
+		id	=	11
+12:
+		act	=	203
+		actname	=	ACT_VM_IDLE_TO_LOWERED
+		id	=	12
+13:
+		act	=	433
+		actname	=	ACT_VM_SPRINT_IDLE
+		id	=	13
+14:
+		act	=	287
+		actname	=	ACT_RANGE_ATTACK_SHOTGUN
+		id	=	14
+--------------------
+0	=	idle01
+1	=	fire01
+2	=	altfire
+3	=	draw
+4	=	holster
+5	=	reload1
+6	=	reload2
+7	=	reload3
+8	=	pump
+9	=	dryfire
+10	=	lowered
+11	=	lowered_to_idle
+12	=	idle_to_lowered
+13	=	sprint_idle
+14	=	fire
+
+--]]
+
+

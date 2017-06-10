@@ -8,7 +8,7 @@ EFFECT.BulletMats[3] = Material( "effects/laser_tracer" )
 EFFECT.SmokeTrailMat = Material("trails/smoke")
 EFFECT.TubeTrailMat = Material("trails/tube")
 
-
+--EFFECT.SmokeParticle = Material("particle/particle_smoke_dust")
 
 function EFFECT:Init( data )
 

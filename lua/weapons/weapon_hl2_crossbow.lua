@@ -43,7 +43,7 @@ SWEP.HasCrosshair 			= true
 SWEP.HasCSSZoom 			= false
 
 SWEP.HasPumpAction 			= true
-SWEP.HasBoltAction 			= true
+SWEP.HasBoltAction 			= false
 SWEP.HasBurstFire 			= false
 SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
@@ -81,7 +81,7 @@ local ArrowModel = Model("models/crossbow_bolt.mdl")
 local ArrowSound = Sound("fofgunsounds/bow/hit1.wav")
 
 SWEP.UseSpecialProjectile	= true
-SWEP.SourceOverride			= Vector(2,0,-2)
+SWEP.UseMuzzle				= true
 SWEP.BulletAngOffset		= Angle(-1,0,0)
 
 SWEP.HasHL2Pump = true
@@ -151,16 +151,11 @@ datatable.hitfunction = function(datatable,traceresult)
 	end
 
 	if SERVER and traceresult.HitWorld then
-		local CreatedAmmo = BURGERBASE_FUNC_CreateAmmo(traceresult.HitPos,datatable.direction:GetNormalized():Angle(),"XBowBolt",1,ArrowModel)
+		local CreatedAmmo = BURGERBASE_FUNC_CreateAmmo(traceresult.HitPos - datatable.direction:GetNormalized()*10,datatable.direction:GetNormalized():Angle(),"XBowBolt",1,ArrowModel)
 		local Phys = CreatedAmmo:GetPhysicsObject()
-		--if Phys and Phys:IsValid() then
-		--	Phys:EnableMotion(false)
-		--end	
 		CreatedAmmo:EmitSound(ArrowSound)
 		SafeRemoveEntityDelayed(CreatedAmmo,30)
 	end
-	
-	
 	
 end
 

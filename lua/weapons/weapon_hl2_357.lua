@@ -67,7 +67,7 @@ SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true
 SWEP.IronSightTime			= 0.25
 
-SWEP.IronSightsPos 			= Vector(-4.64, 0, 0)
+SWEP.IronSightsPos 			= Vector(-4.64, 20, 0)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
 SWEP.IronRunPos 			= Vector(0, -12.664, -21.48)
@@ -75,3 +75,19 @@ SWEP.IronRunAng			 	= Vector(70, 0, 0)
 
 SWEP.IronMeleePos 			= Vector(-6.433, -13.468, -20)
 SWEP.IronMeleeAng 			= Vector(70, 0, 0)
+
+SWEP.UseSpecialProjectile	= false
+SWEP.UseMuzzle				= false
+
+function SWEP:ModProjectileTable(datatable)
+
+	datatable.direction = datatable.direction*6000
+	datatable.hullsize = 1
+	datatable.usehull = true
+	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,100)
+	datatable.dietime = CurTime() + 50
+	datatable.id = "css_bullet"
+
+	return datatable
+	
+end
