@@ -72,6 +72,7 @@ SWEP.BurstCoolMul			= 2
 SWEP.BurstAnimationOverride	= ACT_VM_SECONDARYATTACK
 SWEP.BurstAnimationOnce		= true
 
+
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true
 SWEP.HasGoodSights			= true

@@ -122,6 +122,24 @@ concommand.Add( "nerfme", function( ply,cmd,args,argStr )
 	for k,SWEP in pairs(AllWeapons) do
 		if SWEP.Base == "weapon_burger_core_base" and (SWEP.WeaponType == "Primary" or SWEP.WeaponType == "Secondary") and SWEP.Spawnable then
 		
+			local ReturnTable = BURGERBASE_CalculateWeaponStats(ply,SWEP,true)
+			
+			local ID = SWEP.PrintName
+			
+			MyWeapons[ID] = {}
+			MyWeapons[ID].Damage = ReturnTable.damage * ReturnTable.shots
+			--MyWeapons[ID].Delay = ReturnTable.delay
+			MyWeapons[ID].DPS = ReturnTable.dps
+			MyWeapons[ID].KillTime = ReturnTable.killtime
+			
+			
+			
+			
+			
+			--
+			
+		
+			--[[
 			local PrintName = SWEP.PrintName
 			
 			local Damage = SWEP.Primary.NumShots * SWEP.Primary.Damage
@@ -149,6 +167,7 @@ concommand.Add( "nerfme", function( ply,cmd,args,argStr )
 			MyWeapons[PrintName] = {}
 			MyWeapons[PrintName].DPS = DPS
 			MyWeapons[PrintName].KillTime = KillTime
+			--]]
 
 		end
 	end
@@ -177,9 +196,10 @@ concommand.Add( "nerfme", function( ply,cmd,args,argStr )
 		local k = Keys[i]
 		local v = MyWeapons[k]
 		print("-------------------------")
-		print("Weapon:  ",k)
-		print("DPS:     ",v.DPS)
-		print("KillTime:",v.KillTime)
+		print("Weapon:   ",k)
+		print("Damage:   ",v.Damage)
+		print("DPS:      ",v.DPS)
+		print("KillTime: ",v.KillTime)
 	end
 
 end )

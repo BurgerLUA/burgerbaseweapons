@@ -572,6 +572,33 @@ function SWEP:SendSequencePlayer(anim)
 	return SeqDur
 end
 
+function SWEP:DrawAnimation()
+	if not self.IgnoreDrawDelay then
+		if self.HasSilencer then
+			if self:GetIsSilenced() then
+				self:SendWeaponAnimation(ACT_VM_DRAW_SILENCED)
+				self.WorldModel = self.WorldModel2
+			else
+				self:SendWeaponAnimation(ACT_VM_DRAW)
+				self.WorldModel = self.WorldModel1
+			end
+		else
+			--[[
+			if self.HasDryFire and self:Clip1() == 0 then
+				print("HI")
+				self:SendWeaponAnimation(ACT_VM_DRAW_EMPTY)
+			else
+			--]]
+				self:SendWeaponAnimation(ACT_VM_DRAW)
+			--end
+		end	
+	else
+		self:SendWeaponAnimation(ACT_VM_RELOAD)
+		self:EmitGunSound(self.ReloadSound)
+	end
+end
+
+
 function SWEP:Deploy()
 
 	if IsSingleplayer then
@@ -585,30 +612,15 @@ function SWEP:Deploy()
 
 	self:SetZoomed(false)
 	self:CheckInventory()
+	
 
 	if IsValid(self.Owner:GetHands()) then
 		self.Owner:GetHands():SetMaterial("")
 	end
 	
 	self.Owner:DrawViewModel(true)
+	self:DrawAnimation()
 
-	if not self.IgnoreDrawDelay then
-		if self.HasSilencer then
-			if self:GetIsSilenced() then
-				self:SendWeaponAnimation(ACT_VM_DRAW_SILENCED)
-				self.WorldModel = self.WorldModel2
-			else
-				self:SendWeaponAnimation(ACT_VM_DRAW)
-				self.WorldModel = self.WorldModel1
-			end
-		else
-			self:SendWeaponAnimation(ACT_VM_DRAW)
-		end
-	else
-		self:SendWeaponAnimation(ACT_VM_RELOAD)
-		self:EmitGunSound(self.ReloadSound)
-	end
-	
 	if self.WeaponType ~= "Throwable" then
 		self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 	end
@@ -803,9 +815,17 @@ end
 
 function SWEP:ShootGun()
 
+	--[[
 	if !self.HasBurst or !self:GetIsBurst() or !self.BurstAnimationOnce then
 		self:HandleShootAnimations() -- don't predict, has animations
 	end
+	--]]
+	
+	if !(self.HasBurstFire and self:GetIsBurst() and self.BurstAnimationOnce) then
+		--print(self.HasBurstFire, self:GetIsBurst(), self.BurstAnimationOnce)
+		self:HandleShootAnimations()
+	end
+	
 	
 	self:TakePrimaryAmmo(1)
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
@@ -935,7 +955,7 @@ function SWEP:GetDelay()
 end
 
 function SWEP:ModBoltDelay()
-	return self.Primary.Delay
+	return self:SpecialDelay(self.Primary.Delay)
 end
 
 function SWEP:WeaponDelay()
@@ -1052,11 +1072,23 @@ function SWEP:WeaponAnimation(clip,animation)
 		else
 			animation = ACT_VM_PRIMARYATTACK_SILENCED
 		end
+	elseif self.HasDryFire and self.HasDual then
+		if clip == 0 then
+			animation = nil
+		elseif clip <= 2 then
+			if !self:GetIsLeftFire() then
+				animation = ACT_VM_DRYFIRE_LEFT
+			else
+				animation = ACT_VM_DRYFIRE
+			end
+		end
 	elseif clip == 1 and self.HasDryFire then
 		animation = ACT_VM_DRYFIRE
 	end
-
-	self:SendWeaponAnimation(animation,0,1)
+	
+	if animation then
+		self:SendWeaponAnimation(animation,0,1)
+	end
 
 end
 
@@ -2174,8 +2206,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.SwayScale 				= 0
 		self.BobScale 				= 0
 	else
-		self.SwayScale 				= 4
-		self.BobScale 				= 2	
+		self.SwayScale 				= 2 * self.MoveConeMul
+		self.BobScale 				= 2	* self.MoveConeMul
 	end
 
 	-- Start Position
@@ -2249,7 +2281,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 
 	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
 	
-	DesiredAngOffset = DesiredAngOffset - self.Owner:GetPunchAngle()
+	--DesiredAngOffset = DesiredAngOffset - self.Owner:GetPunchAngle()
 	
 	-- End Angle
 	
@@ -2846,11 +2878,145 @@ function SWEP:GetFakeDelay()
 	return -1
 end
 
+function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
+
+	local ReturnTable = {}
+		
+	if not (weapon and weapon ~= NULL and weapon.Base == "weapon_burger_core_base") then return ReturnTable end
+
+	local EyeTrace = owner:GetEyeTrace()
+	local EyePos = EyeTrace.StartPos
+	local HitPos = EyeTrace.HitPos
+	local MatType = EyeTrace.MatType
+	
+	-- Start Data
+	local Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat()
+	local Shots = 1
+	local Delay = 1
+	local ClipSize = weapon.Primary.ClipSize		
+	local Name = weapon.PrintName .. " | " .. weapon.Category
+	local AmmoType = "none"
+	
+	if avoidfunctions then
+		Damage = Damage * weapon.Primary.Damage
+		Shots = weapon.Primary.NumShots
+		Delay = weapon.Primary.Delay
+		if CLIENT then
+			AmmoType = language.GetPhrase(game.GetAmmoName(weapon.Primary.Ammo) .. "_ammo")
+		end
+	else
+		Damage = Damage * weapon:SpecialDamage(weapon.Primary.Damage)
+		Shots = weapon:SpecialShots(weapon.Primary.NumShots)
+		if weapon:GetPrimaryAmmo() and weapon:GetPrimaryAmmo() ~= -1 then
+			if CLIENT then
+				AmmoType = language.GetPhrase(game.GetAmmoName(weapon:GetPrimaryAmmo()) .. "_ammo")
+			end
+		end
+		if weapon:GetFakeDelay() ~= -1 then
+			Delay = weapon:GetFakeDelay()
+		else
+			Delay = weapon:GetDelay()
+		end
+	end
+
+	Damage = math.Round(Damage, 2 )
+
+	local FullDamage = Damage * Shots
+	local BulletsFired = 1
+	local SecondsPassed = 0
+	local TestKillTime = -1
+	
+
+	local ClipSizeMath = math.Clamp(ClipSize-1,0,20)
+	
+	if ClipSizeMath < 1 then
+		ClipSizeMath = 20
+	end
+	
+	for i=1, ClipSizeMath do
+	
+		if TestKillTime == -1 then
+			if BulletsFired*FullDamage >= 100 then
+				TestKillTime = SecondsPassed
+			end
+		end
+		
+		if !avoidfunctions and weapon:GetIsBurst() then
+			SecondsPassed = SecondsPassed + weapon:GetBurstMath()
+			if i % weapon.BurstOverride == 0 then
+				SecondsPassed = SecondsPassed + Delay
+			end
+		else
+			SecondsPassed = SecondsPassed + Delay
+		end
+		
+		BulletsFired = BulletsFired + 1
+		
+	end
+	
+	if TestKillTime == -1 then
+		TestKillTime = 0
+	end
+
+	local AverageDelay = SecondsPassed/(BulletsFired-1)	
+	local RPM = (1/AverageDelay)*60
+	local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
+	local KillTime = TestKillTime
+
+	if !(ClipSize == -1) then
+		DPS = math.Clamp(DPS,0,ClipSize*FullDamage)
+	end
+
+	-- Accuracy
+	local Cone = weapon.Primary.Cone
+	if not avoidfunctions then
+		Cone = weapon:HandleCone(Cone,false,(weapon.HasDual and weapon:GetIsLeftFire()))
+	end
+	
+	local BaseAccuracy = 0.1
+	local Accuracy = (BaseAccuracy - math.Clamp(Cone,0,BaseAccuracy)) / BaseAccuracy
+	Accuracy = math.Round(Accuracy, 2 )	
+	
+	-- Range
+	local FullRange = weapon.DamageFalloff
+	if not avoidfunctions then 
+		FullRange = weapon:SpecialFalloff(weapon.DamageFalloff)
+	end
+	
+	-- Bullet Penetration
+	
+	local MatCalc = 1
+	if not avoidfunctions then
+		MatCalc = weapon:CalculateMaterialPenetration(MatType)
+	end
+	
+	local PenetrationLossPerUnit = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat() * MatCalc * math.max(0.1,weapon.PenetrationLossMul or 1) * 1
+	local BulletPenetration = Damage / math.max(3,PenetrationLossPerUnit)
+	
+	ReturnTable.name = Name
+	ReturnTable.ammo = AmmoType
+	ReturnTable.clip = ClipSize
+	ReturnTable.damage = Damage
+	ReturnTable.shots = Shots
+	ReturnTable.delay = Delay
+	ReturnTable.rpm = RPM
+	ReturnTable.dps = DPS
+	ReturnTable.killtime = KillTime
+	ReturnTable.accuracy = Accuracy
+	ReturnTable.range = FullRange
+	ReturnTable.penetration = BulletPenetration
+	
+	return ReturnTable
+
+end
+
+
+
+
 function SWEP:DrawContextMenu(x,y)
 
 	if BurgerBase_ContextMenuIsOpen == true then
 	
-		local ply = self.Owner
 		local x = ScrW()
 		local y = ScrH()
 		local BasePosX = 192
@@ -2858,265 +3024,153 @@ function SWEP:DrawContextMenu(x,y)
 		local Font = "DermaLarge"
 		local FontSize = 36
 		
-		local weapon = self
+		local EyeTrace = self.Owner:GetEyeTrace()
+		local EyePos = EyeTrace.StartPos
+		local HitPos = EyeTrace.HitPos
 		
-		if weapon and weapon ~= NULL and weapon.Base == "weapon_burger_core_base" then
 		
-			local EyeTrace = ply:GetEyeTrace()
-			local EyePos = EyeTrace.StartPos
-			local HitPos = EyeTrace.HitPos
-			local MatType = EyeTrace.MatType
+		local WeaponStats = BURGERBASE_CalculateWeaponStats(self.Owner,self)
+		
+		
 			
-			-- Start Data
-				
-				-- Name
-				local Name = weapon.PrintName .. " | " .. weapon.Category
-				
-				if weapon:GetPrimaryAmmo() and weapon:GetPrimaryAmmo() ~= -1 then
-					Name = language.GetPhrase(game.GetAmmoName(weapon:GetPrimaryAmmo()) .. "_ammo") .. " " ..  Name
-				end
-
-				-- ClipSize
-				
-				local ClipSize = weapon.Primary.ClipSize	
-				
-				-- Damage
-				local Damage = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagescale"):GetFloat() * weapon:SpecialDamage(weapon.Primary.Damage)
-				local Shots = weapon:SpecialShots(weapon.Primary.NumShots)
-
-				if weapon.WeaponType == "Melee" then
-					Damage = weapon:SpecialDamage(weapon.Primary.Damage)
-					Shots = 1
-				end
-				
-				Damage = math.Round(Damage, 2 )
-
-				local FullDamage = Damage * Shots
-
-				local BulletsFired = 1
-				local SecondsPassed = 0
-				local TestKillTime = -1
-				local Delay = weapon:GetDelay()
-				
-				if self:GetFakeDelay() ~= -1 then
-					Delay = self:GetFakeDelay()
-				end
-				
-				local ClipSizeMath = math.Clamp(weapon.Primary.ClipSize-1,0,20)
-				
-				if ClipSizeMath < 1 then
-					ClipSizeMath = 20
-				end
-				
-				for i=1, ClipSizeMath do
-				
-					if TestKillTime == -1 then
-						if BulletsFired*FullDamage >= 100 then
-							TestKillTime = SecondsPassed
-						end
-					end
-					
-					if self:GetIsBurst() then
-						SecondsPassed = SecondsPassed + weapon:GetBurstMath()
-						if i % self.BurstOverride == 0 then
-							SecondsPassed = SecondsPassed + Delay
-						end
-					else
-						SecondsPassed = SecondsPassed + Delay
-					end
-					
-					BulletsFired = BulletsFired + 1
-					
-				end
-				
-				if TestKillTime == -1 then
-					TestKillTime = 0
-				end
-				
-				--[[
-				if BulletsFired < 2 then
-					BulletsFired = 2
-				end
-				
-				if SecondsPassed == 0 then
-					SecondsPassed = self.Primary.Delay
-				end
-				--]]
-
-				local AverageDelay = SecondsPassed/(BulletsFired-1)	
-				local RPM = (1/AverageDelay)*60
-				local DPS = ((BulletsFired-1)*FullDamage)/(SecondsPassed)
-				local KillTime = TestKillTime
-				
-				if !(weapon.Primary.ClipSize == -1) then
-					DPS = math.Clamp(DPS,0,weapon.Primary.ClipSize*FullDamage)
-				end
-
-				-- Accuracy
-				local Cone = weapon.Primary.Cone
-				local NewCone = weapon:HandleCone(Cone,false,(self.HasDual and self:GetIsLeftFire()))
-				local BaseAccuracy = 0.1
-				local Accuracy = (BaseAccuracy - math.Clamp(NewCone,0,BaseAccuracy)) / BaseAccuracy
-				Accuracy = math.Round(Accuracy, 2 )			
-
-				-- Range
-				local FullRange = weapon:SpecialFalloff(weapon.DamageFalloff)
-				local BaseRange = FullRange*2
-				local PartialRange = weapon:SpecialFalloff(weapon.DamageFalloff)
-				local ViewDistance = HitPos:Distance(EyePos)
-				local MatterScale = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
-				
-				-- Bullet Penetration
-				local MatCalc = self:CalculateMaterialPenetration(MatType)
-				
-				local PenetrationLossPerUnit = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat() * MatCalc * math.max(0.1,self.PenetrationLossMul) * 1
-				local BulletPenetration = Damage / math.max(3,PenetrationLossPerUnit)
-				
-				-- End Data
-			
-				draw.RoundedBox( 8, ScrW()*0.1 - FontSize , ScrH()*0.1 - FontSize, BasePosX*3 + FontSize*2, FontSize*15, Color(0,0,0,200 ) )
-			
-				local TextColor = Color(239,184,55,255)
-				local PrimaryColor = Color(239,184,55,100)
-				local SecondaryColor = TextColor
-			
-				surface.SetFont( "DermaLarge" )
-				surface.SetTextColor( TextColor )
-				surface.SetDrawColor( PrimaryColor )
-				draw.NoTexture()
-				
-				-- Title
-				local PosNumber = 0
-				surface.SetTextPos( BasePosX,BasePosY  )
-				surface.DrawText( Name )
-				surface.DrawRect( BasePosX, BasePosY + FontSize, BasePosX*3, 2 )
-				
-				-- Damage
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((Damage/100),0,1), FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-				
-				local DamageText = " Damage: " .. math.Round(FullDamage,0)
-				
-				if Shots > 1 then
-					DamageText = DamageText .. " (" .. Damage .. " x " .. Shots .. ")"
-				end
-				
-				surface.DrawText( DamageText )
-				
-				-- Firerate
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((RPM/1000),0,1), FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-				surface.DrawText( " RPM: " .. math.Round(RPM,0))
-				
-				-- Damage Per Second
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(DPS/600,0,1), FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-				surface.DrawText( " DPS: " .. math.Round(DPS,2))
-				
-				-- Kill Time
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		draw.RoundedBox( 8, ScrW()*0.1 - FontSize , ScrH()*0.1 - FontSize, BasePosX*3 + FontSize*2, FontSize*15, Color(0,0,0,200 ) )
 	
-				surface.SetDrawColor( SecondaryColor )
-				surface.SetTextColor( SecondaryColor )
-				surface.SetFont( "DermaDefault" )
-
-				local TimeOffset = 0
-				
-				--if Delay > 0.05 then
-					for i=0, weapon:Clip1() - 1 do
-						
-						local Spacing = weapon:GetDelay()
-						
-						if self:GetIsBurst() then
-							Spacing = weapon:GetBurstMath()
+		local TextColor = Color(239,184,55,255)
+		local PrimaryColor = Color(239,184,55,100)
+		local SecondaryColor = TextColor
+	
+		surface.SetFont( "DermaLarge" )
+		surface.SetTextColor( TextColor )
+		surface.SetDrawColor( PrimaryColor )
+		draw.NoTexture()
 		
-							if (i+1) % self.BurstOverride == 0 then
-								Spacing = Spacing + weapon:GetDelay()
-							end
-						end
+		-- Title
+		local PosNumber = 0
+		surface.SetTextPos( BasePosX,BasePosY  )
+		surface.DrawText( WeaponStats.ammo .. WeaponStats.name )
+		surface.DrawRect( BasePosX, BasePosY + FontSize, BasePosX*3, 2 )
+		
+		-- Damage
+		local FullDamage = WeaponStats.damage * WeaponStats.shots
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((FullDamage/100),0,1), FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
+		
+		local DamageText = " Damage: " .. math.Round(FullDamage,0)
+		
+		if WeaponStats.shots > 1 then
+			DamageText = DamageText .. " (" .. WeaponStats.damage .. " x " .. WeaponStats.shots .. ")"
+		end
+		
+		surface.DrawText( DamageText )
+		
+		-- Firerate
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((WeaponStats.rpm/600),0,1), FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
+		surface.DrawText( " RPM: " .. math.Round(WeaponStats.rpm,0))
+		
+		-- Damage Per Second
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(WeaponStats.dps/600,0,1), FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
+		surface.DrawText( " DPS: " .. math.Round(WeaponStats.dps,2))
+		
+		-- Kill Time
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
 
-						local XPos = BasePosX + TimeOffset*BasePosX*3
-						local YOffset = (-(i % 2) * FontSize) - ((i % 2)*25)
-						
-						if TimeOffset <= 1 then
-							surface.DrawRect( XPos, BasePosY + FontSize*PosNumber, 2, FontSize )
-							draw.SimpleText( math.Round(TimeOffset,2), "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
-							draw.SimpleText( "(" .. (i+1)*math.Round(FullDamage,0) .. ")", "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + 10 + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
-							TimeOffset = TimeOffset + Spacing
-						end
-						
-						--end
-					end
-				--end
-				surface.SetFont( "DermaLarge" )
-				surface.SetTextColor( TextColor )
-				surface.SetDrawColor( PrimaryColor )
-				
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(KillTime/1,0,1), FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-				surface.DrawText( " Kill Time: " .. math.Round(KillTime,2) .. " seconds")
+		surface.SetDrawColor( SecondaryColor )
+		surface.SetTextColor( SecondaryColor )
+		surface.SetFont( "DermaDefault" )
 
-				
-				-- Accuracy
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * Accuracy, FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-				surface.DrawText( " Accuracy: " .. math.Round(Accuracy*100,2) .. "%")
-				
-				--[[
-				--Bullet Penetration
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-				
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-				surface.DrawText( " Penetration: " .. BulletPenetration .. " units")
-				--]]
-				
-				-- Range
-				PosNumber = PosNumber + 2
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-				surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
-				surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
+		local TimeOffset = 0
+		
+		for i=0, self:Clip1() - 1 do
+			
+			local Spacing = WeaponStats.delay
+			
+			if self:GetIsBurst() then
+				Spacing = self:GetBurstMath()
 
-				surface.DrawText( " Range: " .. math.Round(FullRange/(64/1.22),2) .. " meters")
-				local PolyBaseX = BasePosX + (BasePosX*3 * 0.5)
-				local PolyBaseY = BasePosY + FontSize*PosNumber
-				local TriAngle = {
-					{x = PolyBaseX,y = PolyBaseY},
-					{x = PolyBaseX + BasePosX*3*0.5*(1-MatterScale),y = PolyBaseY + FontSize*(1-MatterScale)},
-					{x = PolyBaseX,y = PolyBaseY + FontSize*(1-MatterScale)},
-				}
-				surface.DrawPoly( TriAngle )
-				surface.DrawRect( PolyBaseX, PolyBaseY + FontSize * ( 1 - MatterScale), BasePosX*1.5 , FontSize*MatterScale )
-				surface.SetDrawColor( SecondaryColor )
-				surface.DrawRect( BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1), BasePosY + FontSize*PosNumber, 2, FontSize )
-				--surface.SetTextColor( SecondaryColor )
-				--surface.SetTextPos( BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1),BasePosY + FontSize*PosNumber )	
-				local DamageScale = math.min( (2) - (ViewDistance/FullRange),1)
-				
-				draw.SimpleText(math.Round(math.Clamp(DamageScale * Damage,Damage * MatterScale,Damage),2) .. " Damage", "DermaDefault", BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1),BasePosY + FontSize*PosNumber + FontSize,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
-				
-				
-				surface.SetDrawColor( PrimaryColor )	
+				if (i+1) % self.BurstOverride == 0 then
+					Spacing = Spacing + WeaponStats.delay
+				end
+			end
 
-
-				
+			local XPos = BasePosX + TimeOffset*BasePosX*3
+			local YOffset = (-(i % 2) * FontSize) - ((i % 2)*25)
+			
+			if TimeOffset <= 1 then
+				surface.DrawRect( XPos, BasePosY + FontSize*PosNumber, 2, FontSize )
+				draw.SimpleText( math.Round(TimeOffset,2), "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
+				draw.SimpleText( "(" .. (i+1)*math.Round(FullDamage,0) .. ")", "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + 10 + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
+				TimeOffset = TimeOffset + Spacing
+			end
+			
 
 		end
-	
+
+		surface.SetFont( "DermaLarge" )
+		surface.SetTextColor( TextColor )
+		surface.SetDrawColor( PrimaryColor )
+		
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(WeaponStats.killtime/1,0,1), FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
+		surface.DrawText( " Kill Time: " .. math.Round(WeaponStats.killtime,2) .. " seconds")
+
+		
+		-- Accuracy
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * WeaponStats.accuracy, FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
+		surface.DrawText( " Accuracy: " .. math.Round(WeaponStats.accuracy*100,2) .. "%")
+		
+		--[[
+		--Bullet Penetration
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
+		
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
+		surface.DrawText( " Penetration: " .. BulletPenetration .. " units")
+		--]]
+		
+		-- Range
+		local BaseRange = WeaponStats.range*2
+		local ViewDistance = HitPos:Distance(EyePos)
+		local MatterScale = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
+					
+		
+		PosNumber = PosNumber + 2
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
+		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
+		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
+
+		surface.DrawText( " Range: " .. math.Round(WeaponStats.range/(64/1.22),2) .. " meters")
+		local PolyBaseX = BasePosX + (BasePosX*3 * 0.5)
+		local PolyBaseY = BasePosY + FontSize*PosNumber
+		local TriAngle = {
+			{x = PolyBaseX,y = PolyBaseY},
+			{x = PolyBaseX + BasePosX*3*0.5*(1-MatterScale),y = PolyBaseY + FontSize*(1-MatterScale)},
+			{x = PolyBaseX,y = PolyBaseY + FontSize*(1-MatterScale)},
+		}
+		surface.DrawPoly( TriAngle )
+		surface.DrawRect( PolyBaseX, PolyBaseY + FontSize * ( 1 - MatterScale), BasePosX*1.5 , FontSize*MatterScale )
+		surface.SetDrawColor( SecondaryColor )
+		surface.DrawRect( BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1), BasePosY + FontSize*PosNumber, 2, FontSize )	
+		local DamageScale = math.min( (2) - (ViewDistance/WeaponStats.range),1)
+		
+		draw.SimpleText(math.Round(math.Clamp(DamageScale * FullDamage,FullDamage * MatterScale,FullDamage),2) .. " Damage", "DermaDefault", BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1),BasePosY + FontSize*PosNumber + FontSize,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)	
+		
+		surface.SetDrawColor( PrimaryColor )	
+
 	end
-
-
 
 
 end
@@ -4428,7 +4482,7 @@ datatable.hitfunction = function(datatable,traceresult)
 		Inflictor = Attacker
 	end
 	
-	if Victim and Victim ~= NULL then
+	if IsValid(Attacker) and IsValid(Victim) and IsValid(Inflictor) then
 		local DmgInfo = DamageInfo()
 		DmgInfo:SetDamage( datatable.damage )
 		DmgInfo:SetAttacker( Attacker )

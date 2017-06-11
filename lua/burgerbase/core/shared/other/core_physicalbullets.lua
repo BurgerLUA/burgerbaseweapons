@@ -37,20 +37,14 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 			TraceResultHull = util.TraceHull(TraceData)
 		end
 		
-		
-		
-		data.tickfunction(data)
-		
 		if TraceResult.Hit then
 			data.hitfunction(data,TraceResult)
 			data.diefunction(data)
 			data = nil
-			--print("LINE HIT")
 		elseif TraceResultHull.Hit and TraceResultHull.Entity and TraceResultHull.Entity:Health() > 0 then
 			data.hitfunction(data,TraceResultHull)
 			data.diefunction(data)
 			data = nil
-			--print("HULL HIT")
 		elseif data.dietime <= CurTime() then
 			data.diefunction(data)
 			data = nil
@@ -59,6 +53,7 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		if data == nil then
 			table.remove(BURGERBASE_RegisteredBullets,num)
 		else
+			data.tickfunction(data)
 			BURGERBASE_RegisteredBullets[num] = data
 		end
 		
