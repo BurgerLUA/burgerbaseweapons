@@ -1176,7 +1176,7 @@ end
 function SWEP:GetMovementVelocity()
 	local Velocity = self.Owner:GetVelocity():Length() 
 	if (!self.Owner:IsOnGround() and !(self.Owner:WaterLevel() > 0)) then
-		Velocity = 400
+		Velocity = math.max(Velocity*1.25,400)
 	end
 	return Velocity
 end
@@ -1695,7 +1695,7 @@ function SWEP:StartShortTrace(Pos,Direction,Distance,shouldcomp)
 
 	data.start = Pos + Direction
 	data.endpos = Pos + Direction*Distance
-	data.mask = MASK_SHOT_HULL
+	data.mask = MASK_SHOT
 	
 	if shouldcomp and self.Owner:IsPlayer() then
 		self.Owner:LagCompensation( true )
@@ -2206,8 +2206,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.SwayScale 				= 0
 		self.BobScale 				= 0
 	else
-		self.SwayScale 				= 2 * self.MoveConeMul
-		self.BobScale 				= 2	* self.MoveConeMul
+		self.SwayScale 				= math.Clamp(2 * self.MoveConeMul,0.5,3)
+		self.BobScale 				= math.Clamp(2 * self.MoveConeMul,0.5,3)
 	end
 
 	-- Start Position
@@ -2772,6 +2772,7 @@ function SWEP:DrawHUDBackground()
 	local LeftCone = 0
 	local RightCone = 0
 	
+	--[[
 	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_dynamic",true):GetFloat() == 0 then
 		LeftCone = math.Clamp(self.Primary.Cone*900,0,x/2)
 		RightCone = math.Clamp(self.Primary.Cone*900,0,x/2)
@@ -2779,6 +2780,31 @@ function SWEP:DrawHUDBackground()
 		LeftCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,true)*900,0,x/2)*fovbonus
 		RightCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,false)*900,0,x/2)*fovbonus
 	end
+	--]]
+	
+	--LeftCone = self:HandleCone(self.Primary.Cone,true,true) * fovbonus
+	
+	--RightCone = ( *ScrW()*0.5 ) * (90/self.Owner:GetFOV())
+	
+	local ConeAngle = (self:HandleCone(self.Primary.Cone,true,false)*360) -- THE IS THE CONE, IN AN ANGLE. 360 MEANS IT SHOOTS ALL AROUND
+	local FOV = self.Owner:GetFOV() -- THIS IS THE FOV. 360 MEANS IT SHOWS ALL AROUND
+	-- OK SO A FOV OF 360 AND A CONEANGLE OF 360 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
+	-- OK SO A FOV OF 90 AND A CONEANGLE OF 90 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
+	-- OK SO A FOV OF 90 AND A CONEANGLE OF 45 MEANS THAT THE CONE GAP SHOULD BE 0.5 * ScrW()
+	
+	--print(ConeAngle)
+
+	RightCone = (ConeAngle/FOV) * ScrH() * 0.25
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	--[[
 	if not IsSingleplayer then	
@@ -3780,7 +3806,7 @@ function SWEP:Swing(damage,entoverride)
 		end
 		Data.mins = Vector( -BoxMultiplier , -BoxMultiplier , -BoxMultiplier*0.5 )
 		Data.maxs = Vector( BoxMultiplier , BoxMultiplier , BoxMultiplier*0.5 )
-		Data.mask = MASK_ALL
+		Data.mask = MASK_SHOT
 
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( true )
@@ -3853,7 +3879,7 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
 		NewTraceData.start = TraceData.start
 		NewTraceData.endpos = TraceData.endpos + (TraceData.endpos - TraceData.start):GetNormalized()*20
 		NewTraceData.filter = self.Owner
-		NewTraceData.mask = MASK_ALL
+		NewTraceData.mask = MASK_SHOT
 		
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( true )

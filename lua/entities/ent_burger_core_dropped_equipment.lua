@@ -13,11 +13,14 @@ ENT.Category			= "CS:S Ammo"
 function ENT:Initialize()
 	if SERVER then
 		self:SetModel(self.AmmoModel)
+		
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
 		self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		self:SetUseType(SIMPLE_USE)
+		self:CollisionRulesChanged()
+		
 		local phys = self:GetPhysicsObject()
 		if phys:IsValid() then
 			phys:Wake()

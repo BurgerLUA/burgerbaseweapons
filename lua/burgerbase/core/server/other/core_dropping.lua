@@ -90,7 +90,7 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 	end
 
 	local WeaponModel = StoredWeapon.WorldModel
-	
+
 	if StoredWeapon.DisplayModel then
 		WeaponModel = StoredWeapon.DisplayModel
 	end
@@ -105,6 +105,7 @@ function BURGERBASE_FUNC_CreateWeapon(class,pos,ang,ammooverride,spareoverride)
 		CreatedWeapon:SetNWString("class",class)
 		CreatedWeapon:SetNWFloat("clip",ammooverride)
 		CreatedWeapon:SetNWFloat("spare",spareoverride)	
+		CreatedWeapon:SetCustomCollisionCheck( true )
 		CreatedWeapon:Spawn()
 		CreatedWeapon:Activate()
 		return CreatedWeapon
@@ -126,6 +127,7 @@ function BURGERBASE_FUNC_CreateAmmo(pos,ang,ammotype,amount,model)
 	Ammo.AmmoModel = model
 	Ammo:SetPos( pos )
 	Ammo:SetAngles( ang )
+	Ammo:SetCustomCollisionCheck( true )
 	Ammo:Spawn()
 	Ammo:Activate()
 
@@ -156,7 +158,7 @@ end
 
 function BURGERBASE_FUNC_DropWeapon(ply,weapon)
 
-	if weapon:IsScripted() == true then
+	if weapon:IsScripted() then
 		if weapon.BurgerBase ~= nil or weapon.Base == "weapon_burger_core_base" then
 		
 			local Class = weapon:GetClass()

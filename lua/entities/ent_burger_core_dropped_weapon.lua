@@ -10,9 +10,8 @@ AddCSLuaFile()
 
 function ENT:Initialize()
 
-	self:SetColor(Color(255,255,255,255))
-
-
+	--self:SetColor(Color(255,255,255,255))
+	
 	if SERVER then
 	
 		self:PhysicsInit(SOLID_VPHYSICS)
@@ -20,6 +19,7 @@ function ENT:Initialize()
 		self:SetSolid(SOLID_VPHYSICS)
 		self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		self:SetUseType(SIMPLE_USE)
+		self:CollisionRulesChanged()
 	
 		local phys = self:GetPhysicsObject()
 		if phys:IsValid() then
@@ -42,9 +42,6 @@ function ENT:Initialize()
 		end
 		
 	end
-	
-	
-	
 	
 end
 

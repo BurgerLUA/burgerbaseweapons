@@ -20,12 +20,9 @@ function ENT:Initialize()
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
-		
 		self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
-
-		
-		self:SetUseType(SIMPLE_USE)
-		
+		self:SetUseType(SIMPLE_USE)	
+		self:CollisionRulesChanged()
 	
 		local phys = self:GetPhysicsObject()
 		if phys:IsValid() then
