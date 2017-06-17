@@ -813,7 +813,11 @@ function SWEP:PrimaryAttack()
 	
 end
 
-function SWEP:ShootGun()
+function SWEP:ShootGun(ammototake)
+
+	if not ammototake then
+		ammototake = 1
+	end
 
 	--[[
 	if !self.HasBurst or !self:GetIsBurst() or !self.BurstAnimationOnce then
@@ -827,8 +831,9 @@ function SWEP:ShootGun()
 	end
 	
 	
-	self:TakePrimaryAmmo(1)
+	self:TakePrimaryAmmo(ammototake)
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
+	self.Owner:MuzzleFlash()
 	
 	local Damage = self:SpecialDamage(self.Primary.Damage)
 	local Shots = self:SpecialShots( self.Primary.NumShots )
@@ -1580,41 +1585,7 @@ function SWEP:ModProjectileTable(datatable)
 end
 
 function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
-
-	if IsFirstTimePredicted() then
-	
-		if AimCorrection then
-			local HitPos = self.Owner:GetEyeTrace().HitPos
-			local DirectionOffset = Direction - self.Owner:GetAimVector()	
-			if CLIENT and self.UseMuzzle then
-				local ViewModel = self.Owner:GetViewModel()
-				--local MuzzleID = ViewModel:LookupAttachment( "muzzle" )
-				local MuzzleData = ViewModel:GetAttachment( 1 )	
-				Source = MuzzleData.Pos
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
-			else
-				Source = Source + self.Owner:GetForward()*self.SourceOverride.y + self.Owner:GetRight()*self.SourceOverride.x + self.Owner:GetUp()*self.SourceOverride.z	
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
-			end
-		end
-
-		local datatable = {}	
-		datatable.weapon = self
-		datatable.owner = self.Owner
-		datatable.pos = Source
-		datatable.direction = Direction
-		datatable.damage = Damage
-		datatable.usehull = true
-		datatable.hullsize = 8
-		datatable.resistance = Vector(0,0,0)
-		datatable.dietime = CurTime() + 30
-		datatable.special = nil
-		datatable.id = "css_bullet"
-		datatable = self:ModProjectileTable(datatable)
-	
-		BURGERBASE_FUNC_AddBullet(datatable)
-	end
-	
+	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,AimCorrection,true,false)	
 end
 
 function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
@@ -1677,6 +1648,7 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 			self:WorldBulletSolution(tr.HitPos,tr,Direction,Damage,CurrentHitEntity)
 		end
 
+		--[[
 		if SERVER then
 			if tr.Entity:GetClass() == "prop_vehicle_prisoner_pod" or CurrentHitEntity:IsVehicle() then
 				if CurrentHitEntity:GetDriver() ~= NULL then
@@ -1684,6 +1656,7 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 				end
 			end
 		end
+		--]]
 		
 	end
 
@@ -1741,7 +1714,7 @@ function SWEP:BulletRandomGetSeed(seed)
 		Precision = 0
 	end
 	
-	if self.HeatMul == 0 then
+	if self.HeatMul == 0 or self.DontSeedFire then
 		return math.randomseed( CurTime() + seed )
 	elseif self.HasDual and self:GetIsLeftFire() then
 		if self:GetCoolDownLeft() == self.MaxHeat then
@@ -2795,17 +2768,7 @@ function SWEP:DrawHUDBackground()
 	--print(ConeAngle)
 
 	RightCone = (ConeAngle/FOV) * ScrH() * 0.25
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	--[[
 	if not IsSingleplayer then	
 		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_smoothing",true):GetFloat() == 1 then
@@ -2851,7 +2814,7 @@ function SWEP:DrawHUDBackground()
 		end
 	end
 		
-	if self.HasCrosshair or (self.Owner:IsPlayer() and self.Owner:IsBot()) then
+	if (self.HasCrosshair or (self.Owner:IsPlayer() and self.Owner:IsBot())) and not self.Owner:InVehicle() then
 	
 		if self.HasDual then
 		

@@ -16,7 +16,18 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		data = table.Copy(data)
 	
 		data.pos = data.pos + ( data.direction * engine.TickInterval() )
-		data.direction = data.direction - ( data.resistance * engine.TickInterval() )
+	
+		if data.target and IsValid(data.target) then
+			local COM = data.target:GetPos() + data.target:OBBCenter()
+			data.direction = ((COM - data.pos):GetNormal()*data.direction:Length()) - ( data.resistance * engine.TickInterval() )
+		else	
+			data.direction = data.direction - ( data.resistance * engine.TickInterval() )
+		end
+		
+		
+		
+		
+		
 
 		local TraceData = {}
 		local HullSize = data.hullsize or 1
@@ -24,7 +35,7 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		TraceData.start = data.pos - ( data.direction * engine.TickInterval() )
 		TraceData.endpos = data.pos
 		TraceData.mask = MASK_SHOT
-		TraceData.filter = data.owner
+		TraceData.filter = function(ent) return (ent ~= data.owner and ent ~= data.weapon) end
 		
 		local TraceResult = {}
 		local TraceResultHull = {}
@@ -71,6 +82,47 @@ hook.Add("PostCleanupMap","BURGERBASE_HOOK_PostCleanupMap_Bullets",BURGERBASE_HO
 
 local DefaultMaterial = Material("sprites/physg_glow1")
 
+function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,Source,Direction,AimCorrection,UsePrediction,OverrideNet,Target)
+
+	if (CLIENT and !UsePrediction) or IsFirstTimePredicted() then
+	
+		if AimCorrection then
+			local HitPos = Attacker:GetEyeTrace().HitPos
+			local DirectionOffset = Direction - Attacker:GetAimVector()	
+			if CLIENT and Inflictor.UseMuzzle then
+				local ViewModel = Attacker:GetViewModel()
+				--local MuzzleID = ViewModel:LookupAttachment( "muzzle" )
+				local MuzzleData = ViewModel:GetAttachment( 1 )	
+				Source = MuzzleData.Pos
+				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
+			elseif CLIENT and SourceOverride then
+				Source = Source + Attacker:GetForward()*Inflictor.SourceOverride.y + Attacker:GetRight()*Inflictor.SourceOverride.x + Attacker:GetUp()*Inflictor.SourceOverride.z	
+				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
+			end
+		end
+
+		local datatable = {}	
+		datatable.weapon = Inflictor
+		datatable.owner = Attacker
+		datatable.pos = Source
+		datatable.direction = Direction
+		datatable.target = Target
+		datatable.damage = Damage
+		datatable.usehull = true
+		datatable.hullsize = 8
+		datatable.resistance = Vector(0,0,0)
+		datatable.dietime = CurTime() + 30
+		datatable.special = nil
+		datatable.id = "css_bullet"
+		datatable = Inflictor:ModProjectileTable(datatable)
+		datatable.OverrideNet = OverrideNet
+		
+
+		BURGERBASE_FUNC_AddBullet(datatable)
+	end
+
+end
+
 function BURGERBASE_FUNC_AddBullet(datatable)
 
 	local NewTable = {}
@@ -82,11 +134,14 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	NewTable.damage = datatable.damage or 10
 	NewTable.hullsize = datatable.hullsize or 1
 	NewTable.usehull = datatable.usehull or false
+	NewTable.target = datatable.target or nil
 	
 	NewTable.resistance = datatable.resistance or Vector(0,0,0)
 	NewTable.dietime = datatable.dietime or (CurTime() + 10)
 	
 	NewTable.id = datatable.id or "crossbow_bolt"
+	
+	NewTable.OverrideNet = datatable.OverrideNet
 
 	if SERVER then
 		net.Start("BURGERBASE_SendBulletToClient")
@@ -101,6 +156,8 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	NewTable.tickfunction = RegisteredTable.tickfunction or function(data) end
 	NewTable.hitfunction = RegisteredTable.hitfunction or function(data,traceresult) end
 
+	
+	
 	table.Add(BURGERBASE_RegisteredBullets,{NewTable})
 
 end
@@ -125,7 +182,7 @@ if CLIENT then
 		
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
 
-		if LocalPlayer() ~= DataTable.owner then
+		if DataTable.OverrideNet or (LocalPlayer() ~= DataTable.owner) then
 			BURGERBASE_FUNC_AddBullet(DataTable)
 		end
 		
