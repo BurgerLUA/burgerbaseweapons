@@ -1056,8 +1056,9 @@ function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict
 			
 			NewNewAngle:Normalize()
 
-			
-			self:ShootBullet(Damage,Shots,0,self.Owner:GetShootPos(),NewNewAngle:Forward(),self.Owner)
+			if self.Owner and self.Owner:IsValid() then
+				self:ShootBullet(Damage,Shots,0,self.Owner:GetShootPos(),NewNewAngle:Forward(),self.Owner)
+			end
 		end
 	end
 		
@@ -2760,6 +2761,10 @@ function SWEP:DrawHUDBackground()
 	--RightCone = ( *ScrW()*0.5 ) * (90/self.Owner:GetFOV())
 	
 	local ConeAngle = (self:HandleCone(self.Primary.Cone,true,false)*360) -- THE IS THE CONE, IN AN ANGLE. 360 MEANS IT SHOOTS ALL AROUND
+	local LeftConeAngle = (self:HandleCone(self.Primary.Cone,true,true)*360) -- THE IS THE CONE, IN AN ANGLE. 360 MEANS IT SHOOTS ALL AROUND
+	
+	
+	
 	local FOV = self.Owner:GetFOV() -- THIS IS THE FOV. 360 MEANS IT SHOWS ALL AROUND
 	-- OK SO A FOV OF 360 AND A CONEANGLE OF 360 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
 	-- OK SO A FOV OF 90 AND A CONEANGLE OF 90 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
@@ -2768,6 +2773,7 @@ function SWEP:DrawHUDBackground()
 	--print(ConeAngle)
 
 	RightCone = (ConeAngle/FOV) * ScrH() * 0.25
+	LeftCone = (LeftConeAngle/FOV) * ScrH() * 0.25
 
 	--[[
 	if not IsSingleplayer then	
