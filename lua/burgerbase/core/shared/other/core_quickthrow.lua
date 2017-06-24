@@ -20,6 +20,7 @@ function BURGERBASE:ThrowCheck(ply,Weapon,class)
 end
 
 function BURGERBASE_HOOK_KeyPress(ply,key)
+	
 	if ply:KeyDown(IN_USE) or ply:IsBot() then
 		if key == IN_ATTACK or ply:IsBot() then
 			if ply:InVehicle() then return end
@@ -30,6 +31,7 @@ function BURGERBASE_HOOK_KeyPress(ply,key)
 			if not Weapon:IsScripted() then return end	
 			if Weapon.Base ~= "weapon_burger_core_base" then return end	
 			if Weapon:IsBusy() == true then return end
+			if !Weapon:CanQuickThrow() then return end
 			
 			if CLIENT then return end
 			

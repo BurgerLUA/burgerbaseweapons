@@ -336,6 +336,9 @@ function SWEP:SetupDataTables()
 	self:SetFireQueue(0)	
 	self:NetworkVar("Int",1,"PrimaryAmmo")
 	self:SetPrimaryAmmo( game.GetAmmoID(self.Primary.Ammo) )
+	self:NetworkVar("Int",2,"SecondaryAmmo")
+	self:SetSecondaryAmmo( game.GetAmmoID(self.Secondary.Ammo) )
+	
 	
 	
 
@@ -485,9 +488,12 @@ end
 function SWEP:EquipAmmo(ply)
 	if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 or self.WeaponType == "Equipment" then
 		ply:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
+		ply:GiveAmmo(self.Secondary.SpareClip,self:GetSecondaryAmmo(),false)
+		print(self.Secondary.SpareClip,self:GetSecondaryAmmo())
 	elseif self.WeaponType == "Throwable" then
 		ply:GiveAmmo(1,self:GetPrimaryAmmo(),false)
 	end
+	self:SpecialGiveAmmo()	
 end
 
 function SWEP:SpecialGiveAmmo()
@@ -499,17 +505,16 @@ function SWEP:OwnerChanged()
 	if SERVER then
 		timer.Simple(0.1, function()
 			if self.AlreadyGiven == false then
+			
+			
+			
+			
 
 				if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_loaded"):GetFloat() == 1 then
 					self:SetClip1(self.Primary.ClipSize)
 				end
 
-				if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 then
-					if self.Owner:IsPlayer() then
-						self.Owner:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
-						self:SpecialGiveAmmo()			
-					end
-				end
+				self:EquipAmmo(self.Owner)
 
 				self.AlreadyGiven = true
 			end		
@@ -791,11 +796,25 @@ end
 
 SWEP.FireAlwaysAnimate = false
 
+function SWEP:CanQuickThrow()
+	return true
+end
+
+function SWEP:QuickThrowOverride()
+
+
+end
+
 function SWEP:PrimaryAttack()
 
 	if not self:CanPrimaryAttack() then	return end
 	if not self:CanShoot() then return end
-	if self:IsUsing() then return end
+	if self:IsUsing() then
+		if not self:CanQuickThrow() then
+			self:QuickThrowOverride()
+		end
+		return 
+	end
 
 	self:WeaponDelay() -- don't predict, has delay
 	self:HandleBurstDelay() -- don't predict		
@@ -884,7 +903,7 @@ function SWEP:CanShoot()
 		self:PreThrowObject() 
 		return false 
 	end
-	if not self:HasAmmoToFire() then
+	if not self:HasPrimaryAmmoToFire() then
 		if self.FireAlwaysAnimate then
 			self:HandleShootAnimations()
 		end
@@ -1391,6 +1410,11 @@ end
 
 function SWEP:CanPrimaryAttack()
 	if self:GetNextPrimaryFire() > CurTime() then return false end
+	return true
+end
+
+function SWEP:CanSecondaryAttack()
+	if self:GetNextSecondaryFire() > CurTime() then return false end
 	return true
 end
 
@@ -2452,7 +2476,7 @@ function SWEP:EmitDryFireSound()
 	self:SetNextPrimaryFire( math.max(self:GetNextPrimaryFire(),CurTime() + 0.25) )
 end
 
-function SWEP:HasAmmoToFire()
+function SWEP:HasPrimaryAmmoToFire()
 
 	if self:Clip1() == -1 then
 		if self.Primary.SpareClip ~= -1 and self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
@@ -2469,6 +2493,27 @@ function SWEP:HasAmmoToFire()
 	return true
 	
 end
+
+function SWEP:HasSecondaryAmmoToFire()
+
+	if self:Clip2() == -1 then
+		if self.Secondary.SpareClip ~= -1 and self.Owner:GetAmmoCount(self:GetSecondaryAmmo()) < 1 then 
+			self:EmitDryFireSound()
+			return false 
+		else
+			return true
+		end
+	elseif self:Clip2() <= 0 then
+		self:EmitDryFireSound()
+		return false
+	end
+
+	return true
+	
+end
+
+
+
 
 function SWEP:HandleBurstFireShoot()
 	if self.HasBurstFire or self.AlwaysBurst or self.BulletDelay > 0 then
@@ -4505,10 +4550,70 @@ datatable.hitfunction = function(datatable,traceresult)
 		util.Effect("Impact", effect)
 	
 	end
-	
-	
-	
-	
+
 end
 
 BURGERBASE_RegisterProjectile("css_bullet",datatable)
+
+local datatable = {}
+
+local NadeModel = Model("models/weapons/ar2_grenade.mdl")
+
+datatable.drawfunction = function(datatable)
+	if datatable.special and datatable.special ~= NULL then
+		datatable.special:SetPos(datatable.pos)
+		datatable.special:SetAngles( datatable.direction:GetNormalized():Angle() )
+		datatable.special:DrawModel()
+	else
+		datatable.special = ClientsideModel(NadeModel, RENDERGROUP_OPAQUE )
+	end
+end
+
+datatable.hitfunction = function(datatable,traceresult)
+	
+	local Victim = traceresult.Entity
+	local Attacker = datatable.owner
+	local Inflictor = datatable.weapon
+	
+	if not IsValid(Attacker) then
+		Attacker = Victim
+	end
+	
+	if not IsValid(Inflictor) then
+		Inflictor = Attacker
+	end
+	
+	if IsValid(Attacker) and IsValid(Inflictor) then
+	
+		local DmgInfo = DamageInfo()
+		DmgInfo:SetDamage( datatable.damage )
+		DmgInfo:SetAttacker( Attacker )
+		DmgInfo:SetInflictor( Inflictor )
+		DmgInfo:SetDamageForce( datatable.direction:GetNormalized() )
+		DmgInfo:SetDamagePosition( traceresult.HitPos )
+		DmgInfo:SetDamageType( DMG_SHOCK )
+		util.BlastDamageInfo( DmgInfo, traceresult.HitPos, 512 )
+		
+		if IsFirstTimePredicted() then
+			local effectdata = EffectData()
+			effectdata:SetStart( traceresult.HitPos + datatable.direction:GetNormalized()*100)
+			effectdata:SetOrigin( traceresult.HitPos)
+			effectdata:SetScale( 1 )
+			effectdata:SetRadius( 1 )
+			util.Effect( "Explosion", effectdata)
+		end
+		
+	
+	end
+	
+end
+
+datatable.diefunction = function(datatable)
+	if CLIENT then
+		if datatable.special and datatable.special ~= NULL then
+			datatable.special:Remove()
+		end
+	end
+end
+
+BURGERBASE_RegisterProjectile("launched_grenade",datatable)
