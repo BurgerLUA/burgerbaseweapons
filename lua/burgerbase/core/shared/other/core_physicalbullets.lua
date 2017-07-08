@@ -182,7 +182,7 @@ if CLIENT then
 		
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
 
-		if DataTable.OverrideNet or (LocalPlayer() ~= DataTable.owner) then
+		if DataTable.OverrideNet or (LocalPlayer() ~= DataTable.owner) or game.SinglePlayer() then
 			BURGERBASE_FUNC_AddBullet(DataTable)
 		end
 		

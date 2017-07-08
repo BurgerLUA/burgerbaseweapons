@@ -489,7 +489,7 @@ function SWEP:EquipAmmo(ply)
 	if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 or self.WeaponType == "Equipment" then
 		ply:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
 		ply:GiveAmmo(self.Secondary.SpareClip,self:GetSecondaryAmmo(),false)
-		print(self.Secondary.SpareClip,self:GetSecondaryAmmo())
+		--print(self.Secondary.SpareClip,self:GetSecondaryAmmo())
 	elseif self.WeaponType == "Throwable" then
 		ply:GiveAmmo(1,self:GetPrimaryAmmo(),false)
 	end
@@ -1453,15 +1453,15 @@ function SWEP:GetRecoilFinal()
 		
 		if self.HasDual and self:GetIsLeftFire() then
 			if SERVER or IsSingleplayer then
-				AvgBulletsShot = (self:GetCoolDownLeft() / HeatMath )
+				AvgBulletsShot = (self:GetCoolDownLeft() / math.max(0.001,HeatMath) )
 			else
-				AvgBulletsShot = (self.ClientCoolDownLeft / HeatMath )
+				AvgBulletsShot = (self.ClientCoolDownLeft / math.max(0.001,HeatMath) )
 			end
 		else
 			if SERVER or IsSingleplayer then
-				AvgBulletsShot = (self:GetCoolDown() / HeatMath )
+				AvgBulletsShot = (self:GetCoolDown() / math.max(0.001,HeatMath) )
 			else
-				AvgBulletsShot = (self.ClientCoolDown / HeatMath )
+				AvgBulletsShot = (self.ClientCoolDown / math.max(0.001,HeatMath) )
 			end
 		end
 		
@@ -1525,6 +1525,12 @@ function SWEP:AddRecoil()
 
 end
 
+function SWEP:SpecialHeatMath(CoolDown)
+
+
+	return CoolDown
+end
+
 function SWEP:GetHeatMath(Damage,Shots)
 
 	local DamageMod = Damage*Shots*0.01
@@ -1538,6 +1544,9 @@ function SWEP:GetHeatMath(Damage,Shots)
 	end
 	
 	local CoolDown = DamageMod*ConeMod*WeightMod*BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_heatconescale"):GetFloat()*BurstMod
+	
+	CoolDown = self:SpecialHeatMath(CoolDown)
+	
 	
 	return CoolDown
 	
@@ -2173,6 +2182,8 @@ end
 
 SWEP.IronBoltOffset = Vector(0,0,-2)
 
+SWEP.IronIdlePos = Vector(0,0,0)
+
 function SWEP:GetViewModelPosition( pos, ang )
 
 	local OldPos = pos
@@ -2199,14 +2210,15 @@ function SWEP:GetViewModelPosition( pos, ang )
 		TimeRate = self.MeleeDelay
 	end
 	
-	
+
 	if ShouldSight then
 		self.SwayScale 				= 0
 		self.BobScale 				= 0
 	else
-		self.SwayScale 				= math.Clamp(2 * self.MoveConeMul,0.5,3)
-		self.BobScale 				= math.Clamp(2 * self.MoveConeMul,0.5,3)
+		self.SwayScale 				= 1
+		self.BobScale 				= 1
 	end
+
 
 	-- Start Position
 	if self.IronSightsPos and ShouldSight then	
@@ -2224,6 +2236,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 		DesiredPosOffset = DesiredPosOffset + self.IronRunPos
 	elseif !self:GetIsReloading() and !IsMelee and self:GetCoolDown() > 0 then
 		DesiredPosOffset = DesiredPosOffset + self.IronShootPos
+	else
+		DesiredPosOffset = DesiredPosOffset + self.IronIdlePos
 	end
 
 
