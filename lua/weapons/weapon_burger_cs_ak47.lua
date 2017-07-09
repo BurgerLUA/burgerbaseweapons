@@ -11,7 +11,7 @@ SWEP.WeaponType				= "Primary"
 SWEP.Cost					= 2500
 SWEP.CSSMoveSpeed			= 221
 
-SWEP.Description			= "AW SHEIT"
+SWEP.Description			= "Excels at long-to-medium range."
 
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false

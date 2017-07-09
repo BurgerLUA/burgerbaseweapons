@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Inaccurate pistol that deals high damage. Headshots are fatal."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_pist_p228.mdl"
 SWEP.WorldModel				= "models/weapons/w_pist_p228.mdl"
 SWEP.VModelFlip 			= false

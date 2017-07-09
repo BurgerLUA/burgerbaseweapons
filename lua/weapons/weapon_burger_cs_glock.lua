@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Minimal recoil pistol. Has burst fire settings."
+
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 

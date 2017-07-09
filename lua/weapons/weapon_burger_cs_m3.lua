@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 220
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Your run-of-the-mill pump action shotgun. Comes with slug ammo."
+
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 

@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Silenced SMG that's good for close range."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_smg_tmp.mdl"
 SWEP.WorldModel				= "models/weapons/w_smg_tmp.mdl"
 SWEP.VModelFlip 			= false

@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "High capacity accurate pea-shooter. Good for finishing wounded off."
+
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 

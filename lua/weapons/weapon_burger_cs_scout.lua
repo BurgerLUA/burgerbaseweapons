@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Gives a boost to movement speed, is not affected by movement penalties."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_snip_scout.mdl"
 SWEP.WorldModel				= "models/weapons/w_snip_scout.mdl"
 SWEP.VModelFlip 			= false

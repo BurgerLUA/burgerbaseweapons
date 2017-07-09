@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Accurate high-damage handcannon. Headshots are usually fatal."
+
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 

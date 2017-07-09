@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Powerful automatic sniper that's easier to control than the G3."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_snip_sg550.mdl"
 SWEP.WorldModel				= "models/weapons/w_snip_sg550.mdl"
 SWEP.VModelFlip 			= false

@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Excels at close range. Falls off at medium ranges."
+
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 

@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed			= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Combat knife that deals bonus damage from behind."
+
 SWEP.Slot					= 0
 SWEP.SlotPos				= 1
 

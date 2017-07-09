@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed			= 230
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Your classic automatic rifle with a lot of stopping power. Comes with a silencer."
+
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 

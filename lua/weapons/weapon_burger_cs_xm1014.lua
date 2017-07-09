@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed			= 240
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Semi-automatic shotgun that's good for clearing rooms. Comes with slug rounds."
+
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 

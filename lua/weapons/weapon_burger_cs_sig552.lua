@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Scoped assault rifle that deals quite a bit of damage."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_rif_sg552.mdl"
 SWEP.WorldModel				= "models/weapons/w_rif_sg552.mdl"
 SWEP.VModelFlip 			= false

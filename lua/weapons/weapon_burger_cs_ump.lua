@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Powerful SMG that's excels at medium range."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_smg_ump45.mdl"
 SWEP.WorldModel				= "models/weapons/w_smg_ump45.mdl"
 SWEP.VModelFlip 			= false
@@ -55,7 +57,7 @@ SWEP.HasDownRecoil			= false
 SWEP.HasFirstShotAccurate	= true
 SWEP.CanShootWhileSprinting = false
 
-SWEP.DamageFalloff			= 1000
+SWEP.DamageFalloff			= 1500
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true

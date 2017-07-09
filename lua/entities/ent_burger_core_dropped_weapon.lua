@@ -132,3 +132,9 @@ function ENT:Draw()
 		self:DrawModel()
 	end
 end
+
+function ENT:DrawTranslucent()
+	if CLIENT then
+		self:DrawModel()
+	end
+end

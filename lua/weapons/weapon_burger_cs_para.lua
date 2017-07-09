@@ -17,6 +17,8 @@ SWEP.AdminOnly				= false
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "Heavy machinegun that's good for clearing rooms."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_mach_m249para.mdl"
 SWEP.WorldModel				= "models/weapons/w_mach_m249para.mdl"
 SWEP.VModelFlip 			= false

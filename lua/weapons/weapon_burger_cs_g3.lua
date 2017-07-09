@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 210
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Powerful automatic sniper. Two shots is all you need."
+
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 

@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 220
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "General all-purpose rifle. Comes with a burst fire setting."
+
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
 

@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "SMG that has long range capabilities."
+
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 
@@ -55,7 +57,7 @@ SWEP.HasDownRecoil			= true
 SWEP.HasFirstShotAccurate	= true
 SWEP.CanShootWhileSprinting = false
 
-SWEP.DamageFalloff			= 1500
+SWEP.DamageFalloff			= 2000
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true

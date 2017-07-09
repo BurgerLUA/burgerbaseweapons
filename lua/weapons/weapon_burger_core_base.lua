@@ -807,7 +807,6 @@ end
 
 function SWEP:PrimaryAttack()
 
-	if not self:CanPrimaryAttack() then	return end
 	if not self:CanShoot() then return end
 	if self:IsUsing() then
 		if not self:CanQuickThrow() then
@@ -815,6 +814,12 @@ function SWEP:PrimaryAttack()
 		end
 		return 
 	end
+	if not self:HasPrimaryAmmoToFire() then
+		if self.FireAlwaysAnimate then
+			self:HandleShootAnimations()
+		end
+	end
+	if not self:CanPrimaryAttack() then	return end
 
 	self:WeaponDelay() -- don't predict, has delay
 	self:HandleBurstDelay() -- don't predict		
@@ -903,12 +908,6 @@ function SWEP:CanShoot()
 		self:PreThrowObject() 
 		return false 
 	end
-	if not self:HasPrimaryAmmoToFire() then
-		if self.FireAlwaysAnimate then
-			self:HandleShootAnimations()
-		end
-		return false
-	end
 	return true
 end
 
@@ -945,7 +944,7 @@ function SWEP:HandleBurstDelay()
 end
 
 function SWEP:GetBurstMath()
-	return (self.BurstSpeedOverride * self.Primary.Delay) / self.BurstOverride
+	return self.BurstPerBulletDelay or (self.BurstSpeedOverride * self.Primary.Delay) / self.BurstOverride
 end
 
 function SWEP:SpecialDelay(delay)
@@ -962,7 +961,9 @@ function SWEP:GetDelay()
 
 	if self.HasBurstFire or self.AlwaysBurst then
 		if self:GetIsBurst() then
-			if self.BurstSpeedAbs then
+			if self.BurstPerVolleyDelay then
+				Delay = self.BurstPerVolleyDelay
+			elseif self.BurstSpeedAbs then
 				Delay = self.BurstSpeedAbs
 			else
 				Delay = Delay * (self.BurstOverride*2)
@@ -1614,8 +1615,22 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 
 end
 
+--[[
+SWEP.UseSpecialProjectile	= true
+SWEP.UseMuzzle				= true
+--]]
+
 function SWEP:ModProjectileTable(datatable)
+
+	datatable.direction = datatable.direction*self.DamageFalloff*4
+	datatable.hullsize = 2
+	datatable.usehull = true
+	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,100)
+	datatable.dietime = CurTime() + 50
+	datatable.id = "css_bullet"
+
 	return datatable
+	
 end
 
 function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
@@ -1990,12 +2005,10 @@ function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp)
 end
 
 function SWEP:IsSprinting()
-
-	if self.Owner:KeyDown(IN_SPEED) then
-		return true
-	end
-	
-	return false
+	local SideVelocity = self.Owner:GetVelocity()
+	SideVelocity = SideVelocity - Vector(0,0,SideVelocity.z)
+	SideVelocity = SideVelocity:Length()
+	return SideVelocity > 1 and self.Owner:IsOnGround() and self.Owner:KeyDown(IN_SPEED)
 end
 
 function SWEP:IsBusy()
@@ -2180,9 +2193,14 @@ function SWEP:Reload()
 end
 
 
-SWEP.IronBoltOffset = Vector(0,0,-2)
+SWEP.IronBoltPos = Vector(0,0,-2)
+SWEP.IronBoltAng = Vector(0,0,0)
 
 SWEP.IronIdlePos = Vector(0,0,0)
+SWEP.IronIdleAng = Vector(0,0,0)
+
+SWEP.IronReloadPos = Vector(0,0,0)
+SWEP.IronReloadAng = Vector(0,0,0)
 
 function SWEP:GetViewModelPosition( pos, ang )
 
@@ -2210,7 +2228,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 		TimeRate = self.MeleeDelay
 	end
 	
-
 	if ShouldSight then
 		self.SwayScale 				= 0
 		self.BobScale 				= 0
@@ -2218,7 +2235,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.SwayScale 				= 1
 		self.BobScale 				= 1
 	end
-
 
 	-- Start Position
 	if self.IronSightsPos and ShouldSight then	
@@ -2232,81 +2248,76 @@ function SWEP:GetViewModelPosition( pos, ang )
 		end
 		
 		DesiredPosOffset = DesiredPosOffset + BasePosOffset
-	elseif self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() and !IsMelee then	
-		DesiredPosOffset = DesiredPosOffset + self.IronRunPos
-	elseif !self:GetIsReloading() and !IsMelee and self:GetCoolDown() > 0 then
-		DesiredPosOffset = DesiredPosOffset + self.IronShootPos
-	else
-		DesiredPosOffset = DesiredPosOffset + self.IronIdlePos
-	end
-
-
-	
-	if self.IronMeleePos and IsMelee then
+		
+		if self.IronDualSpacing and self.HasDual then
+			if self:GetIsLeftFire() then
+				DesiredPosOffset = DesiredPosOffset - Vector(self.IronDualSpacing,0,0)
+			else
+				DesiredPosOffset = DesiredPosOffset + Vector(self.IronDualSpacing,0,0)
+			end
+		end
+		
+	elseif self.IronMeleePos and IsMelee then
 		local Rad = math.rad(MeleeDif*180)
 		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(Rad)*self.IronMeleePos.x,math.cos(Rad)*self.IronMeleePos.y,self.IronMeleePos.z)
+	elseif self.IronReloadPos and self:GetIsReloading() then
+		DesiredPosOffset = DesiredPosOffset + self.IronReloadPos	
+	elseif self.IronRunPos and !self.CanShootWhileSprinting and self:IsSprinting() then	
+		DesiredPosOffset = DesiredPosOffset + self.IronRunPos
+	elseif self.IronShootPos and self:GetCoolDown() > 0 then
+		DesiredPosOffset = DesiredPosOffset + self.IronShootPos
+	elseif self.IronBoltPos and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
+		DesiredPosOffset = DesiredPosOffset + self.IronBoltPos
+	elseif self.IronIdlePos then
+		DesiredPosOffset = DesiredPosOffset + self.IronIdlePos
 	end
 
 	if not ShouldSight then 
 		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
-	end
-
-	if not self.DistanceMod then
-		self.DistanceMod = DesiredDistanceMod
-	else
-		self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
-	end
-	DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
-	
-	if self.Owner:Crouching() and not ShouldSight then
-		DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
-	end
-	
-	if self.HasDual and ShouldSight then
-		if self:GetIsLeftFire() then
-			DesiredPosOffset = DesiredPosOffset - Vector(self.IronDualSpacing,0,0)
-		else
-			DesiredPosOffset = DesiredPosOffset + Vector(self.IronDualSpacing,0,0)
+		
+		if self.Owner:Crouching() then
+			DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
 		end
-	end
+		
+		if not self.DistanceMod then
+			self.DistanceMod = DesiredDistanceMod
+		else
+			self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
+		end
+		
+		DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
 
-	if self.IronBoltOffset and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
-		DesiredPosOffset = DesiredPosOffset + self.IronBoltOffset
 	end
-	
-	
-	
 	-- End Postion
 	
 	-- Start Angle
 	if self.IronSightsAng and ShouldSight then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronSightsAng.x,self.IronSightsAng.y,self.IronSightsAng.z)
-	end
-	
-	if self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() and !self:GetIsReloading() and !IsMelee then
-		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
-	end
-	
-	if self.IronMeleeAng and IsMelee then
+	elseif self.IronMeleeAng and IsMelee then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronMeleeAng.x,self.IronMeleeAng.y,self.IronMeleeAng.z)
+	elseif self.IronReloadAng and self:GetIsReloading() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronReloadAng.x,self.IronReloadAng.y,self.IronReloadAng.z)
+	elseif self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
+	elseif self.IronShootAng and self:GetCoolDown() > 0 then 
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronShootAng.x,self.IronShootAng.y,self.IronShootAng.z)
+	elseif self.IronBoltAng and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronBoltAng.x,self.IronBoltAng.y,self.IronBoltAng.z)
+	elseif self.IronIdleAng then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronIdleAng.x,self.IronIdleAng.y,self.IronIdleAng.z)
 	end
 
-	DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
-	
-	--DesiredAngOffset = DesiredAngOffset - self.Owner:GetPunchAngle()
-	
+	if not ShouldSight then
+		DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+		DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
+		DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
+	end
 	-- End Angle
 	
-	DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
-	DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
-	
-	
+	-- Start Final Calculation
 	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent:Normalize()
-	
-
-	--pos, ang = LocalToWorld(self.IronSightPosCurrent,self.IronSightAngCurrent,pos,ang)
 	
 	ang:RotateAroundAxis(ang:Right(), 	self.IronSightAngCurrent.x)
 	ang:RotateAroundAxis(ang:Up(), 	self.IronSightAngCurrent.y)
@@ -2315,11 +2326,8 @@ function SWEP:GetViewModelPosition( pos, ang )
 	pos = pos + self.IronSightPosCurrent.x * ang:Right()
 	pos = pos + self.IronSightPosCurrent.y * ang:Forward()
 	pos = pos + self.IronSightPosCurrent.z * ang:Up()
-	
-	
 
 	if ShouldSight then	
-	
 		local PosDistance = DesiredPosOffset:Distance(self.IronSightPosCurrent)
 		local AngDistance = Vector(DesiredAngOffset.x,DesiredAngOffset.y,DesiredAngOffset.z):Distance(Vector(self.IronSightAngCurrent.x,self.IronSightAngCurrent.y,self.IronSightAngCurrent.z))
 
@@ -2334,6 +2342,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 		self.IronSightAngSnap = false
 		self.IronSightPosSnap = false
 	end
+	-- End Final Calculation
 
 	return pos, ang
 end
@@ -2956,7 +2965,7 @@ function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
 		Shots = weapon.Primary.NumShots
 		Delay = weapon.Primary.Delay
 		if CLIENT then
-			AmmoType = language.GetPhrase(game.GetAmmoName(weapon.Primary.Ammo) .. "_ammo")
+			AmmoType = language.GetPhrase(weapon.Primary.Ammo .. "_ammo")
 		end
 	else
 		Damage = Damage * weapon:SpecialDamage(weapon.Primary.Damage)
@@ -3026,6 +3035,9 @@ function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
 	if not avoidfunctions then
 		Cone = weapon:HandleCone(Cone,false,(weapon.HasDual and weapon:GetIsLeftFire()))
 	end
+	if not Cone then
+		Cone = 0
+	end
 	
 	local BaseAccuracy = 0.1
 	local Accuracy = (BaseAccuracy - math.Clamp(Cone,0,BaseAccuracy)) / BaseAccuracy
@@ -3047,18 +3059,18 @@ function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
 	local PenetrationLossPerUnit = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_penetration_scale"):GetFloat() * MatCalc * math.max(0.1,weapon.PenetrationLossMul or 1) * 1
 	local BulletPenetration = Damage / math.max(3,PenetrationLossPerUnit)
 	
-	ReturnTable.name = Name
-	ReturnTable.ammo = AmmoType
-	ReturnTable.clip = ClipSize
-	ReturnTable.damage = Damage
-	ReturnTable.shots = Shots
-	ReturnTable.delay = Delay
-	ReturnTable.rpm = RPM
-	ReturnTable.dps = DPS
-	ReturnTable.killtime = KillTime
-	ReturnTable.accuracy = Accuracy
-	ReturnTable.range = FullRange
-	ReturnTable.penetration = BulletPenetration
+	ReturnTable.name = Name or ""
+	ReturnTable.ammo = AmmoType or "none"
+	ReturnTable.clip = ClipSize or -1
+	ReturnTable.damage = Damage or 0
+	ReturnTable.shots = Shots or 1
+	ReturnTable.delay = Delay or 1
+	ReturnTable.rpm = RPM or 0
+	ReturnTable.dps = DPS or 0
+	ReturnTable.killtime = KillTime or 1
+	ReturnTable.accuracy = Accuracy or 1
+	ReturnTable.range = FullRange or 100
+	ReturnTable.penetration = BulletPenetration or 1
 	
 	return ReturnTable
 

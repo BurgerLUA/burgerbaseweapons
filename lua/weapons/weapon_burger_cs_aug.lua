@@ -11,6 +11,8 @@ SWEP.WeaponType				= "Primary"
 SWEP.Cost					= 3500
 SWEP.CSSMoveSpeed				= 221
 
+SWEP.Description			= "Excels at long-to-medium range. Comes with a scope."
+
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 

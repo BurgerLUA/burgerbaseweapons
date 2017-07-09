@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "Inaccurate akimbo guns that deal a moderate amount of damage."
+
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 

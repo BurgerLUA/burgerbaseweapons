@@ -17,6 +17,8 @@ SWEP.AdminOnly				= true
 SWEP.Slot					= 4
 SWEP.SlotPos				= 1
 
+SWEP.Description			= "General purpose smoke grenade."
+
 SWEP.ViewModel 				= "models/weapons/cstrike/c_eq_smokegrenade.mdl"
 SWEP.WorldModel				= "models/weapons/w_eq_smokegrenade.mdl"
 SWEP.VModelFlip 			= false

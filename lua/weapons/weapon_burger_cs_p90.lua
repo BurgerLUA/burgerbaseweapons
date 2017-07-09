@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 245
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "The mother of all SMGs. This is the best personal defence weapon man could ask for."
+
 SWEP.Slot					= 2
 SWEP.SlotPos				= 1
 

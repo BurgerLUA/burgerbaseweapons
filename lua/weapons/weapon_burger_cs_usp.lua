@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= ".45 pistol that comes with a silencer"
+
 SWEP.Slot					= 1
 SWEP.SlotPos				= 1
 

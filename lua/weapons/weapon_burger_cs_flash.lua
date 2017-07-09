@@ -14,6 +14,8 @@ SWEP.CSSMoveSpeed				= 250
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
+SWEP.Description			= "All purpose flashbang grenade."
+
 SWEP.Slot					= 4
 SWEP.SlotPos				= 1
 

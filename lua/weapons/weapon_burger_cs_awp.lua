@@ -12,6 +12,8 @@ SWEP.Cost					= 4750
 SWEP.CSSMoveSpeed			= 210
 SWEP.CSSZoomSpeed			= 150
 
+SWEP.Description			= "Bolt action high-damage sniper rifle. Bodyshots are fatal."
+
 SWEP.Spawnable				= true
 SWEP.AdminOnly				= false
 
