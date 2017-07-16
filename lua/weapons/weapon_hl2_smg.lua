@@ -87,7 +87,7 @@ SWEP.IronMeleePos = Vector(0, 0, 0)
 SWEP.IronMeleeAng = Vector(-9.146, 30.25, -37.991)
 
 function SWEP:CanQuickThrow()
-	return false
+	return !self:HasSecondaryAmmoToFire()
 end
 
 SWEP.UseMuzzle = true

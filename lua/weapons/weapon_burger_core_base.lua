@@ -13,6 +13,7 @@ SWEP.Cost					= 2500
 SWEP.CSSMoveSpeed			= 221	
 SWEP.CSSZoomSpeed			= -1	
 
+
 SWEP.SwayScale 				= 2
 SWEP.BobScale 				= 1				
 
@@ -1173,7 +1174,7 @@ function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
 		end
 	end
 	
-	if self.HasFirstShotAccurate and (self:GetCoolDown() + self:GetCoolDownLeft()) == 0 and IsCrosshair == false then
+	if self.HasFirstShotAccurate and ((self:GetCoolDown() == 0 and !IsLeftFire) or (IsLeftFire and  self:GetCoolDownLeft() == 0)) and IsCrosshair == false then
 		Cone = 0
 	else
 		if IsLeftFire then
@@ -1636,6 +1637,7 @@ end
 function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
 	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,AimCorrection,true,false)	
 end
+
 
 function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 
@@ -3113,7 +3115,7 @@ function SWEP:DrawContextMenu(x,y)
 		-- Title
 		local PosNumber = 0
 		surface.SetTextPos( BasePosX,BasePosY  )
-		surface.DrawText( WeaponStats.ammo .. WeaponStats.name )
+		surface.DrawText( WeaponStats.ammo .. " " .. WeaponStats.name )
 		surface.DrawRect( BasePosX, BasePosY + FontSize, BasePosX*3, 2 )
 		
 		-- Damage
@@ -3993,7 +3995,11 @@ function SWEP:NewStabDamage(damage, victim, traceresult)
 		dmginfo:SetAttacker( self.Owner )
 		dmginfo:SetInflictor( self )
 		dmginfo:SetDamageForce( self.Owner:GetForward() )
-		victim:DispatchTraceAttack( dmginfo, traceresult )
+		if traceresult then
+			victim:DispatchTraceAttack( dmginfo, traceresult )
+		else
+			victim:TakeDamageInfo(dmginfo)
+		end
 	end
 	
 end
@@ -4523,11 +4529,16 @@ local BulletMaterial = Material( "effects/spark" )
 local SpriteMaterial = Material( "sprites/light_glow02_add" )
 
 datatable.drawfunction = function(datatable)
+
+	local Forward = datatable.direction:GetNormalized()
+	local BulletLength = datatable.direction:Length()*0.01
+	local BulletWidth = datatable.damage*(16/100)
+
 	render.SetMaterial( BulletMaterial )
-	render.DrawBeam( datatable.pos , datatable.pos + datatable.direction:GetNormalized()*64, 16,0, 1, Color(255,255,255,255) )
+	render.DrawBeam( datatable.pos , datatable.pos + Forward*BulletLength, BulletWidth ,0, 1, Color(255,255,255,255) )
 	
 	render.SetMaterial( SpriteMaterial )
-	render.DrawSprite( datatable.pos + datatable.direction:GetNormalized()*64, 4, 4, Color(255,255,255,255) )
+	render.DrawSprite( datatable.pos + Forward*BulletLength, BulletWidth*0.5, BulletWidth*0.5, Color(255,255,255,255) )
 end
 
 datatable.diefunction = function(datatable)
@@ -4548,7 +4559,7 @@ datatable.hitfunction = function(datatable,traceresult)
 		Inflictor = Attacker
 	end
 	
-	if IsValid(Attacker) and IsValid(Victim) and IsValid(Inflictor) then
+	if IsValid(Attacker) and IsValid(Victim) and IsValid(Inflictor) and (not datatable.previoushit or datatable.previoushit ~= Victim) then
 		local DmgInfo = DamageInfo()
 		DmgInfo:SetDamage( datatable.damage )
 		DmgInfo:SetAttacker( Attacker )
@@ -4556,25 +4567,34 @@ datatable.hitfunction = function(datatable,traceresult)
 		DmgInfo:SetDamageForce( datatable.direction:GetNormalized() )
 		DmgInfo:SetDamagePosition( datatable.pos )
 		DmgInfo:SetDamageType( DMG_BULLET )
-		traceresult.Entity:DispatchTraceAttack( DmgInfo, traceresult )
+		datatable.previoushit = Victim
+		traceresult.Entity:DispatchTraceAttack( DmgInfo, traceresult )	
+	end
+
+	if not traceresult.StartSolid then
+		if SERVER and IsFirstTimePredicted() and !Victim:IsPlayer() then
+		
+			local effect = EffectData()
+			effect:SetOrigin(traceresult.HitPos)
+			effect:SetStart(traceresult.StartPos)
+			effect:SetSurfaceProp(traceresult.SurfaceProps)
+			effect:SetDamageType(DMG_BULLET)
+			
+			if (CLIENT or IsSingleplayer) then
+				effect:SetEntity(Victim)
+			else
+				effect:SetEntIndex(Victim:EntIndex())
+			end
+
+			util.Effect("Impact", effect)
+		
+		end
 	end
 	
-	if SERVER and IsFirstTimePredicted() and !Victim:IsPlayer() then
-	
-		local effect = EffectData()
-		effect:SetOrigin(traceresult.HitPos)
-		effect:SetStart(traceresult.StartPos)
-		effect:SetSurfaceProp(traceresult.SurfaceProps)
-		effect:SetDamageType(DMG_BULLET)
-		
-		if (CLIENT or IsSingleplayer) then
-			effect:SetEntity(Victim)
-		else
-			effect:SetEntIndex(Victim:EntIndex())
-		end
-
-		util.Effect("Impact", effect)
-	
+	if datatable.damage >= 1 then
+		return true
+	else
+		datatable.damage = datatable.damage - (traceresult.Fraction*datatable.direction:Length())
 	end
 
 end

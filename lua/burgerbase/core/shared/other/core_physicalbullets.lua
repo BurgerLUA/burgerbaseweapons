@@ -23,11 +23,6 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 		else	
 			data.direction = data.direction - ( data.resistance * engine.TickInterval() )
 		end
-		
-		
-		
-		
-		
 
 		local TraceData = {}
 		local HullSize = data.hullsize or 1
@@ -48,14 +43,16 @@ function BUREGRBASE_HOOK_Tick_Bullets()
 			TraceResultHull = util.TraceHull(TraceData)
 		end
 		
-		if TraceResult.Hit then
-			data.hitfunction(data,TraceResult)
-			data.diefunction(data)
-			data = nil
+		if TraceResult.Hit then	
+			if not data.hitfunction(data,TraceResult) then
+				data.diefunction(data)
+				data = nil
+			end
 		elseif TraceResultHull.Hit and TraceResultHull.Entity and TraceResultHull.Entity:Health() > 0 then
-			data.hitfunction(data,TraceResultHull)
-			data.diefunction(data)
-			data = nil
+			if not data.hitfunction(data,TraceResultHull) then
+				data.diefunction(data)
+				data = nil
+			end
 		elseif data.dietime <= CurTime() then
 			data.diefunction(data)
 			data = nil
@@ -146,7 +143,7 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	if SERVER then
 		net.Start("BURGERBASE_SendBulletToClient")
 			net.WriteTable(NewTable)
-			net.WriteFloat(SysTime())
+			net.WriteFloat(CurTime())
 		net.Broadcast()
 	end
 	
@@ -155,8 +152,6 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	NewTable.diefunction = RegisteredTable.diefunction or function(data) end
 	NewTable.tickfunction = RegisteredTable.tickfunction or function(data) end
 	NewTable.hitfunction = RegisteredTable.hitfunction or function(data,traceresult) end
-
-	
 	
 	table.Add(BURGERBASE_RegisteredBullets,{NewTable})
 
@@ -173,10 +168,12 @@ if CLIENT then
 	net.Receive("BURGERBASE_SendBulletToClient", function(len)
 	
 		local DataTable = net.ReadTable()
-		local ServerSysTimeDif = SysTime() - net.ReadFloat()
+		local ServerSysTimeDif = CurTime() - net.ReadFloat()
 		local id = DataTable.id
 		
-		--DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
+		--print(ServerSysTimeDif)
+		
+		DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
 		
 		
 		
