@@ -34,7 +34,7 @@ SWEP.Primary.Delay			= 0.09 --1/(666/60)
 SWEP.Primary.Ammo			= "bb_45acp"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 1
+SWEP.RecoilMul				= 2
 SWEP.SideRecoilMul			= 0.25
 SWEP.RecoilSpeedMul			= 1.25
 SWEP.MoveConeMul			= 1

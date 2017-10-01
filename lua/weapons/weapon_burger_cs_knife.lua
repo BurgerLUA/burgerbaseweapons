@@ -24,15 +24,15 @@ SWEP.WorldModel				= "models/weapons/w_knife_t.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "knife"
 
-SWEP.Primary.Damage			= 20
+SWEP.Primary.Damage			= 20*2
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= -1
 SWEP.Primary.SpareClip		= -1
-SWEP.Primary.Delay			= 0.5
+SWEP.Primary.Delay			= 0.4
 SWEP.Primary.Ammo			= "none"
 SWEP.Primary.Automatic 		= true 
 
-SWEP.Secondary.Damage		= 65
+SWEP.Secondary.Damage		= 65*2
 SWEP.Secondary.NumShots		= 1
 SWEP.Secondary.ClipSize		= -1
 SWEP.Secondary.SpareClip	= -1

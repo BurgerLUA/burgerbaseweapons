@@ -41,10 +41,10 @@ SWEP.Secondary.ClipSize		= -1
 SWEP.Secondary.SpareClip		= 3
 
 SWEP.RecoilMul				= 2
-SWEP.SideRecoilMul			= 0.25
-SWEP.RecoilSpeedMul			= 1.5
-SWEP.MoveConeMul			= 1
-SWEP.HeatMul				= 0.5
+SWEP.SideRecoilMul			= 0.75
+SWEP.RecoilSpeedMul			= 1.25
+SWEP.MoveConeMul			= 0.75
+SWEP.HeatMul				= 0.75
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 1
 
@@ -58,7 +58,7 @@ SWEP.HasCSSZoom 			= false
 
 SWEP.HasPumpAction 			= false
 SWEP.HasBoltAction 			= false
-SWEP.HasBurstFire 			= false
+SWEP.HasBurstFire 			= true
 SWEP.HasSilencer 			= false
 SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true

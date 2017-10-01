@@ -34,9 +34,9 @@ SWEP.Primary.Delay			= 0.08 --1/(750/60)
 SWEP.Primary.Ammo			= "bb_9mm"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 1.25
+SWEP.RecoilMul				= 2
 SWEP.SideRecoilMul			= 0.25
-SWEP.RecoilSpeedMul			= 1.25
+SWEP.RecoilSpeedMul			= 1.5
 SWEP.MoveConeMul			= 0.75
 SWEP.HeatMul				= 0.5
 SWEP.CoolMul				= 1
@@ -57,7 +57,7 @@ SWEP.HasDownRecoil			= true
 SWEP.HasFirstShotAccurate	= true
 SWEP.CanShootWhileSprinting = false
 
-SWEP.DamageFalloff			= 2000
+SWEP.DamageFalloff			= 1500
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true

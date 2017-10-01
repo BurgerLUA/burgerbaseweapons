@@ -83,18 +83,19 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 
 	if (CLIENT and !UsePrediction) or IsFirstTimePredicted() then
 	
+		local Offset = Vector(0,0,0)
+	
 		if AimCorrection then
 			local HitPos = Attacker:GetEyeTrace().HitPos
 			local DirectionOffset = Direction - Attacker:GetAimVector()	
 			if CLIENT and Inflictor.UseMuzzle then
 				local ViewModel = Attacker:GetViewModel()
-				--local MuzzleID = ViewModel:LookupAttachment( "muzzle" )
 				local MuzzleData = ViewModel:GetAttachment( 1 )	
-				Source = MuzzleData.Pos
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
+				Offset = MuzzleData.Pos - Source
+				--Direction = (HitPos - Source):GetNormalized() + DirectionOffset
 			elseif CLIENT and SourceOverride then
-				Source = Source + Attacker:GetForward()*Inflictor.SourceOverride.y + Attacker:GetRight()*Inflictor.SourceOverride.x + Attacker:GetUp()*Inflictor.SourceOverride.z	
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
+				Offset = Attacker:GetForward()*Inflictor.SourceOverride.y + Attacker:GetRight()*Inflictor.SourceOverride.x + Attacker:GetUp()*Inflictor.SourceOverride.z	
+				--Direction = (HitPos - Source):GetNormalized() + DirectionOffset
 			end
 		end
 
@@ -102,6 +103,7 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 		datatable.weapon = Inflictor
 		datatable.owner = Attacker
 		datatable.pos = Source
+		datatable.offset = Offset
 		datatable.direction = Direction
 		datatable.target = Target
 		datatable.damage = Damage
@@ -126,6 +128,7 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	NewTable.weapon = datatable.weapon
 	NewTable.owner = datatable.owner
 	NewTable.pos = datatable.pos
+	NewTable.offset = datatable.offset
 	NewTable.direction = datatable.direction
 
 	NewTable.damage = datatable.damage or 10

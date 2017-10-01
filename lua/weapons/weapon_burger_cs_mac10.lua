@@ -27,14 +27,14 @@ SWEP.HoldType				= "pistol"
 SWEP.Primary.Damage			= 29
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.Sound			= Sound("Weapon_MAC10.Single")
-SWEP.Primary.Cone			= 0.02
+SWEP.Primary.Cone			= 0.015
 SWEP.Primary.ClipSize		= 30
 SWEP.Primary.SpareClip		= 100
 SWEP.Primary.Delay			= 0.075 --1/(800/60)
 SWEP.Primary.Ammo			= "bb_45acp"
 SWEP.Primary.Automatic 		= true
 
-SWEP.RecoilMul				= 2
+SWEP.RecoilMul				= 1.5
 SWEP.SideRecoilMul			= 0.25
 SWEP.RecoilSpeedMul			= 1.25
 SWEP.MoveConeMul			= 0.75

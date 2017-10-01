@@ -1031,15 +1031,9 @@ function SWEP:HandleBulletQueue()
 	end
 end
 
-function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict
+local ConeOverride = true
 
-	local ShootDir = self.Owner:GetAimVector()
-	if self.Owner:IsPlayer() then
-		ShootDir = self.Owner:GetEyeTrace().Normal
-	end
-	
-	local WithPunchAngles = (ShootDir:Angle() + self.Owner:GetPunchAngle())
-	WithPunchAngles:Normalize()
+function SWEP:BulletMethod01(Damage,Shots,Cone,WithPunchAngles)
 
 	local ConeMinusPrimary = Cone
 	
@@ -1082,6 +1076,55 @@ function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict
 			end
 		end
 	end
+
+
+end
+
+function SWEP:BulletMethod02(Damage,Shots,WithPunchAngles)
+
+	local IsLeftFire = self:GetIsLeftFire()
+
+	local RandomCone = 0
+	RandomCone = self:PreSeededCone(RandomCone,false,IsLeftFire)
+	RandomCone = self:HandleConeMovement(RandomCone,false,IsLeftFire)
+	local SeededCone = self.Primary.Cone
+	SeededCone = self:HandleConeBase(SeededCone,false,IsLeftFire)
+	SeededCone = self:SpecialConePre(SeededCone,false,IsLeftFire)
+	SeededCone = self:HandleConeEquipment(SeededCone,false,IsLeftFire)
+	SeededCone = self:HandleConeCooldown(SeededCone,false,IsLeftFire)
+	SeededCone = self:SpecialConePost(SeededCone,false,IsLeftFire)
+
+	local FireMul = 1
+	if self.HasDual and IsLeftFire then
+		FireMul = -1
+	end
+
+	for i=1, Shots do
+	
+		local PitchMulti = self:BulletRandomSeed(-100,100,0 + Shots+i) / 100
+		local YawMulti = self:BulletRandomSeed(-100,100,0 + 100 + Shots+i) / 100
+		local AngleToAdd = Angle(SeededCone*PitchMulti*45,SeededCone*YawMulti*45*FireMul,0)
+		AngleToAdd:Normalize()
+		local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),AngleToAdd,Vector(0,0,0),WithPunchAngles)
+		self:ShootBullet(Damage,Shots,RandomCone,self.Owner:GetShootPos(),NewAngle:Forward(),self.Owner)
+		
+	end
+
+end
+
+
+function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict
+
+	local ShootDir = self.Owner:GetAimVector()
+	if self.Owner:IsPlayer() then
+		ShootDir = self.Owner:GetEyeTrace().Normal
+	end
+	
+	local WithPunchAngles = (ShootDir:Angle() + self.Owner:GetPunchAngle())
+	WithPunchAngles:Normalize()
+
+	--self:BulletMethod01(Damage,Shots,Cone,WithPunchAngles)
+	self:BulletMethod02(Damage,Shots,WithPunchAngles)
 		
 end
 
@@ -1149,20 +1192,15 @@ function SWEP:WeaponSound()
 
 end
 
-function SWEP:SpecialConePre(Cone,IsCrosshair)
+function SWEP:SpecialConePre(Cone,IsCrosshair,IsLeftFire)
 	return Cone
 end
 
-function SWEP:SpecialConePost(Cone,IsCrosshair)
+function SWEP:SpecialConePost(Cone,IsCrosshair,IsLeftFire)
 	return Cone
 end
 
-
-function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
-
-	--IsCrosshair = false
-
-	Cone = self:SpecialConePre(Cone,IsCrosshair)
+function SWEP:HandleConeEquipment(Cone,IsCrosshair,IsLeftFire)
 
 	if (self.HasBurstFire or self.AlwaysBurst) then
 		if self:GetIsBurst() then
@@ -1173,7 +1211,13 @@ function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
 			Cone = Cone*0.9
 		end
 	end
+
+	return Cone
 	
+end
+
+function SWEP:HandleConeCooldown(Cone,IsCrosshair,IsLeftFire)
+
 	if self.HasFirstShotAccurate and ((self:GetCoolDown() == 0 and !IsLeftFire) or (IsLeftFire and  self:GetCoolDownLeft() == 0)) and IsCrosshair == false then
 		Cone = 0
 	else
@@ -1183,21 +1227,43 @@ function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
 			Cone = Cone + (self:GetCoolDown()*self.HeatMul*0.01)
 		end
 	end
-	
+
+	return Cone
+
+end
+
+function SWEP:HandleConeBase(Cone,IsCrosshair,IsLeftFire)
+
 	if self.Owner:IsPlayer() and !self.Owner:Crouching() then
 		Cone = Cone * 1.25
 	end
 	
 	Cone = Cone * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_baseconescale",false):GetFloat()
-
-	Cone = self:SpecialConePost(Cone,IsCrosshair)
 	
-	local VelCone = self:GetMovementIntensity()
-	
-	Cone = Cone + VelCone
-
 	return Cone
+	
+end
 
+function SWEP:HandleConeMovement(Cone,IsCrosshair,IsLeftFire)
+	return Cone + self:GetMovementIntensity()
+end
+
+function SWEP:PreSeededCone(Cone,IsCrosshair,IsLeftFire)
+	return Cone
+end
+
+function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
+
+	Cone = self:HandleConeBase(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:SpecialConePre(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:HandleConeEquipment(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:HandleConeCooldown(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:SpecialConePost(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:PreSeededCone(Cone,IsCrosshair,IsLeftFire)
+	Cone = self:HandleConeMovement(Cone,IsCrosshair,IsLeftFire)
+	
+	return Cone
+	
 end
 
 function SWEP:GetMovementVelocity()
@@ -3824,58 +3890,92 @@ function SWEP:PostSwing(HitEntity,Damage)
 
 end
 
-function SWEP:Swing(damage,entoverride)
+function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullfilterfunction)
 
-	if entoverride and entoverride ~= NULL then
+	local LineTraceData = {}
+	LineTraceData.start = startpos
+	LineTraceData.endpos = endpos
+	LineTraceData.filter = linefilterfunction
+	LineTraceData.mask = MASK_SHOT
+
+	if self.Owner:IsPlayer() then
+		self.Owner:LagCompensation( true )
+	end
 	
-		self:NewSendHitEvent(entoverride,damage,nil)
-		
-		if self.Owner:IsPlayer() then
-			self.Owner:LagCompensation( false )
-		end
+	local LineTraceResult = util.TraceLine(LineTraceData)
 
-		return entoverride
+	if self.Owner:IsPlayer() then
+		self.Owner:LagCompensation( false )
+	end
+	
+	--print(LineTraceResult.Entity)
+	
+	if LineTraceResult.Entity and LineTraceResult.Entity ~= NULL and LineTraceResult.Entity:Health() > 0 then
+		return LineTraceResult
 	else
 	
-		local Data = {}
-
-		local BoxMultiplier = self.MeleeSize
-		
-		Data.start = self.Owner:GetShootPos()
-		Data.endpos = self.Owner:GetShootPos() + self.Owner:EyeAngles():Forward() * (self.MeleeRange)
-		Data.filter = function(ent)
-			return !(ent == self.Owner) and (ent:IsPlayer() or ent:IsNPC())
-		end
-		Data.mins = Vector( -BoxMultiplier , -BoxMultiplier , -BoxMultiplier*0.5 )
-		Data.maxs = Vector( BoxMultiplier , BoxMultiplier , BoxMultiplier*0.5 )
-		Data.mask = MASK_SHOT
-
+		local HullTraceData = {}
+		HullTraceData.start = startpos
+		HullTraceData.endpos = endpos
+		HullTraceData.filter = hullfilterfunction
+		HullTraceData.mask = MASK_SHOT_HULL
+		HullTraceData.mins = -bounds
+		HullTraceData.maxs = bounds
+	
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( true )
 		end
 		
-		local Trace = util.TraceHull( Data )
-		
+		local HullTraceResult = util.TraceHull(HullTraceData)
+	
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( false )
 		end
-
-		local HasHitTarget = nil
-
-		if Trace.Hit then
-			HasHitTarget = Trace.Entity
-		else		
-			HasHitTarget = nil
-		end
 		
-		self:NewSendHitEvent(HasHitTarget,damage,Data,Trace)
+		--print(HullTraceResult.Entity)
+		
+		if HullTraceResult.Entity and HullTraceResult.Entity ~= NULL and HullTraceResult.Entity:Health() > 0 then
+			return HullTraceResult
+		else
+			return LineTraceResult
+		end
+	
+	end
+	
 
-		return HasHitTarget
+end
+
+SWEP.HullMeleeSize = Vector(16*4,16*2,72*0.5)
+
+function SWEP:Swing(damage,entoverride)
+
+	if entoverride and entoverride ~= NULL then
+		self:NewSendHitEvent(entoverride,damage,nil)
+		return entoverride
+	else
+
+		local StartPos = self.Owner:GetShootPos()
+		local EndPos = self.Owner:GetShootPos() + self.Owner:GetAimVector()*self.MeleeRange
+		local LineFilterFunction = self.Owner
+		local HullFilterFunction = 	function(ent) 
+										return !(ent == self.Owner) and (ent:IsPlayer() or ent:IsNPC())
+									end
+		local Bounds = self.HullMeleeSize
+		
+		local TraceResult = self:DoDoubleTrace(StartPos,EndPos,MASK_SHOT,Bounds,LineFilterFunction,HullFilterFunction)
+		
+		if TraceResult.Entity then
+			self:NewSendHitEvent(TraceResult.Entity,damage,TraceResult)
+			return true
+		else
+			return false
+		end
+
 	end
 
 end
 
-function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
+function SWEP:NewSendHitEvent(victim,damage,TraceResult)
 
 	if victim and victim ~= NULL and (victim:IsPlayer() or victim:IsNPC()) then
 				
@@ -3915,57 +4015,6 @@ function SWEP:NewSendHitEvent(victim,damage,TraceData,TraceResult)
 			self:NewStabDamage(damage, victim, TraceResult)
 		end
 
-	else
-	
-		local NewTraceData = {}
-		NewTraceData.start = TraceData.start
-		NewTraceData.endpos = TraceData.endpos + (TraceData.endpos - TraceData.start):GetNormalized()*20
-		NewTraceData.filter = self.Owner
-		NewTraceData.mask = MASK_SHOT
-		
-		if self.Owner:IsPlayer() then
-			self.Owner:LagCompensation( true )
-		end
-		
-		local NewTraceResult = util.TraceLine(NewTraceData)
-		
-		if self.Owner:IsPlayer() then
-			self.Owner:LagCompensation( false )
-		end
-
-		if IsFirstTimePredicted() then
-			
-			if NewTraceResult.Hit then
-
-				local effect = EffectData()
-				effect:SetOrigin(NewTraceResult.HitPos)
-				effect:SetStart(NewTraceResult.StartPos)
-				effect:SetNormal(NewTraceResult.HitNormal)
-				effect:SetDamageType(self.MeleeDamageType)
-				
-				if victim and victim ~= NULL then
-					if CLIENT or IsSingleplayer then
-						effect:SetEntity(victim)
-					else
-						effect:SetEntIndex(victim:EntIndex())
-					end
-				end
-				
-				util.Effect("Impact", effect)
-				
-				
-				victim = NewTraceResult.Entity
-				
-				self:NewStabDamage(damage, victim, NewTraceResult)
-
-			else
-				if self.MeleeDelay == 0 then
-					self:EmitGunSound(self.MeleeSoundMiss)
-				end
-			end
-			
-		end
-
 	end
 
 end
@@ -3997,7 +4046,7 @@ function SWEP:NewStabDamage(damage, victim, traceresult)
 		dmginfo:SetDamageForce( self.Owner:GetForward() )
 		if traceresult then
 			victim:DispatchTraceAttack( dmginfo, traceresult )
-		else
+		elseif SERVER then
 			victim:TakeDamageInfo(dmginfo)
 		end
 	end
