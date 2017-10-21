@@ -22,7 +22,7 @@ SWEP.WorldModel				= ""
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "fist"
 
-SWEP.Primary.Damage			= 20
+SWEP.Primary.Damage			= 10
 SWEP.Primary.Cone			= 1
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= -1
@@ -57,9 +57,7 @@ SWEP.MeleeSoundWallHit		= Sound( "Flesh.ImpactHard" )
 SWEP.MeleeSoundFleshSmall	= Sound( "Flesh.ImpactHard" )
 SWEP.MeleeSoundFleshLarge	= Sound( "Flesh.ImpactHard" )
 
-SWEP.DamageFalloff			= 60
-SWEP.MeleeRange				= 30
-SWEP.MeleeSize				= 30
+SWEP.DamageFalloff			= 40
 SWEP.MeleeDamageType		= DMG_CRUSH
 SWEP.MeleeDelay				= 0.2
 
@@ -69,6 +67,7 @@ SWEP.IronSightTime			= 0.125
 SWEP.IronSightsPos 			= Vector(0, -15, -5)
 SWEP.IronSightsAng 			= Vector(45, 0, 0)
 
+SWEP.MeleeBlockReduction = 0.5
 
 
 
@@ -121,86 +120,57 @@ SWEP.IronSightsAng 			= Vector(45, 0, 0)
 
 --]]
 
+function SWEP:MeleeRange()
+	return 40
+end
+
+function SWEP:MeleeSize()
+	return 40
+end
 
 function SWEP:PrimaryAttack()
 
 	if self:IsUsing() then return end
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
 	
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
-	
 	if self:GetIsLeftFire() then
-		self:SetNextSecondaryFire(CurTime() + self.Primary.Delay*0.5)
 		self:SendSequence("fists_left")
 		self:SetIsLeftFire(false)
 	else
-		self:SetNextSecondaryFire(CurTime() + self.Primary.Delay*2)
 		self:SendSequence("fists_right")
 		self:SetIsLeftFire(true)
 	end
 
-	self:NewSwing(self.Primary.Damage)
-	
+	self:StartSwing(self.Primary.Damage)
+	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*2)
+	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
+
 end
 
-function SWEP:SpareThink()
-
-	if self.Owner:KeyDown(IN_ATTACK2) then
-		self:SetNextPrimaryFire(CurTime() + self.IronSightTime*2)
-		self.CSSMoveSpeed				= 250*0.25
-	else
-		self.CSSMoveSpeed				= 250
-	end
-
-	if SERVER then
-		if self.Owner:KeyDown(IN_ATTACK2) and self:GetNextSecondaryFire() <= CurTime() then
-			self:SetIsBlocking( true )
-			--self:SetHoldType("melee2")
-		else
-			self:SetHoldType(self.HoldType)
-			self:SetIsBlocking( false )
-		end
-	end
-	
-	if self:GetNextPrimaryFire() + self.Primary.Delay <= CurTime() then
-		if self:GetIsLeftFire() then
+function SWEP:FinishSwing(HitEntity,Damage)
+	--[[
+	if HitEntity and HitEntity ~= NULL then	
+		if self:GetSpecialBool() then
+			self:SetSpecialBool(false)
+		elseif !self:GetIsLeftFire() and HitEntity:Health() > 0 then
 			self:SetIsLeftFire(false)
+			self:SetSpecialBool(true)
+			self:SendSequence("fists_uppercut")
+			self:StartSwing(self.Primary.Damage)
+			self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*2)
 		end
 	end
-
+	--]]
 end
+
+SWEP.EnableBlocking = true
 
 function SWEP:SecondaryAttack()
 
-	--[[
-	if self:IsUsing() then return end
-	self.Owner:SetAnimation(PLAYER_ATTACK1)
-	
-	self:SendSequence("fists_uppercut")
-	
-	self:NewSwing(self.Primary.Damage * 2 )
-
-	self:SetNextPrimaryFire(CurTime() + self.Secondary.Delay*0.5 )
-	self:SetNextSecondaryFire(CurTime() + self.Secondary.Delay )
-	
-	self:SetIsLeftFire(true)
-	--]]
-	
-end
-
-function SWEP:BlockDamage(Damage,Attacker)
-	--self.Owner:SetAnimation(PLAYER_ATTACK1)
-	--self:SendWeaponAnim(ACT_VM_HITCENTER)
-	--self:EmitGunSound(self.MeleeSoundMiss)
-	--self.Owner:EmitSound(Sound("FX_RicochetSound.Ricochet"))
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*0.5)
-	--self:SetNextSecondaryFire(CurTime() + self.Primary.Delay*0.25)
-	--self:AddDurability(- math.ceil(Damage*0.1) )
 end
 
 function SWEP:Reload()
-	--PrintTable(GetActivities(self))
-	--PrintTable(self:GetSequenceList())
+
 end
 
 function SWEP:SpecialDeploy()

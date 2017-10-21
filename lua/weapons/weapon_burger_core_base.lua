@@ -136,8 +136,6 @@ SWEP.MeleeDamage			= 50
 SWEP.EnableBlocking			= false
 SWEP.MeleeDelay				= 0.1
 SWEP.MeleeDamageType		= DMG_CLUB
-SWEP.MeleeRange				= 40
-SWEP.MeleeSize 				= 8
 
 -- Zooming
 SWEP.HasIronCrosshair		= true
@@ -194,7 +192,7 @@ SWEP.DrawCrosshair			= false
 
 SWEP.CustomScopeSizeMul		= 1
 
---[[
+
 SWEP.RichochetSound = {}
 SWEP.RichochetSound[1] = Sound("weapons/fx/rics/ric1.wav")
 SWEP.RichochetSound[2] = Sound("weapons/fx/rics/ric2.wav")
@@ -207,7 +205,7 @@ util.PrecacheSound("weapons/fx/rics/ric2.wav")
 util.PrecacheSound("weapons/fx/rics/ric3.wav")
 util.PrecacheSound("weapons/fx/rics/ric4.wav")
 util.PrecacheSound("weapons/fx/rics/ric5.wav")
---]]
+
 
 if (CLIENT or game.SinglePlayer()) then
 	SWEP.IsZoomed 			= false -- Data, Client
@@ -407,11 +405,9 @@ function SWEP:Initialize()
 		if not self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
 			self.Owner.BURGERBASE_ZoomMul[self:GetClass()] = 1
 		end
-
+		
 	end	
-	
-	
-	
+
 	if CLIENT or IsSingleplayer then
 		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_customslots",true):GetFloat() == 1 then
 			if self.WeaponType == "Primary" then
@@ -446,9 +442,6 @@ function SWEP:Initialize()
 	if self.Owner:IsPlayer() then
 		self:SCK_Initialize()
 	end
-	
-	--self:SetHoldType( self.HoldType )
-
 	
 end
 
@@ -555,10 +548,14 @@ function SWEP:SendWeaponAnimation(act,vm_index,rate) -- Thanks to the wiki for t
 
 end
 
-function SWEP:SendSequence(anim,vm_index)
+function SWEP:SendSequence(anim,vm_index,rate)
 
 	if not vm_index then
 		vm_index = 0
+	end
+	
+	if not rate then
+		rate = 1
 	end
 
 	local ViewModel = self.Owner:GetViewModel( vm_index )
@@ -567,7 +564,10 @@ function SWEP:SendSequence(anim,vm_index)
 		return
 	end
 
+	
 	ViewModel:SendViewModelMatchingSequence( ViewModel:LookupSequence( anim ) )
+	ViewModel:SetPlaybackRate( rate )
+	self:SetNextIdle(CurTime() + self:GetTrueSequenceDuration())
 	
 end
 
@@ -1106,7 +1106,13 @@ function SWEP:BulletMethod02(Damage,Shots,WithPunchAngles)
 		local AngleToAdd = Angle(SeededCone*PitchMulti*45,SeededCone*YawMulti*45*FireMul,0)
 		AngleToAdd:Normalize()
 		local NewVector, NewAngle = LocalToWorld(Vector(0,0,0),AngleToAdd,Vector(0,0,0),WithPunchAngles)
-		self:ShootBullet(Damage,Shots,RandomCone,self.Owner:GetShootPos(),NewAngle:Forward(),self.Owner)
+		local ShootPos = self:GetPos()
+		
+		if self.Owner and self.Owner ~= NULL and self.Owner:IsPlayer() or self.Owner:IsNPC() then
+			ShootPos = self.Owner:GetShootPos()
+		end
+
+		self:ShootBullet(Damage,Shots,RandomCone,ShootPos,NewAngle:Forward(),self.Owner)
 		
 	end
 
@@ -1351,7 +1357,7 @@ function SWEP:Melee()
 	if self:GetNextPrimaryFire() > CurTime() then return end
 	self:SetNextPrimaryFire(CurTime() + 1)
 	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND )
-	self:NewSwing(self.MeleeDamage)
+	self:StartSwing(self.MeleeDamage)
 	
 end
 
@@ -1550,7 +1556,6 @@ function SWEP:GetRecoilFinal()
 	end
 	
 	if self.HasSideRecoil then
-	
 		if self.SideRecoilBasedOnDual then
 			if self:GetIsLeftFire() then
 				SidePunch = UpPunch*1*self.SideRecoilMul
@@ -1701,7 +1706,7 @@ function SWEP:ModProjectileTable(datatable)
 end
 
 function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
-	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,AimCorrection,true,false)	
+	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,AimCorrection,true,false,nil)
 end
 
 
@@ -2052,7 +2057,11 @@ if CLIENT then
 
 end
 
-function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp)
+function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp,DamageType)
+
+	if not DamageType then
+		DamageType = DMG_BULLET
+	end
 	
 	if HitEntity:IsPlayer() then return end
 	
@@ -2060,7 +2069,7 @@ function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp)
 	effect:SetOrigin(HitPos)
 	effect:SetStart(StartPos)
 	effect:SetSurfaceProp(SurfaceProp)
-	effect:SetDamageType(DMG_BULLET)
+	effect:SetDamageType(DamageType)
 	
 	if (CLIENT or IsSingleplayer) then
 		effect:SetEntity(HitEntity)
@@ -2277,7 +2286,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 
 	local DesiredPosOffset = Vector(0,0,0)
 	local DesiredAngOffset = Angle(0,0,0)
-	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self.Owner:KeyDown(IN_ATTACK2) )
+	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self:GetIsBlocking() )
 	local EyeTrace = self.Owner:GetEyeTrace()
 	local Adjust = 30
 	local DesiredDistanceMod = Adjust - math.min(Adjust,EyeTrace.HitPos:Distance(EyeTrace.StartPos))
@@ -2415,11 +2424,15 @@ function SWEP:GetViewModelPosition( pos, ang )
 	return pos, ang
 end
 
+SWEP.HoldTypeBlocking = "melee2"
+
 function SWEP:HandleHoldType()
 	if !self.CanShootWhileSprinting and self:IsSprinting() then
 		if self:GetHoldType() ~= "passive" then
 			self:SetHoldType("passive")
 		end
+	elseif self.HoldTypeBlocking and self:GetIsBlocking() then
+		self:SetHoldType(self.HoldTypeBlocking)
 	elseif self:GetHoldType() ~= self.HoldType then
 		self:SetHoldType(self.HoldType)
 	end
@@ -3824,10 +3837,12 @@ function SWEP:QuickKnife()
 
 end
 
-function SWEP:NewSwing(damage,delay,entoverride,delayoverride)
+SWEP.MeleeCanParry = true
 
-	if delay then
-		self:SetClashTime(CurTime() + delay)
+function SWEP:StartSwing(damage,delay,entoverride,delayoverride)
+
+	if self.MeleeCanParry and self.MeleeDelay > 0 then
+		self:SetClashTime(CurTime() + self.MeleeDelay*2)
 	end
 
 	if self.MeleeDelay > 0 then
@@ -3841,11 +3856,11 @@ function SWEP:NewSwing(damage,delay,entoverride,delayoverride)
 		self:SetNextMeleeEnt(entoverride)
 		self:EmitGunSound(self.MeleeSoundMiss)
 	else
-		local Returner = self:Swing(damage,entoverride)
-		if not Returner then
+		local Returner = self:MidSwing(damage,entoverride)
+		if not (Returner and Returner ~= NULL) then
 			self:EmitGunSound(self.MeleeSoundMiss)
 		end
-		self:PostSwing(Returner,damage)
+		self:FinishSwing(Returner,damage)
 		return Returner
 	end
 	
@@ -3869,24 +3884,54 @@ end
 function SWEP:SwingThink()
 
 	if self:GetShouldMelee() and self:GetNextMelee() <= CurTime() then
-	
 		local HitEntity = self:GetNextMeleeEnt()
 		local Damage = self:GetNextMeleeDamage()
-		HitEntity = self:Swing(Damage,HitEntity)	
-	
+		HitEntity = self:MidSwing(Damage,HitEntity)	
 		self:SetShouldMelee(false)
 		self:SetNextMeleeDamage(0)
-		--self:SetNextMelee(0)
 		self:SetNextMeleeEnt(nil)
-		
-		self:PostSwing(HitEntity,Damage)
-		
+		self:FinishSwing(HitEntity,Damage)
 	end
 
 end
 
-function SWEP:PostSwing(HitEntity,Damage)
+function SWEP:MeleeRange()
+	return 40
+end
 
+function SWEP:MeleeSize()
+	return 40
+end
+
+function SWEP:MidSwing(damage,entoverride)
+
+	if entoverride and entoverride ~= NULL then
+		self:SendMeleeDamage(entoverride,damage,nil)
+		return entoverride
+	else
+
+		local StartPos = self.Owner:GetShootPos()
+		local EndPos = self.Owner:GetShootPos() + self.Owner:GetAimVector()*self:MeleeRange()
+		local LineFilterFunction = self.Owner
+		local HullFilterFunction = 	function(ent) 
+										return !(ent == self.Owner) and (ent:IsPlayer() or ent:IsNPC())
+									end
+		local Bounds = Vector(self:MeleeSize(),self:MeleeSize(),self:MeleeSize())
+		local TraceResult = self:DoDoubleTrace(StartPos,EndPos,MASK_SHOT,Bounds,LineFilterFunction,HullFilterFunction)
+		
+		local Victim = TraceResult.Entity
+		
+		--if Victim and Victim ~= NULL then
+			self:SendMeleeDamage(TraceResult.Entity,damage,TraceResult)
+		--end
+		
+		return Victim
+
+	end
+
+end
+
+function SWEP:FinishSwing(HitEntity,Damage)
 
 end
 
@@ -3908,8 +3953,6 @@ function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullf
 		self.Owner:LagCompensation( false )
 	end
 	
-	--print(LineTraceResult.Entity)
-	
 	if LineTraceResult.Entity and LineTraceResult.Entity ~= NULL and LineTraceResult.Entity:Health() > 0 then
 		return LineTraceResult
 	else
@@ -3921,6 +3964,7 @@ function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullf
 		HullTraceData.mask = MASK_SHOT_HULL
 		HullTraceData.mins = -bounds
 		HullTraceData.maxs = bounds
+		HullTraceData.ignoreworld = true
 	
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( true )
@@ -3931,53 +3975,24 @@ function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullf
 		if self.Owner:IsPlayer() then
 			self.Owner:LagCompensation( false )
 		end
-		
-		--print(HullTraceResult.Entity)
-		
+
 		if HullTraceResult.Entity and HullTraceResult.Entity ~= NULL and HullTraceResult.Entity:Health() > 0 then
 			return HullTraceResult
 		else
 			return LineTraceResult
 		end
-	
-	end
-	
-
-end
-
-SWEP.HullMeleeSize = Vector(16*4,16*2,72*0.5)
-
-function SWEP:Swing(damage,entoverride)
-
-	if entoverride and entoverride ~= NULL then
-		self:NewSendHitEvent(entoverride,damage,nil)
-		return entoverride
-	else
-
-		local StartPos = self.Owner:GetShootPos()
-		local EndPos = self.Owner:GetShootPos() + self.Owner:GetAimVector()*self.MeleeRange
-		local LineFilterFunction = self.Owner
-		local HullFilterFunction = 	function(ent) 
-										return !(ent == self.Owner) and (ent:IsPlayer() or ent:IsNPC())
-									end
-		local Bounds = self.HullMeleeSize
-		
-		local TraceResult = self:DoDoubleTrace(StartPos,EndPos,MASK_SHOT,Bounds,LineFilterFunction,HullFilterFunction)
-		
-		if TraceResult.Entity then
-			self:NewSendHitEvent(TraceResult.Entity,damage,TraceResult)
-			return true
-		else
-			return false
-		end
 
 	end
 
 end
 
-function SWEP:NewSendHitEvent(victim,damage,TraceResult)
+SWEP.MeleeBackStabMul = 2
+SWEP.MeleeBlockRange = 90 + 45
+SWEP.MeleeBlockReduction = 0.1
 
-	if victim and victim ~= NULL and (victim:IsPlayer() or victim:IsNPC()) then
+function SWEP:SendMeleeDamage(victim,damage,TraceResult)
+
+	if (victim and victim ~= NULL) and (victim:IsPlayer() or victim:IsNPC()) then
 				
 		local VictimAngles = victim:EyeAngles()
 		local AttackerAngles = self.Owner:EyeAngles()
@@ -3985,54 +4000,52 @@ function SWEP:NewSendHitEvent(victim,damage,TraceResult)
 		AttackerAngles:Normalize()
 		local NewAngles = VictimAngles - AttackerAngles
 		NewAngles:Normalize()
+		
 		local Yaw = math.abs(NewAngles.y)
 		
 		if Yaw < 45 then
-			damage = damage * 10
+			damage = damage * self.MeleeBackStabMul
 		end
-		
-		local ShouldDamage = true
-		
+
 		VictimWeapon = victim:GetActiveWeapon()
 
-		if VictimWeapon and VictimWeapon ~= NULL then
-			if VictimWeapon.EnableBlocking then
-				if (VictimWeapon:GetIsBlocking() and VictimWeapon:GetNextSecondaryFire() <= CurTime()) or ( VictimWeapon:GetClashTime() >= CurTime() and math.abs(VictimWeapon:GetClashTime() - self:GetClashTime()) > self.MeleeDelay ) then
-					local Range = 90 + 45
-					if Yaw > 180 - Range/2 and Yaw < 180 + Range/2 then
-						VictimWeapon:BlockDamage(damage,self.Owner)
-						self:SetShouldMelee(false)
-						VictimWeapon:SetShouldMelee(false)	
-						self:EmitGunSound(self.MeleeSoundWallHit)
-						VictimWeapon:EmitSound(self.MeleeSoundWallHit)
-						ShouldDamage = false
-					end
-				end
-			end
+		if (VictimWeapon and VictimWeapon ~= NULL) and ((VictimWeapon.EnableBlocking and ((VictimWeapon:GetIsBlocking() and VictimWeapon:GetNextSecondaryFire() <= CurTime()) or ( VictimWeapon:GetClashTime() >= CurTime() and math.abs(VictimWeapon:GetClashTime() - self:GetClashTime()) > self.MeleeDelay ))) and (Yaw > 180 - self.MeleeBlockRange/2 and Yaw < 180 + self.MeleeBlockRange/2)) then
+			damage = damage * self.MeleeBlockReduction
+			self:DoMeleeDamage(damage, victim, TraceResult)
+			VictimWeapon:BlockDamage(damage,self.Owner,self)
+			self:SetShouldMelee(false)
+			VictimWeapon:SetShouldMelee(false)
+		else
+			self:DoMeleeDamage(damage, victim, TraceResult)
 		end
-
-		if ShouldDamage then
-			self:NewStabDamage(damage, victim, TraceResult)
-		end
-
+	else
+		self:DoMeleeDamage(damage, victim, TraceResult)
 	end
 
 end
 
-function SWEP:BlockDamage()
-
-
+function SWEP:BlockDamage(damage,attacker,attackerweapon)
+	attacker:ViewPunch(Angle(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1)))
+	self.Owner:ViewPunch(Angle(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1)))
+	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND )
+	self:SetNextPrimaryFire(CurTime() + attackerweapon.Primary.Delay)
+	self:SetNextSecondaryFire(CurTime() + attackerweapon.Primary.Delay)
+	self:EmitSound(self.MeleeSoundWallHit)
+	attackerweapon:SetNextPrimaryFire(CurTime() + 1.5)
+	attackerweapon:SetNextSecondaryFire(CurTime() + 1.5)
+	attackerweapon:EmitSound(self.MeleeSoundWallHit)
 end
 
-function SWEP:NewStabDamage(damage, victim, traceresult)
+function SWEP:DoMeleeDamage(damage, victim, traceresult)
 
 	if victim and victim ~= NULL then
-
+	
 		if (victim:IsPlayer() or victim:IsNPC()) then
 			if damage <= self:SpecialDamage(self.Primary.Damage) then
 				self:EmitGunSound(self.MeleeSoundFleshSmall)
 			else
 				self:EmitGunSound(self.MeleeSoundFleshLarge)
+				self:MeleeFleshEffect(victim)
 			end
 		else
 			self:EmitGunSound(self.MeleeSoundWallHit)
@@ -4049,11 +4062,16 @@ function SWEP:NewStabDamage(damage, victim, traceresult)
 		elseif SERVER then
 			victim:TakeDamageInfo(dmginfo)
 		end
+		
+		if traceresult and IsFirstTimePredicted() then
+			self:BulletEffect(traceresult.HitPos,traceresult.StartPos,victim,traceresult.SurfaceProps,self.MeleeDamageType)
+		end
+
 	end
-	
+
 end
 
-function SWEP:NewStabFleshEffect(victim)
+function SWEP:MeleeFleshEffect(victim,traceresult)
 
 	local StartPos = self.Owner:EyePos()
 	local HitPos = victim:GetPos() + victim:OBBCenter()

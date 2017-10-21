@@ -24,7 +24,7 @@ SWEP.WorldModel				= "models/weapons/w_knife_t.mdl"
 SWEP.VModelFlip 			= false
 SWEP.HoldType				= "knife"
 
-SWEP.Primary.Damage			= 20*2
+SWEP.Primary.Damage			= 20
 SWEP.Primary.NumShots		= 1
 SWEP.Primary.ClipSize		= -1
 SWEP.Primary.SpareClip		= -1
@@ -32,7 +32,7 @@ SWEP.Primary.Delay			= 0.4
 SWEP.Primary.Ammo			= "none"
 SWEP.Primary.Automatic 		= true 
 
-SWEP.Secondary.Damage		= 65*2
+SWEP.Secondary.Damage		= 65
 SWEP.Secondary.NumShots		= 1
 SWEP.Secondary.ClipSize		= -1
 SWEP.Secondary.SpareClip	= -1
@@ -59,9 +59,16 @@ SWEP.MeleeSoundFleshSmall	= Sound("Weapon_Knife.Hit")
 SWEP.MeleeSoundFleshLarge	= Sound("Weapon_Knife.Stab")
 
 SWEP.DamageFalloff			= 40
-SWEP.MeleeRange				= 40
-SWEP.MeleeSize				= 32
 SWEP.MeleeDelay				= 0.1
+SWEP.MeleeDamageType		= DMG_SLASH
+
+function SWEP:MeleeRange()
+	return 32
+end
+
+function SWEP:MeleeSize()
+	return 32
+end
 
 function SWEP:PrimaryAttack()
 	if self:IsUsing() then return end
@@ -69,7 +76,7 @@ function SWEP:PrimaryAttack()
 	self:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
 	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
 	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
-	self:NewSwing(self.Primary.Damage)
+	self:StartSwing(self.Primary.Damage,self.MeleeDelay)
 end
 
 function SWEP:SecondaryAttack()
@@ -78,7 +85,7 @@ function SWEP:SecondaryAttack()
 	self:SendWeaponAnim(ACT_VM_SECONDARYATTACK)
 	self:SetNextPrimaryFire(CurTime() + self.Secondary.Delay)
 	self:SetNextSecondaryFire(CurTime() + self.Secondary.Delay)
-	self:NewSwing(self.Primary.Damage * (65/25) )	
+	self:StartSwing(self.Secondary.Damage )	
 end
 
 function SWEP:Reload()

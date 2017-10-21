@@ -12,9 +12,8 @@ end
 function BUREGRBASE_HOOK_Tick_Bullets()
 
 	for num,data in pairs(BURGERBASE_RegisteredBullets) do
-	
+
 		data = table.Copy(data)
-	
 		data.pos = data.pos + ( data.direction * engine.TickInterval() )
 	
 		if data.target and IsValid(data.target) then
@@ -172,14 +171,10 @@ if CLIENT then
 	
 		local DataTable = net.ReadTable()
 		local ServerSysTimeDif = CurTime() - net.ReadFloat()
+		--print(ServerSysTimeDif)
 		local id = DataTable.id
 		
-		--print(ServerSysTimeDif)
-		
-		DataTable.pos = DataTable.pos + (DataTable.direction * ServerSysTimeDif)
-		
-		
-		
+		DataTable.pos = DataTable.pos + (DataTable.direction)
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
 
 		if DataTable.OverrideNet or (LocalPlayer() ~= DataTable.owner) or game.SinglePlayer() then
@@ -189,11 +184,9 @@ if CLIENT then
 	end)
 
 	 function BUREGRBASE_HOOK_3D_Bullets()
-	 
 		for num,data in pairs(BURGERBASE_RegisteredBullets) do
 			data.drawfunction(data)
 		end
-	 
 	 end
 	 
 	 hook.Add("PreDrawEffects","BUREGRBASE_HOOK_3D_Bullets",BUREGRBASE_HOOK_3D_Bullets)

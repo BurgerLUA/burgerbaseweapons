@@ -62,10 +62,18 @@ SWEP.MeleeSoundFleshSmall	= Sound("Weapon_Crowbar.Melee_Hit")
 SWEP.MeleeSoundFleshLarge	= Sound("Weapon_Crowbar.Melee_Hit")
 
 SWEP.DamageFalloff			= 55
-SWEP.MeleeRange				= 55
-SWEP.MeleeSize				= 32
 SWEP.MeleeDamageType		= DMG_CLUB
 SWEP.MeleeDelay				= 0
+
+SWEP.MeleeBlockReduction 	= 0.25
+
+function SWEP:MeleeRange()
+	return 55
+end
+
+function SWEP:MeleeSize()
+	return 32
+end
 
 function SWEP:PrimaryAttack()
 
@@ -77,7 +85,9 @@ function SWEP:PrimaryAttack()
 
 	local Delay = self.Primary.Delay
 	
-	if self:NewSwing(self.Primary.Damage) then
+	local Victim = self:StartSwing(self.Primary.Damage)
+	
+	if Victim and Victim ~= NULL then
 		self:SendWeaponAnim(ACT_VM_HITCENTER)
 	else
 		self:SendWeaponAnim(ACT_VM_MISSCENTER)
@@ -92,16 +102,6 @@ end
 
 function SWEP:SecondaryAttack()
 
-end
-
-function SWEP:BlockDamage(Damage,Attacker)
-	--self.Owner:SetAnimation(PLAYER_ATTACK1)
-	--self:SendWeaponAnim(ACT_VM_HITCENTER)
-	--self:EmitGunSound(self.MeleeSoundMiss)
-	self.Owner:EmitSound(Sound("FX_RicochetSound.Ricochet"))
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*0.5)
-	--self:SetNextSecondaryFire(CurTime() + self.Primary.Delay*0.25)
-	--self:AddDurability(- math.ceil(Damage*0.1) )
 end
 
 function SWEP:SpareThink()

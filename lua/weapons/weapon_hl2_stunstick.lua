@@ -71,24 +71,50 @@ SWEP.AddFOV					= 10
 SWEP.EnableBlocking			= true
 
 SWEP.DamageFalloff			= 40
-SWEP.MeleeRange				= 30
-SWEP.MeleeSize				= 24
 SWEP.MeleeDamageType		= DMG_SHOCK
 SWEP.MeleeDelay				= 0
+
+SWEP.MeleeBlockReduction 	= 0.25
 
 SWEP.HasDurability 			= true
 SWEP.DurabilityPerHit 		= -5
 
+SWEP.MeleeBlockReduction 	= 0.40
+
+function SWEP:MeleeRange()
+	return 40
+end
+
+function SWEP:MeleeSize()
+	return 24
+end
+
 function SWEP:PrimaryAttack()
+
 	if self:IsUsing() then return end
 	if self:GetNextPrimaryFire() > CurTime() then return end
 	if self.Owner:KeyDown(IN_ATTACK2) then return end
+	
 	self.Owner:SetAnimation(PLAYER_ATTACK1)
-	self:SendWeaponAnim(ACT_VM_HITCENTER)
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
-	self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
-	self:NewSwing(self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01),self.Primary.Delay,nil)
+
+	local Delay = self.Primary.Delay
+	local Damage = self.Primary.Damage*0.75 + (self.Primary.Damage*0.25*self:Clip1()*0.01)
+	local Victim = self:StartSwing(Damage)
+	
+	if Victim and Victim ~= NULL then
+		self:SendWeaponAnim(ACT_VM_HITCENTER)
+	else
+		self:SendWeaponAnim(ACT_VM_MISSCENTER)
+		Delay = Delay*1.25
+	end
+	
+	self:SetNextPrimaryFire(CurTime() + Delay)
+	self:SetNextSecondaryFire(CurTime() + Delay)
+
 end
+
+
+
 
 function SWEP:SpareThink()
 	if self.Owner:KeyDown(IN_ATTACK2) then
@@ -106,31 +132,6 @@ end
 function SWEP:Reload()
 	--PrintTable(GetActivities(self))
 end
-
---[[
-function SWEP:Deploy()
-
-	self:EmitGunSound(Sound("Weapon_StunStick.Activate"))
-	self.Owner:DrawViewModel(true)
-	self:SendWeaponAnim(ACT_VM_DRAW)
-	self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration())	
-	self:CheckInventory()
-	
-	return true
-end
---]]
-
-function SWEP:BlockDamage(Damage,Attacker)
-	self.Owner:SetAnimation(PLAYER_ATTACK1)
-	self:SendWeaponAnim(ACT_VM_MISSCENTER)
-	self:EmitGunSound(self.MeleeSoundMiss)
-	self.Owner:EmitSound(Sound("AlyxEMP.Discharge"))
-	self:SetNextPrimaryFire(CurTime() + self.Primary.Delay*0.5)
-	self:NewSwing(self.Primary.Damage * 0.5,self.Primary.Delay,Attacker,nil)
-	self:AddDurability( -3 )
-end
-
-
 
 
 
