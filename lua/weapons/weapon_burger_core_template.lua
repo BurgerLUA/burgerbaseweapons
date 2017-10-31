@@ -104,7 +104,6 @@ SWEP.EnableDropping 		= true
 SWEP.EnableBlocking			= false
 SWEP.MeleeDelay				= 0.05
 SWEP.MeleeDamageType		= DMG_SLASH
-SWEP.MeleeRange				= 40
 
 -- Zooming
 SWEP.HasIronCrosshair		= true

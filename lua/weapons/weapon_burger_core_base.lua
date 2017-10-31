@@ -1687,14 +1687,15 @@ function SWEP:ShootPhysicalObject(Source,Cone,Direction)
 
 end
 
---[[
-SWEP.UseSpecialProjectile	= true
+
+SWEP.UseSpecialProjectile	= false
 SWEP.UseMuzzle				= true
---]]
+
 
 function SWEP:ModProjectileTable(datatable)
 
 	datatable.direction = datatable.direction*self.DamageFalloff*4
+	
 	datatable.hullsize = 2
 	datatable.usehull = true
 	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,100)
@@ -1715,7 +1716,9 @@ function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 	if self then
 
 		if self.UseSpecialProjectile then
-			self:ShootProjectile(Damage, Shots, Cone, Source, Direction,true)
+			if CLIENT then
+				self:ShootProjectile(Damage, Shots, Cone, Source, Direction,true)
+			end
 		elseif self.BulletEnt then
 			if SERVER then
 				self:ShootPhysicalObject(Source,Cone,Direction)

@@ -68,6 +68,8 @@ SWEP.IronSightTime			= 0.5
 SWEP.ZoomTime				= 0.125
 SWEP.ZoomDelay				= 0.125
 
+SWEP.UseMuzzle				= false
+
 SWEP.IronSightsPos 			= Vector(-7.481, 0, 2.279)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
 
