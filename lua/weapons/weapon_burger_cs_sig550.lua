@@ -58,6 +58,8 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.CanShootWhileSprinting = false
 
 SWEP.DamageFalloff			= 4000
+SWEP.UseMuzzle				= true
+SWEP.UseSpecialProjectile	= false
 
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false

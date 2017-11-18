@@ -229,7 +229,6 @@ end
 
 SWEP.MeleeModel = Model("models/weapons/c_arms_cstrike.mdl")
 
-SWEP.UseSpecialProjectile = false
 
 SWEP.IronDualSpacing 	= 1
 
@@ -1610,7 +1609,6 @@ function SWEP:GetHeatMath(Damage,Shots)
 	local ConeMod = (math.max(0.001,self.Primary.Cone)^-0.1)
 	local WeightMod = math.Clamp(self.CSSMoveSpeed / 250,0.1,2)
 	local BurstMod = 1
-	local HeatMod = 0.5 + math.Clamp(self.DamageFalloff/3000,0.1,2)*0.5
 
 	if (self.HasBurstFire or self.AlwaysBurst) and self:GetIsBurst() then
 		BurstMod = self.BurstHeatMul
@@ -1694,11 +1692,13 @@ SWEP.UseMuzzle				= true
 
 function SWEP:ModProjectileTable(datatable)
 
-	datatable.direction = datatable.direction*self.DamageFalloff*4
-	
+	local FalloffMod = math.Clamp(self.DamageFalloff,1,4000)
+	local FalloffModDif = self.DamageFalloff - FalloffMod
+
+	datatable.direction = datatable.direction*FalloffMod*4
 	datatable.hullsize = 2
 	datatable.usehull = true
-	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,100)
+	datatable.resistance = (datatable.direction*0.05) + Vector(0,0,math.Clamp(100 - FalloffModDif/4000,0,100))
 	datatable.dietime = CurTime() + 50
 	datatable.id = "css_bullet"
 
@@ -1883,7 +1883,8 @@ function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntit
 	
 	--local NewDirection = (OldTrace.HitPos - OldTrace.StartPos):GetNormalized()
 
-	local BulletAngleMod =  math.Clamp(math.Clamp(self:SpecialFalloff(self.DamageFalloff)/5000,0.25,0.5) * math.Rand(1 - (Randomness/2),1 + (Randomness/2)),0,0.5)
+	local RangeMod = self:SpecialFalloff(self.DamageFalloff)/5000
+	local BulletAngleMod =  math.Clamp(math.Clamp(RangeMod,0.25,0.5) * math.Rand(1 - (Randomness/2),1 + (Randomness/2)),0,0.5)
 	local DirectionForRichochet = -2 * Direction:Dot(OldTrace.HitNormal) * OldTrace.HitNormal + Direction
 	local OldDirectionForRichochet = DirectionForRichochet
 	DirectionForRichochet:Normalize()
@@ -4609,7 +4610,9 @@ datatable.drawfunction = function(datatable)
 	
 	render.SetMaterial( SpriteMaterial )
 	render.DrawSprite( datatable.pos + Forward*BulletLength, BulletWidth*0.5, BulletWidth*0.5, Color(255,255,255,255) )
+
 end
+
 
 datatable.diefunction = function(datatable)
 

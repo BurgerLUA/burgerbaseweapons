@@ -87,21 +87,12 @@ function EFFECT:Render()
 		local LightColor = render.GetLightColor( EyePos() )
 		local Lightness = math.min(150,math.max(LightColor.x*255,LightColor.y*255,LightColor.z*255))
 		local SmokeAlpha = 100 * math.max(0,1-self.SmokePercent)
-		
-		print(self.SmokePercent)
-		
-
 		local SpriteSize = (Size*0.075)*self.SmokePercent
 		local SmokeColor = Color(Lightness,Lightness,Lightness,SmokeAlpha)
-		
 		render.SetMaterial( self.SmokeTrailMat )
 		render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, SpriteSize,0, 1, SmokeColor)
-		
 		render.SetMaterial( self.SmokeSpriteMat )
 		render.DrawSprite( self.StartPos, SpriteSize*2, SpriteSize*2, SmokeColor )
-		
-		--render.SetMaterial( self.TubeTrailMat )
-		--render.DrawBeam( self.StartPos + SmokeOffset, MaxPos + SmokeOffset, 1,0, 1, Color(Lightness,Lightness,Lightness,1))
 	end
 	
 	

@@ -137,5 +137,3 @@ SWEP.MagAngMod				= Angle(0,0,0)
 
 -- PLEASE TEST
 SWEP.DelayOverride			= false
-
-

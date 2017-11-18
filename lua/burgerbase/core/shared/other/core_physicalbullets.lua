@@ -88,22 +88,6 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 	
 		local Offset = Vector(0,0,0)
 	
-		--[[
-		if AimCorrection and CLIENT then
-			local HitPos = Attacker:GetEyeTrace().HitPos
-			local DirectionOffset = Direction - Attacker:GetAimVector()	
-			if CLIENT and Inflictor.UseMuzzle then
-				local ViewModel = Attacker:GetViewModel()
-				local MuzzleData = ViewModel:GetAttachment( 1 )	
-				Offset = MuzzleData.Pos - Source
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
-			elseif CLIENT and SourceOverride then
-				Offset = Attacker:GetForward()*Inflictor.SourceOverride.y + Attacker:GetRight()*Inflictor.SourceOverride.x + Attacker:GetUp()*Inflictor.SourceOverride.z	
-				Direction = (HitPos - Source):GetNormalized() + DirectionOffset
-			end
-		end
-		--]]
-		
 		if CLIENT then
 			if IsValid(Inflictor) and IsValid(Attacker) and Inflictor:IsWeapon() and Attacker:IsPlayer() then
 				if Inflictor.UseMuzzle then
@@ -120,9 +104,7 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 			end
 		end
 		
-		
-		
-		
+		Direction:Rotate(AngleRand()*Cone)
 		
 		local datatable = {}	
 		datatable.weapon = Inflictor
@@ -141,8 +123,8 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 		datatable = Inflictor:ModProjectileTable(datatable)
 		datatable.OverrideNet = OverrideNet
 		
-
 		BURGERBASE_FUNC_AddBullet(datatable)
+		
 	end
 
 end
@@ -173,14 +155,17 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	NewTable.OverrideNet = datatable.OverrideNet
 	
 	if SERVER and !NewTable.weapon:IsWeapon() then
+		--print("WEW")
 		net.Start("BURGERBASE_SendBulletToClient")
 			net.WriteTable(NewTable)
+			net.WriteFloat(CurTime())
 		net.Broadcast()
 	end
 	
 	if CLIENT and NewTable.weapon:IsWeapon() then
 		net.Start("BURGERBASE_SendBulletToServer")
 			net.WriteTable(NewTable)
+			net.WriteFloat(CurTime())
 		net.SendToServer()
 	end
 
@@ -201,7 +186,10 @@ if SERVER then
 	
 	net.Receive("BURGERBASE_SendBulletToServer", function(len,ply)
 		local DataTable = net.ReadTable()
+		local Time = net.ReadFloat()
 		local id = DataTable.id
+		local Difference = CurTime() - Time
+		--DataTable.pos = DataTable.pos + DataTable.direction*Difference
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
 		BURGERBASE_FUNC_AddBullet(DataTable)
 	end)
@@ -216,10 +204,11 @@ if CLIENT then
 	net.Receive("BURGERBASE_SendBulletToClient", function(len)
 		local DataTable = net.ReadTable()
 		local id = DataTable.id
+		local Time = net.ReadFloat()
+		local Difference = CurTime() - Time	
+		--DataTable.pos = DataTable.pos + DataTable.direction*Difference
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
-		if LocalPlayer() ~= DataTable.owner then
-			BURGERBASE_FUNC_AddBullet(DataTable)
-		end
+		BURGERBASE_FUNC_AddBullet(DataTable)
 	end)
 
 	 function BUREGRBASE_HOOK_3D_Bullets()

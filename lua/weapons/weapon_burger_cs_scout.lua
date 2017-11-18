@@ -58,7 +58,7 @@ SWEP.HasFirstShotAccurate	= true
 SWEP.HasIdle				= false
 SWEP.CanShootWhileSprinting = false
 
-SWEP.DamageFalloff			= 5000
+SWEP.DamageFalloff			= 8000
 
 SWEP.HasIronSights 			= false
 SWEP.EnableIronCross		= false
@@ -66,6 +66,9 @@ SWEP.HasGoodSights			= false
 SWEP.IronSightTime			= 0.125
 SWEP.ZoomDelay				= 0.125
 SWEP.ZoomTime				= 0
+
+SWEP.UseMuzzle				= true
+SWEP.UseSpecialProjectile	= false
 
 SWEP.IronSightsPos 			= Vector(-6.72, 0, 3.359)
 SWEP.IronSightsAng 			= Vector(0, 0, 0)
