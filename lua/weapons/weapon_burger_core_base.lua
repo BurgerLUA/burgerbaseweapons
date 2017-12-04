@@ -1707,14 +1707,12 @@ function SWEP:ModProjectileTable(datatable)
 end
 
 function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
-	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,AimCorrection,true,false,nil)
+	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,nil,true)
 end
-
 
 function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 
 	if self then
-
 		if self.UseSpecialProjectile then
 			if CLIENT then
 				self:ShootProjectile(Damage, Shots, Cone, Source, Direction,true)

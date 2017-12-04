@@ -82,10 +82,10 @@ hook.Add("PostCleanupMap","BURGERBASE_HOOK_PostCleanupMap_Bullets",BURGERBASE_HO
 
 local DefaultMaterial = Material("sprites/physg_glow1")
 
-function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,Source,Direction,AimCorrection,UsePrediction,OverrideNet,Target)
+function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,Source,Direction,Target,SendToServer)
 
-	if (CLIENT and !UsePrediction) or IsFirstTimePredicted() then
-	
+	if IsFirstTimePredicted() then
+
 		local Offset = Vector(0,0,0)
 	
 		if CLIENT then
@@ -121,7 +121,7 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 		datatable.special = nil
 		datatable.id = "css_bullet"
 		datatable = Inflictor:ModProjectileTable(datatable)
-		datatable.OverrideNet = OverrideNet
+		datatable.sendtoserver = SendToServer
 		
 		BURGERBASE_FUNC_AddBullet(datatable)
 		
@@ -130,18 +130,14 @@ function BURGERBASE_FUNC_ShootProjectile(Attacker,Inflictor,Damage,Shots,Cone,So
 end
 
 function BURGERBASE_FUNC_AddBullet(datatable)
-	--print("Adding Bullet")
-	
+
 	local NewTable = {}
 	NewTable.weapon = datatable.weapon
 	NewTable.owner = datatable.owner
 	NewTable.pos = datatable.pos
 	NewTable.offset = datatable.offset
 	NewTable.direction = datatable.direction
-	
-	--print(NewTable.direction)
-	
-	
+
 	NewTable.damage = datatable.damage or 10
 	NewTable.hullsize = datatable.hullsize or 1
 	NewTable.usehull = datatable.usehull or false
@@ -152,23 +148,25 @@ function BURGERBASE_FUNC_AddBullet(datatable)
 	
 	NewTable.id = datatable.id or "crossbow_bolt"
 	
-	NewTable.OverrideNet = datatable.OverrideNet
+	NewTable.sendtoserver = datatable.sendtoserver
 	
-	if SERVER and !NewTable.weapon:IsWeapon() then
-		--print("WEW")
+	if SERVER then
+		--print("Sending to all Clients...")
 		net.Start("BURGERBASE_SendBulletToClient")
 			net.WriteTable(NewTable)
 			net.WriteFloat(CurTime())
 		net.Broadcast()
 	end
-	
-	if CLIENT and NewTable.weapon:IsWeapon() then
+
+	if CLIENT and NewTable.sendtoserver == true and NewTable.weapon:IsWeapon() and LocalPlayer() == NewTable.weapon.Owner then
+		--print("Sending to Server...")
 		net.Start("BURGERBASE_SendBulletToServer")
 			net.WriteTable(NewTable)
 			net.WriteFloat(CurTime())
 		net.SendToServer()
 	end
 
+	
 	local RegisteredTable = BURGERBASE_RegisteredBulletTemplates[NewTable.id] or {}
 	NewTable.drawfunction = RegisteredTable.drawfunction or function(data) end
 	NewTable.diefunction = RegisteredTable.diefunction or function(data) end
@@ -189,6 +187,7 @@ if SERVER then
 		local Time = net.ReadFloat()
 		local id = DataTable.id
 		local Difference = CurTime() - Time
+		DataTable.sendtoserver = false
 		--DataTable.pos = DataTable.pos + DataTable.direction*Difference
 		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
 		BURGERBASE_FUNC_AddBullet(DataTable)
@@ -206,9 +205,11 @@ if CLIENT then
 		local id = DataTable.id
 		local Time = net.ReadFloat()
 		local Difference = CurTime() - Time	
-		--DataTable.pos = DataTable.pos + DataTable.direction*Difference
-		table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
-		BURGERBASE_FUNC_AddBullet(DataTable)
+		DataTable.sendtoserver = false
+		if !(DataTable.weapon:IsWeapon() and LocalPlayer() == DataTable.weapon.Owner) then
+			table.Add(DataTable,BURGERBASE_RegisteredBulletTemplates[id])
+			BURGERBASE_FUNC_AddBullet(DataTable)
+		end
 	end)
 
 	 function BUREGRBASE_HOOK_3D_Bullets()
