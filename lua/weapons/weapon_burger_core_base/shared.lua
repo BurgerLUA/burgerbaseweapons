@@ -1,5 +1,3 @@
-AddCSLuaFile()
-
 local IsSingleplayer = false
 local ToggleZoom = true
 
@@ -13,9 +11,7 @@ SWEP.Cost					= 2500
 SWEP.CSSMoveSpeed			= 221	
 SWEP.CSSZoomSpeed			= -1	
 
-
-SWEP.SwayScale 				= 2
-SWEP.BobScale 				= 1				
+			
 
 -- Spawning
 SWEP.Spawnable				= false										
@@ -34,6 +30,8 @@ SWEP.DisplayModel			= nil
 SWEP.HoldType				= "ar2"
 
 -- Viewmodel
+SWEP.SwayScale 				= 0
+SWEP.BobScale 				= 0
 SWEP.ViewModel 				= "models/weapons/cstrike/c_rif_ak47.mdl"
 SWEP.ViewModelFlip 			= false
 SWEP.UseHands				= true
@@ -270,7 +268,7 @@ SWEP.FuseTime = 5
 SWEP.HasDurability = false
 SWEP.DurabilityPerHit = -10
 
-function SWEP:SetupDataTables()
+function SWEP:SetupDataTables() -- Shared
 
 	self:NetworkVar("Float",0,"CoolDown")
 	self:SetCoolDown(0)
@@ -337,12 +335,8 @@ function SWEP:SetupDataTables()
 	self:NetworkVar("Int",2,"SecondaryAmmo")
 	self:SetSecondaryAmmo( game.GetAmmoID(self.Secondary.Ammo) )
 	
-	
-	
-
 	self:NetworkVar("Int",31,"SpecialInt")
 	self:SetSpecialInt(0)
-	
 
 	self:NetworkVar("Bool",0,"IsReloading")
 	self:SetIsReloading( false )
@@ -386,10 +380,14 @@ function SWEP:SetupDataTables()
 	self:SetNextHolsterWeapon( nil )
 	self:NetworkVar("Entity",2,"NextMeleeEnt")
 	self:SetNextMeleeEnt( nil )
+	
+
+	self:NetworkVar("Angle",1,"SharedTrueAimAng")
+	self:SetSharedTrueAimAng( Angle(0,0,0) )	
 
 end
 
-function SWEP:Initialize()
+function SWEP:Initialize() -- shared
 
 	if game.SinglePlayer() then
 		IsSingleplayer = true
@@ -444,78 +442,33 @@ function SWEP:Initialize()
 	
 end
 
-
-
-
-function SWEP:CreateFists()
---[[
-	local FistViewModel = self.Owner:GetViewModel( 2 )
-	if IsValid( FistViewModel) then
-		FistViewModel:SetWeaponModel( self.MeleeModel , self )
-		self:SendSequence("fists_right",2)
-	end
---]]
-end
-
-function SWEP:RemoveFists()
-	--[[
-	local FistViewModel = self.Owner:GetViewModel( 2 )
-	FistViewModel:SetWeaponModel( self.MeleeModel , nil )
-	--]]
-end
-
-
-function SWEP:NPCInit()
+function SWEP:NPCInit() -- shared
 	self.Owner:SetCurrentWeaponProficiency( WEAPON_PROFICIENCY_PERFECT )
 end
 
-function SWEP:GetCapabilities()
+function SWEP:GetCapabilities() -- shared
 	return bit.bor( CAP_WEAPON_RANGE_ATTACK1, CAP_INNATE_RANGE_ATTACK1 )
 end
 
-function SWEP:SpecialInitialize()
-
-
-end
-
-function SWEP:EquipAmmo(ply)
-	if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_givespare"):GetFloat() == 1 or self.WeaponType == "Equipment" then
-		ply:GiveAmmo(self.Primary.SpareClip,self:GetPrimaryAmmo(),false)
-		ply:GiveAmmo(self.Secondary.SpareClip,self:GetSecondaryAmmo(),false)
-		--print(self.Secondary.SpareClip,self:GetSecondaryAmmo())
-	elseif self.WeaponType == "Throwable" then
-		ply:GiveAmmo(1,self:GetPrimaryAmmo(),false)
-	end
-	self:SpecialGiveAmmo()	
-end
-
-function SWEP:SpecialGiveAmmo()
-
+function SWEP:SpecialInitialize() -- shared
 
 end
 
-function SWEP:OwnerChanged()
+function SWEP:OwnerChanged() -- shared
 	if SERVER then
-		timer.Simple(0.1, function()
-			if self.AlreadyGiven == false then
-			
-			
-			
-			
-
+		timer.Simple(FrameTime(), function()
+			if not self.AlreadyGiven then
 				if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_ammo_loaded"):GetFloat() == 1 then
 					self:SetClip1(self.Primary.ClipSize)
 				end
-
 				self:EquipAmmo(self.Owner)
-
 				self.AlreadyGiven = true
 			end		
 		end)	
 	end
 end
 
-function SWEP:SendWeaponAnimation(act,vm_index,rate) -- Thanks to the wiki for the idea
+function SWEP:SendWeaponAnimation(act,vm_index,rate) -- Thanks to the wiki for the idea -- Shared
 
 	if not vm_index then
 		vm_index = 0
@@ -547,7 +500,7 @@ function SWEP:SendWeaponAnimation(act,vm_index,rate) -- Thanks to the wiki for t
 
 end
 
-function SWEP:SendSequence(anim,vm_index,rate)
+function SWEP:SendSequence(anim,vm_index,rate) -- Shared
 
 	if not vm_index then
 		vm_index = 0
@@ -562,7 +515,6 @@ function SWEP:SendSequence(anim,vm_index,rate)
 	if !IsValid(ViewModel) then
 		return
 	end
-
 	
 	ViewModel:SendViewModelMatchingSequence( ViewModel:LookupSequence( anim ) )
 	ViewModel:SetPlaybackRate( rate )
@@ -570,14 +522,14 @@ function SWEP:SendSequence(anim,vm_index,rate)
 	
 end
 
-function SWEP:SendSequencePlayer(anim)
+function SWEP:SendSequencePlayer(anim) -- Shared
 	local Seq = self.Owner:LookupSequence(anim)
 	local SeqDur = self.Owner:SequenceDuration(Seq)
 	self.Owner:AddVCDSequenceToGestureSlot( GESTURE_SLOT_ATTACK_AND_RELOAD, Seq, 0, true )
 	return SeqDur
 end
 
-function SWEP:DrawAnimation()
+function SWEP:DrawAnimation() -- Shared
 	if not self.IgnoreDrawDelay then
 		if self.HasSilencer then
 			if self:GetIsSilenced() then
@@ -604,7 +556,7 @@ function SWEP:DrawAnimation()
 end
 
 
-function SWEP:Deploy()
+function SWEP:Deploy() -- Shared
 
 	if IsSingleplayer then
 		if not self.Owner.BURGERBASE_ZoomMul then
@@ -617,7 +569,6 @@ function SWEP:Deploy()
 
 	self:SetZoomed(false)
 	self:CheckInventory()
-	
 
 	if IsValid(self.Owner:GetHands()) then
 		self.Owner:GetHands():SetMaterial("")
@@ -630,22 +581,17 @@ function SWEP:Deploy()
 		self:SetNextPrimaryFire(CurTime() + self.Owner:GetViewModel():SequenceDuration() )
 	end
 	
-	--if CLIENT then
-		self:CreateFists()
-	--end
-	
 	self:SpecialDeploy()
 	
 	return true
 	
 end
 
-function SWEP:SpecialDeploy()
-
+function SWEP:SpecialDeploy() -- Shared
 
 end
 
-function SWEP:CheckInventory()
+function SWEP:CheckInventory() -- Shared
 	if SERVER then
 		if BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_limit_equipped"):GetFloat() == 1 then
 			for k,v in pairs (self.Owner:GetWeapons()) do
@@ -671,11 +617,11 @@ function SWEP:CheckInventory()
 	end
 end
 
-function SWEP:SpecialHolster()
+function SWEP:SpecialHolster() -- Shared
 
 end
 
-function SWEP:Holster(nextweapon)
+function SWEP:Holster(nextweapon) -- Shared
 
 	if not self:GetCanHolster() then return false end
 	
@@ -685,53 +631,60 @@ function SWEP:Holster(nextweapon)
 
 	if self.HasHolster then
 	
-		if self:GetForceHolster() == true then
+		if self:GetForceHolster() then
+		
 			self:SCK_Holster()
 			self:SetForceHolster(false)
+			
 			return true
-		elseif self:GetQueueHolster() == true then
+			
+		elseif self:GetQueueHolster() then
+		
 			self:SCK_Holster()
+			
 			local NextWeapon = self:GetNextHolsterWeapon()
 			self:SetNextHolsterWeapon( nil )
 			self:SetQueueHolster( false )
 			self:SetNextHolster( -1 )
 			self:SetForceHolster(true)
+			
 			if SERVER then
 				if self.Owner and self.Owner ~= NULL and NextWeapon and NextWeapon ~= NULL then
 					self.Owner:SelectWeapon( NextWeapon:GetClass() )
 				end
 			end
+			
 			return false
+			
 		else
-		
 		
 			self:SetQueueHolster( true )
 			self:SendWeaponAnimation( ACT_VM_HOLSTER )
 			
 			if self.Owner and self.Owner ~= NULL and self.Owner:GetViewModel() and self.Owner:GetViewModel() ~= NULL then
 				local ViewDur = self:GetTrueSequenceDuration()
-				
 				self:SetNextHolster( CurTime() + ViewDur )
 				self:SetNextPrimaryFire(CurTime() + ViewDur )
 			end
 			
 			if SERVER then
 				self:SetNextHolsterWeapon(nextweapon)
-			end
-			
+			end	
 			
 			return false
+			
 		end
 	end
+
+	if CLIENT then
+		self:SCK_Holster()
+	end
 	
-	self:RemoveFists()
-	
-	self:SCK_Holster()
 	return true
 	
 end
 
-function SWEP:HolsterThink()
+function SWEP:HolsterThink() -- Shared
 	if SERVER then
 		if self.HasHolster and self:GetQueueHolster() then
 			if self:GetNextHolster() <= CurTime() then
@@ -741,12 +694,12 @@ function SWEP:HolsterThink()
 	end
 end
 
-function SWEP:SetZoomed(shouldzoom)
+function SWEP:SetZoomed(shouldzoom) -- Shared
 	self:SetSharedZoom(shouldzoom)
 	self.IsZoomed = shouldzoom
 end
 
-function SWEP:GetZoomed()
+function SWEP:GetZoomed() -- Shared
 	if IsSingleplayer or SERVER then
 		return self:GetSharedZoom()
 	else
@@ -754,12 +707,12 @@ function SWEP:GetZoomed()
 	end
 end
 
-function SWEP:SetZoomOverlayDelay(num)
+function SWEP:SetZoomOverlayDelay(num) -- Shared
 	self:SetSharedZoomOverlayDelay(num)
 	self.ZoomOverlayDelay = num
 end
 
-function SWEP:GetZoomOverlayDelay()
+function SWEP:GetZoomOverlayDelay() -- Shared
 	if IsSingleplayer or SERVER then
 		return self:GetSharedZoomOverlayDelay()
 	else
@@ -767,7 +720,7 @@ function SWEP:GetZoomOverlayDelay()
 	end
 end
 
-function SWEP:GetZoomMod()
+function SWEP:GetZoomMod() -- Shared
 	if IsSingleplayer or SERVER then
 		return self:GetSharedZoomMod()
 	else
@@ -775,18 +728,17 @@ function SWEP:GetZoomMod()
 	end
 end
 
-function SWEP:SetZoomMod(num)
+function SWEP:SetZoomMod(num) -- Shared
 	self:SetSharedZoomMod(num)
 	self.ZoomMod = num
 end
 
-function SWEP:SetBoltDelay(num)
-	--print("delay",num)
+function SWEP:SetBoltDelay(num) -- Shared
 	self.BoltDelay = num
 	self:SetSharedBoltDelay(num)
 end
 
-function SWEP:GetBoltDelay()
+function SWEP:GetBoltDelay() -- Shared
 	if IsSingleplayer or SERVER then
 		return self:GetSharedBoltDelay()
 	else
@@ -796,16 +748,15 @@ end
 
 SWEP.FireAlwaysAnimate = false
 
-function SWEP:CanQuickThrow()
+function SWEP:CanQuickThrow() -- Shared
 	return true
 end
 
-function SWEP:QuickThrowOverride()
-
+function SWEP:QuickThrowOverride() -- Shared
 
 end
 
-function SWEP:PrimaryAttack()
+function SWEP:PrimaryAttack() -- Shared
 
 	if not self:CanShoot() then return end
 	if self:IsUsing() then
@@ -837,7 +788,7 @@ function SWEP:PrimaryAttack()
 	
 end
 
-function SWEP:ShootGun(ammototake)
+function SWEP:ShootGun(ammototake) -- Shared
 
 	if not ammototake then
 		ammototake = 1
@@ -883,7 +834,7 @@ function SWEP:ShootGun(ammototake)
 
 end
 
-function SWEP:HandleShootAnimations()
+function SWEP:HandleShootAnimations() -- Shared
 
 	if self.BurstAnimationOverride and self:GetIsBurst() then
 		self:WeaponAnimation(self:Clip1(),self.BurstAnimationOverride)
@@ -901,7 +852,7 @@ function SWEP:HandleShootAnimations()
 	
 end
 
-function SWEP:CanShoot()
+function SWEP:CanShoot() -- Shared
 	if self:IsBusy() then return false end
 	if not self.CanShootWhileSprinting and self:IsSprinting() then return false end
 	if self.WeaponType == "Throwable" then 
@@ -911,7 +862,7 @@ function SWEP:CanShoot()
 	return true
 end
 
-function SWEP:AfterPump()
+function SWEP:AfterPump() -- Shared
 
 	if self.HasPumpAction and self.HasHL2Pump then
 		self:SetNextPrimaryFire(CurTime() + 10)
@@ -928,7 +879,7 @@ function SWEP:AfterPump()
 	
 end
 
-function SWEP:HandleBurstDelay()
+function SWEP:HandleBurstDelay() -- Shared
 	if self.HasBurstFire or self.AlwaysBurst then
 		if self:GetIsBurst() then
 			if self:GetFireQueue() == 0 then
@@ -943,15 +894,15 @@ function SWEP:HandleBurstDelay()
 	end
 end
 
-function SWEP:GetBurstMath()
+function SWEP:GetBurstMath() -- Shared
 	return self.BurstPerBulletDelay or (self.BurstSpeedOverride * self.Primary.Delay) / self.BurstOverride
 end
 
-function SWEP:SpecialDelay(delay)
+function SWEP:SpecialDelay(delay) -- Shared
 	return delay
 end
 
-function SWEP:GetDelay()
+function SWEP:GetDelay() -- Shared
 
 	local Delay = self.Primary.Delay
 	
@@ -979,11 +930,11 @@ function SWEP:GetDelay()
 
 end
 
-function SWEP:ModBoltDelay()
+function SWEP:ModBoltDelay() -- Shared
 	return self:SpecialDelay(self.Primary.Delay)
 end
 
-function SWEP:WeaponDelay()
+function SWEP:WeaponDelay() -- Shared
 
 	if self.HasBoltAction then
 		self:SetBoltDelay( CurTime() + self:ModBoltDelay() )
@@ -994,7 +945,7 @@ function SWEP:WeaponDelay()
 	
 end
 
-function SWEP:AfterZoom()
+function SWEP:AfterZoom() -- Shared
 	--[[
 	if self.HasScope then
 		if self.HasBoltAction then
@@ -1007,7 +958,7 @@ function SWEP:AfterZoom()
 	--]]
 end
 
-function SWEP:GetScopeSway(Cone) 
+function SWEP:GetScopeSway(Cone) -- Unknown
 	local x = math.sin(CurTime()*0.5)*Cone*0.5*0.5
 	local y = math.cos(CurTime())*Cone*0.5
 	return x,y
@@ -1016,7 +967,7 @@ end
 SWEP.BulletQueueShots = 0
 SWEP.BulletQueueDelay = 0.01
 
-function SWEP:HandleBulletQueue()
+function SWEP:HandleBulletQueue() -- Shared
 	if self.BulletQueueShots > 0 and self:GetBulletQueue() > 0 and self:GetBulletQueueDelay() <= CurTime() then
 		local Damage = self:SpecialDamage(self.Primary.Damage)
 		local Shots = math.min(self.BulletQueueShots,self:GetBulletQueue(),self:SpecialShots(self.Primary.NumShots))
@@ -1030,9 +981,7 @@ function SWEP:HandleBulletQueue()
 	end
 end
 
-local ConeOverride = true
-
-function SWEP:BulletMethod01(Damage,Shots,Cone,WithPunchAngles)
+function SWEP:BulletMethod01(Damage,Shots,Cone,WithPunchAngles) -- Shared
 
 	local ConeMinusPrimary = Cone
 	
@@ -1079,7 +1028,7 @@ function SWEP:BulletMethod01(Damage,Shots,Cone,WithPunchAngles)
 
 end
 
-function SWEP:BulletMethod02(Damage,Shots,WithPunchAngles)
+function SWEP:BulletMethod02(Damage,Shots,WithPunchAngles) -- Shared
 
 	local IsLeftFire = self:GetIsLeftFire()
 
@@ -1118,28 +1067,19 @@ function SWEP:BulletMethod02(Damage,Shots,WithPunchAngles)
 end
 
 
-function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict
-
-	local ShootDir = self.Owner:GetAimVector()
-	if self.Owner:IsPlayer() then
-		ShootDir = self.Owner:GetEyeTrace().Normal
-	end
-	
-	local WithPunchAngles = (ShootDir:Angle() + self.Owner:GetPunchAngle())
-	WithPunchAngles:Normalize()
-
+function SWEP:PreShootBullet(Damage,Shots,Cone) -- Don't predict -- Shared
+	local WithPunchAngles = self:GetTrueShootAngles()
 	--self:BulletMethod01(Damage,Shots,Cone,WithPunchAngles)
 	self:BulletMethod02(Damage,Shots,WithPunchAngles)
-		
 end
 
-function SWEP:PostPrimaryFire()
+function SWEP:PostPrimaryFire() -- Shared
 
 end
 
 SWEP.AnimationRateTable = {}
 
-function SWEP:WeaponAnimation(clip,animation)
+function SWEP:WeaponAnimation(clip,animation) -- Shared
 
 	if self:GetIsSilenced() then
 		if clip == 1 and self.HasDryFire then
@@ -1167,7 +1107,7 @@ function SWEP:WeaponAnimation(clip,animation)
 
 end
 
-function SWEP:WeaponSound()
+function SWEP:WeaponSound() -- Shared
 
 	local GunSound = self.Primary.Sound
 	local SoundMul = 1
@@ -1197,15 +1137,15 @@ function SWEP:WeaponSound()
 
 end
 
-function SWEP:SpecialConePre(Cone,IsCrosshair,IsLeftFire)
+function SWEP:SpecialConePre(Cone,IsCrosshair,IsLeftFire) -- Shared
 	return Cone
 end
 
-function SWEP:SpecialConePost(Cone,IsCrosshair,IsLeftFire)
+function SWEP:SpecialConePost(Cone,IsCrosshair,IsLeftFire) -- Shared
 	return Cone
 end
 
-function SWEP:HandleConeEquipment(Cone,IsCrosshair,IsLeftFire)
+function SWEP:HandleConeEquipment(Cone,IsCrosshair,IsLeftFire) -- Shared
 
 	if (self.HasBurstFire or self.AlwaysBurst) then
 		if self:GetIsBurst() then
@@ -1221,7 +1161,7 @@ function SWEP:HandleConeEquipment(Cone,IsCrosshair,IsLeftFire)
 	
 end
 
-function SWEP:HandleConeCooldown(Cone,IsCrosshair,IsLeftFire)
+function SWEP:HandleConeCooldown(Cone,IsCrosshair,IsLeftFire) -- Shared
 
 	if self.HasFirstShotAccurate and ((self:GetCoolDown() == 0 and !IsLeftFire) or (IsLeftFire and  self:GetCoolDownLeft() == 0)) and IsCrosshair == false then
 		Cone = 0
@@ -1237,7 +1177,7 @@ function SWEP:HandleConeCooldown(Cone,IsCrosshair,IsLeftFire)
 
 end
 
-function SWEP:HandleConeBase(Cone,IsCrosshair,IsLeftFire)
+function SWEP:HandleConeBase(Cone,IsCrosshair,IsLeftFire) -- Shared
 
 	if self.Owner:IsPlayer() and !self.Owner:Crouching() then
 		Cone = Cone * 1.25
@@ -1249,15 +1189,15 @@ function SWEP:HandleConeBase(Cone,IsCrosshair,IsLeftFire)
 	
 end
 
-function SWEP:HandleConeMovement(Cone,IsCrosshair,IsLeftFire)
+function SWEP:HandleConeMovement(Cone,IsCrosshair,IsLeftFire) -- Shared
 	return Cone + self:GetMovementIntensity()
 end
 
-function SWEP:PreSeededCone(Cone,IsCrosshair,IsLeftFire)
+function SWEP:PreSeededCone(Cone,IsCrosshair,IsLeftFire) -- Shared
 	return Cone
 end
 
-function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
+function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire) -- Shared
 
 	Cone = self:HandleConeBase(Cone,IsCrosshair,IsLeftFire)
 	Cone = self:SpecialConePre(Cone,IsCrosshair,IsLeftFire)
@@ -1271,7 +1211,7 @@ function SWEP:HandleCone(Cone,IsCrosshair,IsLeftFire)
 	
 end
 
-function SWEP:GetMovementVelocity()
+function SWEP:GetMovementVelocity() -- Shared
 	local Velocity = self.Owner:GetVelocity():Length() 
 	if (!self.Owner:IsOnGround() and !(self.Owner:WaterLevel() > 0)) then
 		Velocity = math.max(Velocity*1.25,400)
@@ -1279,15 +1219,15 @@ function SWEP:GetMovementVelocity()
 	return Velocity
 end
 
-function SWEP:GetMovementIntensity()
+function SWEP:GetMovementIntensity() -- Shared
 	return math.Clamp( ( (self:GetMovementVelocity() * self.MoveConeMul * BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_movementconescale"):GetFloat()) ^ 1.75 ) * 0.000001, 0, 0.1)
 end
 
-function SWEP:SpecialFire()
+function SWEP:SpecialFire() -- Shared
 	self:Melee()
 end
 
-function SWEP:SecondaryAttack()
+function SWEP:SecondaryAttack() -- Shared
 
 	local ToggleZoomEnabled = ToggleZoom
 	--BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 1
@@ -1311,27 +1251,25 @@ function SWEP:SecondaryAttack()
 
 end
 
-function SWEP:HandleSprintCancelZoom()
+function SWEP:HandleSprintCancelZoom() -- Shared
 	if self:IsSprinting() and self:GetZoomed() then
 		self:ZoomOut()
 	end
 end
 
-function SWEP:HandleCancelZoom()
+function SWEP:HandleCancelZoom() -- Shared
 	
 	local ToggleZoomEnabled = ToggleZoom == true
 
 	if ToggleZoomEnabled and self.HasBoltAction and self:GetZoomOverlayDelay() >= CurTime() and (self.HasScope or self.HasIronsights) then
 		if self:GetZoomed() then
 			self:ZoomOut()
-		else
-			--self:ZoomIn()
 		end
 	end
 	
 end
 
-function SWEP:HandleHoldToZoom()
+function SWEP:HandleHoldToZoom() -- Shared
 
 	--if (IsFirstTimePredicted() or IsSingleplayer) and not self:IsBusy() and not self:IsUsing() and BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_togglezoom",true):GetFloat() == 0 then
 	if (IsFirstTimePredicted() or IsSingleplayer) and not self:IsBusy() and not self:IsUsing() and ToggleZoom == false then
@@ -1344,23 +1282,19 @@ function SWEP:HandleHoldToZoom()
 	
 end
 
-function SWEP:CanZoom()
+function SWEP:CanZoom() -- Shared
 	return (self:CanBoltZoom() and (self.HasIronSights or self.HasScope))
 end
 
-
-
-function SWEP:Melee()
-
+function SWEP:Melee() -- Shared
 	if self:IsBusy() then return end
 	if self:GetNextPrimaryFire() > CurTime() then return end
 	self:SetNextPrimaryFire(CurTime() + 1)
 	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND )
 	self:StartSwing(self.MeleeDamage)
-	
 end
 
-function SWEP:SwitchFireMode()
+function SWEP:SwitchFireMode() -- Shared
 
 	if not (IsFirstTimePredicted() or IsSingleplayer) then return end
 	if not (self:GetNextPrimaryFire() <= CurTime()) then return end
@@ -1389,7 +1323,7 @@ function SWEP:SwitchFireMode()
 
 end
 
-function SWEP:Silencer()
+function SWEP:Silencer() -- Shared
 
 	if self:IsBusy() then return end
 		
@@ -1409,7 +1343,7 @@ function SWEP:Silencer()
 	
 end
 
-function SWEP:HandleZoom(delay)
+function SWEP:HandleZoom(delay) -- Shared
 
 	if not (IsFirstTimePredicted()) then return end
 	if not self:CanBoltZoom() then return end
@@ -1424,7 +1358,7 @@ function SWEP:HandleZoom(delay)
 	
 end
 
-function SWEP:ZoomIn()
+function SWEP:ZoomIn() -- Shared
 	if self.HasScope then
 		if self.ZoomInSound then
 			if CLIENT or IsSingleplayer then
@@ -1438,7 +1372,7 @@ function SWEP:ZoomIn()
 	self:SetZoomed(true)
 end
 
-function SWEP:ZoomOut()
+function SWEP:ZoomOut() -- Shared
 	self:SetZoomed(false)		
 	if self.HasScope then
 		if self.ZoomOutSound then
@@ -1453,63 +1387,41 @@ function SWEP:ZoomOut()
 end
 
 
-function SWEP:CanBoltZoom()
+function SWEP:CanBoltZoom() -- Shared
 	return !self.HasBoltAction or self:GetBoltDelay() <= CurTime()
 end
 
-function SWEP:SpecialZoom(fov)
+function SWEP:SpecialZoom(fov) -- Shared
 	return fov
 end
 
-function SWEP:TranslateFOV(fov)
-
-	local ZoomAmount = self.ZoomAmount
-
-	if (self.HasBurstFire or self.AlwaysBurst) and self:GetIsBurst() then
-		ZoomAmount = ZoomAmount*self.BurstZoomMul
-	end
-	
-	ZoomAmount = self:SpecialZoom(ZoomAmount)
-
-	local ZoomMag = 1
-	
-	if self.Owner.BURGERBASE_ZoomMul and self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
-		ZoomMag = 1 + ( self:GetZoomMod() * ZoomAmount * math.Clamp(self.Owner.BURGERBASE_ZoomMul[self:GetClass()],0,1) )
-	end
-	
-	return fov / ZoomMag
-	
-end
-
-function SWEP:CanPrimaryAttack()
+function SWEP:CanPrimaryAttack() -- Shared
 	if self:GetNextPrimaryFire() > CurTime() then return false end
 	return true
 end
 
-function SWEP:CanSecondaryAttack()
+function SWEP:CanSecondaryAttack() -- Shared
 	if self:GetNextSecondaryFire() > CurTime() then return false end
 	return true
 end
 
-function SWEP:SpecialDamage(damage)
+function SWEP:SpecialDamage(damage) -- Shared
 	return damage
 end
 
-function SWEP:SpecialShots(shots)
+function SWEP:SpecialShots(shots) -- Shared
 	return shots
 end
 
-
-
-function SWEP:GetRecoilMath()
+function SWEP:GetRecoilMath() -- Client?
 	return self:SpecialDamage(self.Primary.Damage)*self:SpecialShots(self.Primary.NumShots)*self.RecoilMul*self.Primary.Delay*1.875
 end
 
-function SWEP:SpecialRecoil(recoil)
+function SWEP:SpecialRecoil(recoil) -- Client?
 	return recoil
 end
 
-function SWEP:GetRecoilFinal()
+function SWEP:GetRecoilFinal() -- Client?
 
 	local UpPunch = -self:GetRecoilMath()
 	local SidePunch = 0
@@ -1588,7 +1500,7 @@ function SWEP:GetRecoilFinal()
 
 end
 
-function SWEP:AddRecoil()
+function SWEP:AddRecoil() -- Client?
 	if CLIENT or IsSingleplayer then
 		local UpPunch, SidePunch = self:GetRecoilFinal()
 		self.PunchAngleUp = self.PunchAngleUp + Angle(UpPunch,SidePunch,0) + Angle(self.ShootOffsetStrength.p*self:BulletRandomSeed(-0.5,0.5,1),self.ShootOffsetStrength.y*self:BulletRandomSeed(-0.5,0.5,10),0)
@@ -1597,13 +1509,13 @@ function SWEP:AddRecoil()
 
 end
 
-function SWEP:SpecialHeatMath(CoolDown)
+function SWEP:SpecialHeatMath(CoolDown) -- Shared
 
 
 	return CoolDown
 end
 
-function SWEP:GetHeatMath(Damage,Shots)
+function SWEP:GetHeatMath(Damage,Shots) -- Shared
 
 	local DamageMod = Damage*Shots*0.01
 	local ConeMod = (math.max(0.001,self.Primary.Cone)^-0.1)
@@ -1615,15 +1527,11 @@ function SWEP:GetHeatMath(Damage,Shots)
 	end
 	
 	local CoolDown = DamageMod*ConeMod*WeightMod*BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_heatconescale"):GetFloat()*BurstMod
-	
-	CoolDown = self:SpecialHeatMath(CoolDown)
-	
-	
-	return CoolDown
+	return self:SpecialHeatMath(CoolDown)
 	
 end
 
-function SWEP:AddHeat(Damage,Shots)
+function SWEP:AddHeat(Damage,Shots) -- Shared
 
 	local CoolDown = self:GetHeatMath(Damage,Shots)
 	local CoolTime = (self.Primary.Delay + 0.1)*self.CoolMul
@@ -1652,45 +1560,10 @@ function SWEP:AddHeat(Damage,Shots)
 	
 end
 
-function SWEP:ShootPhysicalObject(Source,Cone,Direction)
-
-	local EyeTrace = self.Owner:GetEyeTrace()
-	local TheEyePos = self.Owner:EyePos()
-	
-	local HitPos = EyeTrace.HitPos
-	
-	Source = Source + self.Owner:GetForward()*self.SourceOverride.y + self.Owner:GetRight()*self.SourceOverride.x + self.Owner:GetUp()*self.SourceOverride.z
-	
-	local Dir = (Source - HitPos)
-	local Dir = Direction
-	Dir:Normalize()
-	
-	local FinalAngles = Dir:Angle() + self.BulletAngOffset + Angle(self:BulletRandomSeed(-Cone,Cone),self:BulletRandomSeed(-Cone,Cone),0)*45
-	FinalAngles:Normalize()
-
-	local Bullet = ents.Create(self.BulletEnt)	
-	if Bullet:IsValid() then
-		Bullet:SetPos(Source)
-		Bullet:SetAngles( FinalAngles )
-		Bullet:SetOwner(self.Owner)
-		Bullet:Spawn()
-		Bullet:Activate()
-	else
-		SafeRemoveEntity(Bullet)
-	end
-
-	if IsFirstTimePredicted() then
-		self:TracerCreation(Source + Dir*100,Source,Dir,self.Owner)
-	end
-
-end
-
-
 SWEP.UseSpecialProjectile	= false
 SWEP.UseMuzzle				= true
 
-
-function SWEP:ModProjectileTable(datatable)
+function SWEP:ModProjectileTable(datatable) -- Shared
 
 	local FalloffMod = math.Clamp(self.DamageFalloff,1,4000)
 	local FalloffModDif = self.DamageFalloff - FalloffMod
@@ -1706,11 +1579,11 @@ function SWEP:ModProjectileTable(datatable)
 	
 end
 
-function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection)
+function SWEP:ShootProjectile(Damage, Shots, Cone, Source, Direction,AimCorrection) -- Client
 	BURGERBASE_FUNC_ShootProjectile(self.Owner,self,Damage,Shots,Cone,Source,Direction,nil,true)
 end
 
-function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
+function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity) -- Shared
 
 	if self then
 		if self.UseSpecialProjectile then
@@ -1740,7 +1613,7 @@ function SWEP:ShootBullet(Damage, Shots, Cone, Source, Direction,LastEntity)
 	end
 end
 
-function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmginfo)
+function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmginfo) -- Shared
 
 	local CurrentHitEntity = tr.Entity
 		
@@ -1785,7 +1658,7 @@ function SWEP:BulletCallback(Damage,Direction,PreviousHitEntity,attacker,tr,dmgi
 
 end
 
-function SWEP:StartShortTrace(Pos,Direction,Distance,shouldcomp)
+function SWEP:StartShortTrace(Pos,Direction,Distance,shouldcomp) -- Shared
 
 	local data = {}
 
@@ -1807,7 +1680,7 @@ function SWEP:StartShortTrace(Pos,Direction,Distance,shouldcomp)
 
 end
 
-function SWEP:CalculateMaterialPenetration(mat)
+function SWEP:CalculateMaterialPenetration(mat) -- Shared
 
 	local MatMul = 1
 
@@ -1827,7 +1700,7 @@ function SWEP:CalculateMaterialPenetration(mat)
 
 end
 
-function SWEP:BulletRandomGetSeed(seed)
+function SWEP:BulletRandomGetSeed(seed) -- Shared
 
 	seed = math.floor(seed) + self.RandomSeed + string.len(self.PrintName)
 	
@@ -1855,7 +1728,7 @@ function SWEP:BulletRandomGetSeed(seed)
 	
 end
 
-function SWEP:BulletRandomSeedInt(min,max,seed)
+function SWEP:BulletRandomSeedInt(min,max,seed) -- Shared
 	if not seed then seed = 0 end
 	
 	self:BulletRandomGetSeed(seed)
@@ -1864,7 +1737,7 @@ function SWEP:BulletRandomSeedInt(min,max,seed)
 end
 
 
-function SWEP:BulletRandomSeed(min,max,seed)
+function SWEP:BulletRandomSeed(min,max,seed) -- Shared
 	if not seed then seed = 0 end
 
 	self:BulletRandomGetSeed(seed)
@@ -1872,9 +1745,7 @@ function SWEP:BulletRandomSeed(min,max,seed)
 	
 end
 
-
-
-function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntity)
+function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntity) -- Shared
 
 	local Distance = 3
 	local Randomness = 0.05
@@ -1938,7 +1809,7 @@ function SWEP:WorldBulletSolution(Pos,OldTrace,Direction,Damage,PreviousHitEntit
 
 end
 
-function SWEP:TracerCreation(origin,start,direction,HitEntity)
+function SWEP:TracerCreation(origin,start,direction,HitEntity) -- Shared
 
 	if self.EnableCustomTracer then
 		local TracerData = self:GenerateEffectData(origin,start,HitEntity,true)
@@ -1954,7 +1825,7 @@ function SWEP:TracerCreation(origin,start,direction,HitEntity)
 
 end
 
-function SWEP:GenerateEffectData(origin,start,HitEntity,IsCSSTracer)
+function SWEP:GenerateEffectData(origin,start,HitEntity,IsCSSTracer) -- Shared
 
 	local Data = EffectData()
 	Data:SetOrigin( origin )
@@ -1990,7 +1861,7 @@ if SERVER then
 	util.AddNetworkString("CSS_GunSounds")
 end
 
-function SWEP:EmitGunSound(GunSound,Level)
+function SWEP:EmitGunSound(GunSound,Level) -- Shared
 	
 	if GunSound and GunSound ~= NULL then
 	
@@ -2023,7 +1894,7 @@ function SWEP:EmitGunSound(GunSound,Level)
 		
 end
 
-if CLIENT then
+if CLIENT then -- Client
 	net.Receive("CSS_GunSounds", function(len)
 	
 		local ply = LocalPlayer()
@@ -2059,7 +1930,7 @@ if CLIENT then
 
 end
 
-function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp,DamageType)
+function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp,DamageType) -- Shared
 
 	if not DamageType then
 		DamageType = DMG_BULLET
@@ -2083,14 +1954,14 @@ function SWEP:BulletEffect(HitPos,StartPos,HitEntity,SurfaceProp,DamageType)
 	
 end
 
-function SWEP:IsSprinting()
+function SWEP:IsSprinting() -- Shared
 	local SideVelocity = self.Owner:GetVelocity()
 	SideVelocity = SideVelocity - Vector(0,0,SideVelocity.z)
 	SideVelocity = SideVelocity:Length()
 	return SideVelocity > 1 and self.Owner:IsOnGround() and self.Owner:KeyDown(IN_SPEED)
 end
 
-function SWEP:IsBusy()
+function SWEP:IsBusy() -- Shared
 
 	if not self:GetCanHolster() then
 		return true
@@ -2104,11 +1975,11 @@ function SWEP:IsBusy()
 
 end
 
-function SWEP:IsUsing()
+function SWEP:IsUsing() -- Shared
 	if self.Owner:IsPlayer() and self.Owner:KeyDown(IN_USE) then return true end
 end
 
-function SWEP:ReloadSpecial()
+function SWEP:ReloadSpecial() -- Shared
 
 	if self.HasBurstFire then
 		self:SwitchFireMode()
@@ -2149,21 +2020,15 @@ function SWEP:ReloadSpecial()
 
 end
 
---[[
-function SWEP:Ammo1()
-	return self.Owner:GetAmmoCount(self:GetPrimaryAmmo())
-end
---]]
-
 SWEP.SequenceDurationAdd = {}
 
-function SWEP:GetTrueSequenceDuration()
+function SWEP:GetTrueSequenceDuration() -- Shared
 	local ViewModel = self.Owner:GetViewModel()
 	return ( ViewModel:SequenceDuration() * (1/ViewModel:GetPlaybackRate()) ) + (self.SequenceDurationAdd[ViewModel:GetSequenceActivity(ViewModel:GetSequence())] or 0)
 end
 
 
-function SWEP:DoReload()
+function SWEP:DoReload() -- Shared
 	
 	if self:GetZoomed() then
 		self:SetZoomed(false)
@@ -2249,7 +2114,7 @@ function SWEP:DoReload()
 
 end
 
-function SWEP:Reload()
+function SWEP:Reload() -- Shared
 	
 	if self:IsBusy() then return end
 	
@@ -2281,11 +2146,204 @@ SWEP.IronIdleAng = Vector(0,0,0)
 SWEP.IronReloadPos = Vector(0,0,0)
 SWEP.IronReloadAng = Vector(0,0,0)
 
-function SWEP:GetViewModelPosition( pos, ang )
+SWEP.HoldTypeBlocking = "melee2"
 
+function SWEP:HandleHoldType() -- shared
+	if !self.CanShootWhileSprinting and self:IsSprinting() then
+		self:SetHoldType("passive")
+	elseif self.HoldTypeBlocking and self:GetIsBlocking() then
+		self:SetHoldType(self.HoldTypeBlocking)
+	elseif self:GetHoldType() ~= self.HoldType then
+		self:SetHoldType(self.HoldType)
+	end
+end
+
+function SWEP:HandleShotgunReloadCancel() -- Shared
+	if self.Owner:KeyDown(IN_ATTACK) and self:GetIsShotgunReload() and self:GetIsReloading() and not self.Owner:IsBot() then
+		self:FinishShotgunReload()
+	end
+end
+
+SWEP.ClientTrueAimAng = Angle(0,0,0)
+
+
+function SWEP:GetTrueAimAng(prediction)
+	if CLIENT and !prediction then
+		return self.ClientTrueAimAng
+	else
+		return self:GetSharedTrueAimAng()
+	end
+end
+
+function SWEP:SetTrueAimAng(var)
+	self:SetSharedTrueAimAng(var)
+	if CLIENT then
+		self.ClientTrueAimAng = var
+	end
+end
+
+function SWEP:GetTrueShootAngles(IgnorePrediction) -- Shared
+	local ShootDir = self.Owner:GetAimVector()
+	if self.Owner:IsPlayer() then
+		ShootDir = self.Owner:GetEyeTrace().Normal
+	end
+	--local WithPunchAngles = self.Owner:GetPunchAngle() + ShootDir:Angle()
+
+	local WithPunchAngles = (self.Owner:GetPunchAngle() + self:GetTrueAimAng() )
+	WithPunchAngles:Normalize()
+	return WithPunchAngles
+end
+
+function BURGERBASE_SpecialGetBest(tab,dolarge)
+	local Winner = tab[1]
+	for k,v in pairs(tab) do
+		if dolarge then
+			if math.abs(Winner) < math.abs(v) then
+				Winner = v
+			end
+		else
+			if math.abs(Winner) > math.abs(v) then
+				Winner = v
+			end
+		end
+	
+	end
+	return Winner
+
+end
+
+function SWEP:HandleAimAngles() -- Shared
+	
+	local ShootAng = self.Owner:GetAimVector():Angle()
+	
+	-- Start Angle
+	local DesiredAngOffset = Angle(0,0,0)
+	if self.IronMeleeAng and IsMelee then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronMeleeAng.x,self.IronMeleeAng.y,self.IronMeleeAng.z)
+	elseif self.IronReloadAng and self:GetIsReloading() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronReloadAng.x,self.IronReloadAng.y,self.IronReloadAng.z)
+	elseif self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
+	elseif self.IronBoltAng and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronBoltAng.x,self.IronBoltAng.y,self.IronBoltAng.z)
+	end
+	ShootAng:RotateAroundAxis(ShootAng:Right(), 	DesiredAngOffset.x)
+	ShootAng:RotateAroundAxis(ShootAng:Up(), 	DesiredAngOffset.y)
+	ShootAng:RotateAroundAxis(ShootAng:Forward(), DesiredAngOffset.z)
+	-- End Angle
+	
+	local TrueAng = self:GetTrueAimAng()
+	local AngDif = (ShootAng - TrueAng)
+	AngDif:Normalize()
+	local Largest = math.abs(BURGERBASE_SpecialGetBest({AngDif.p,AngDif.y,AngDif.r},true))
+	local MoveAngle = Angle(0,0,0)
+	local MoveMul = FrameTime()*180*(1/self.IronSightTime)
+	
+	
+	
+	if Largest ~= 0 then
+		if AngDif.p ~= 0 then
+			MoveAngle = MoveAngle + Angle(BURGERBASE_SpecialGetBest({AngDif.p,MoveMul*(AngDif.p/Largest)},false),0,0)
+		end
+		if AngDif.y ~= 0 then
+			MoveAngle = MoveAngle + Angle(0,BURGERBASE_SpecialGetBest({AngDif.y,MoveMul*(AngDif.y/Largest)},false),0)
+		end	
+		if AngDif.r ~= 0 then
+			MoveAngle = MoveAngle + Angle(0,0,BURGERBASE_SpecialGetBest({AngDif.r,MoveMul*(AngDif.r/Largest)},false))
+		end	
+	end
+
+	local FinalMove = self:GetTrueAimAng(true) + MoveAngle
+
+	--[[
+	local TotalDistance = math.NormalizeAngle((FinalMove.p + FinalMove.y + FinalMove.r) - (ShootAng.p + ShootAng.y + ShootAng.r))
+	if TotalDistance < FrameTime() then
+		FinalMove = ShootAng
+	end
+	--]]
+
+	
+	self:SetTrueAimAng(FinalMove)
+
+end
+
+SWEP.ClientIronsightAng = nil
+
+function SWEP:GetViewModelPosition( pos, ang ) -- Shared
+	
+	local InputAng = ang
+
+	ang = self:GetTrueAimAng(true)
+
+	if not self.ClientIronsightAng then
+		self.ClientIronsightAng = ang
+	end
+
+	local Math = (ang - self.ClientIronsightAng)
+	Math:Normalize()
+	self.ClientIronsightAng = self.ClientIronsightAng + Math*FrameTime()*2*(1/self.IronSightTime)
+	self.ClientIronsightAng:Normalize()
+	
+	local ReturnAng = self.ClientIronsightAng
+	
+	
+	if ShouldSight then
+		self.SwayScale 				= 0
+		self.BobScale 				= 0
+	else
+		self.SwayScale 				= 1
+		self.BobScale 				= 1
+	end
+	
+	
+	--[[
+	
+	
+	if self.IronSightAngSnap and self.IronSightPosSnap then
+		TimeRate = 0.1
+	end
+	
+	if IsMelee then
+		TimeRate = self.MeleeDelay
+	end
+	
+
+
+
+
+	if not ShouldSight then 
+		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
+		
+		if self.Owner:Crouching() then
+			DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
+		end
+		
+		if not self.DistanceMod then
+			self.DistanceMod = DesiredDistanceMod
+		else
+			self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
+		end
+		
+		DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
+
+	end
+	-- End Postion
+	
+
+	
+
+	
+
+	if not ShouldSight then
+		DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+		DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
+		DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
+	end
+	
+	--]]
+	
 	local OldPos = pos
 	local OldAng = ang
-
 	local DesiredPosOffset = Vector(0,0,0)
 	local DesiredAngOffset = Angle(0,0,0)
 	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self:GetIsBlocking() )
@@ -2299,22 +2357,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local IsMelee = self:GetNextMelee() + self.MeleeDelay >= CurTime()
 	local MeleeDif = math.Clamp( (self:GetNextMelee() - CurTime())/0.15 , 0 , 1)
 	
-	if self.IronSightAngSnap and self.IronSightPosSnap then
-		TimeRate = 0.1
-	end
 	
-	if IsMelee then
-		TimeRate = self.MeleeDelay
-	end
-	
-	if ShouldSight then
-		self.SwayScale 				= 0
-		self.BobScale 				= 0
-	else
-		self.SwayScale 				= 1
-		self.BobScale 				= 1
-	end
-
 	-- Start Position
 	if self.IronSightsPos and ShouldSight then	
 		local BasePosOffset = self.IronSightsPos
@@ -2350,103 +2393,42 @@ function SWEP:GetViewModelPosition( pos, ang )
 	elseif self.IronIdlePos then
 		DesiredPosOffset = DesiredPosOffset + self.IronIdlePos
 	end
-
-	if not ShouldSight then 
-		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
-		
-		if self.Owner:Crouching() then
-			DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
-		end
-		
-		if not self.DistanceMod then
-			self.DistanceMod = DesiredDistanceMod
-		else
-			self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
-		end
-		
-		DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
-
-	end
-	-- End Postion
+	-- End Position
 	
 	-- Start Angle
 	if self.IronSightsAng and ShouldSight then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronSightsAng.x,self.IronSightsAng.y,self.IronSightsAng.z)
-	elseif self.IronMeleeAng and IsMelee then
-		DesiredAngOffset = DesiredAngOffset + Angle(self.IronMeleeAng.x,self.IronMeleeAng.y,self.IronMeleeAng.z)
-	elseif self.IronReloadAng and self:GetIsReloading() then
-		DesiredAngOffset = DesiredAngOffset + Angle(self.IronReloadAng.x,self.IronReloadAng.y,self.IronReloadAng.z)
-	elseif self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() then
-		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
 	elseif self.IronShootAng and self:GetCoolDown() > 0 then 
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronShootAng.x,self.IronShootAng.y,self.IronShootAng.z)
-	elseif self.IronBoltAng and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
-		DesiredAngOffset = DesiredAngOffset + Angle(self.IronBoltAng.x,self.IronBoltAng.y,self.IronBoltAng.z)
 	elseif self.IronIdleAng then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronIdleAng.x,self.IronIdleAng.y,self.IronIdleAng.z)
 	end
-
-	if not ShouldSight then
-		DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
-		DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
-		DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
-	end
 	-- End Angle
 	
-	-- Start Final Calculation
+	--[[
+	print(DesiredAngOffset)
+	ReturnAng:RotateAroundAxis(ReturnAng:Right(),DesiredAngOffset.x)
+	ReturnAng:RotateAroundAxis(ReturnAng:Up(),DesiredAngOffset.y)
+	ReturnAng:RotateAroundAxis(ReturnAng:Forward(),DesiredAngOffset.z)
+	--]]
+	
+	
+	
 	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent:Normalize()
 	
-	ang:RotateAroundAxis(ang:Right(), 	self.IronSightAngCurrent.x)
-	ang:RotateAroundAxis(ang:Up(), 	self.IronSightAngCurrent.y)
-	ang:RotateAroundAxis(ang:Forward(), self.IronSightAngCurrent.z)
+	pos = pos + self.IronSightPosCurrent.x * ReturnAng:Right()
+	pos = pos + self.IronSightPosCurrent.y * ReturnAng:Forward()
+	pos = pos + self.IronSightPosCurrent.z * ReturnAng:Up()
 
-	pos = pos + self.IronSightPosCurrent.x * ang:Right()
-	pos = pos + self.IronSightPosCurrent.y * ang:Forward()
-	pos = pos + self.IronSightPosCurrent.z * ang:Up()
 
-	if ShouldSight then	
-		local PosDistance = DesiredPosOffset:Distance(self.IronSightPosCurrent)
-		local AngDistance = Vector(DesiredAngOffset.x,DesiredAngOffset.y,DesiredAngOffset.z):Distance(Vector(self.IronSightAngCurrent.x,self.IronSightAngCurrent.y,self.IronSightAngCurrent.z))
-
-		if PosDistance < 0.25 then
-			self.IronSightPosSnap = true
-		end
-		
-		if AngDistance < 0.25 then
-			self.IronSightAngSnap = true
-		end
-	else
-		self.IronSightAngSnap = false
-		self.IronSightPosSnap = false
-	end
-	-- End Final Calculation
-
-	return pos, ang
+	return pos, ReturnAng + self.IronSightAngCurrent
+	
 end
 
-SWEP.HoldTypeBlocking = "melee2"
 
-function SWEP:HandleHoldType()
-	if !self.CanShootWhileSprinting and self:IsSprinting() then
-		if self:GetHoldType() ~= "passive" then
-			self:SetHoldType("passive")
-		end
-	elseif self.HoldTypeBlocking and self:GetIsBlocking() then
-		self:SetHoldType(self.HoldTypeBlocking)
-	elseif self:GetHoldType() ~= self.HoldType then
-		self:SetHoldType(self.HoldType)
-	end
-end
-
-function SWEP:HandleShotgunReloadCancel()
-	if self.Owner:KeyDown(IN_ATTACK) and self:GetIsShotgunReload() and self:GetIsReloading() and not self.Owner:IsBot() then
-		self:FinishShotgunReload()
-	end
-end
-
-function SWEP:Think()
+function SWEP:Think() --Shared
 
 	if CLIENT then -- not singleplayer
 		if self.Owner.BURGERBASE_ZoomMul and self.Owner.BURGERBASE_ZoomMul[self:GetClass()] then
@@ -2458,6 +2440,7 @@ function SWEP:Think()
 		end
 	end
 	
+	self:HandleAimAngles()
 	self:HandleShotgunReloadCancel()
 	self:HandleBulletQueue()
 	self:HandleHoldType()
@@ -2508,7 +2491,7 @@ function SWEP:Think()
 
 end
 
-function SWEP:HandleBlocking()
+function SWEP:HandleBlocking() -- Shared
 
 	if self.EnableBlocking then
 	
@@ -2530,12 +2513,12 @@ function SWEP:HandleBlocking()
 	
 end
 
-function SWEP:HandleAmmoSwitch()
+function SWEP:HandleAmmoSwitch() -- Shared
 
 
 end
 
-function SWEP:HandleZoomDelay()
+function SWEP:HandleZoomDelay() -- Shared
 	if CLIENT or IsSingleplayer then
 		if self:GetZoomOverlayDelay() > 0 and self:GetZoomOverlayDelay() <= CurTime()  then
 			self:SetZoomOverlayDelay(-1)
@@ -2543,29 +2526,29 @@ function SWEP:HandleZoomDelay()
 	end
 end
 
-function SWEP:HandleBulletsPerSecond()
-	if self:GetCoolTime() <= CurTime() then
+function SWEP:HandleBulletsPerSecond() -- Shared
+	--if self:GetCoolTime() <= CurTime() then
 		self:SetBulletsPerSecond( math.Clamp(self:GetBulletsPerSecond() - FrameTime(),0,100) )
-	end
+	--end
 end
 
-function SWEP:IdleAnimation()
+function SWEP:IdleAnimation() -- Shared
 	self:SendWeaponAnimation(ACT_VM_IDLE)
 end
 
 
-function SWEP:IdleThink()
+function SWEP:IdleThink() -- Shared
 	if self.HasIdle and self:GetNextIdle() <= CurTime() and not self:IsBusy() then
 		self:IdleAnimation()
 	end
 end
 
-function SWEP:SpareThink()
+function SWEP:SpareThink() -- Shared
 
 
 end
 
-function SWEP:HandleBuildUp()
+function SWEP:HandleBuildUp() -- Shared
 	if self.HasBuildUp or self.UsesBuildUp then
 		if self:GetCoolTime() <= CurTime() then
 			self:SetBuildUp( math.Clamp(self:GetBuildUp() - 0.015*self.BuildUpCoolAmount,0,100) )
@@ -2575,14 +2558,14 @@ end
 
 
 
-function SWEP:EmitDryFireSound()
+function SWEP:EmitDryFireSound() -- Shared
 	if SERVER then
 		self.Owner:EmitSound(self.DryFireSound)
 	end
 	self:SetNextPrimaryFire( math.max(self:GetNextPrimaryFire(),CurTime() + 0.25) )
 end
 
-function SWEP:HasPrimaryAmmoToFire()
+function SWEP:HasPrimaryAmmoToFire() -- Shared
 
 	if self:Clip1() == -1 then
 		if self.Primary.SpareClip ~= -1 and self.Owner:GetAmmoCount(self:GetPrimaryAmmo()) < 1 then 
@@ -2600,7 +2583,7 @@ function SWEP:HasPrimaryAmmoToFire()
 	
 end
 
-function SWEP:HasSecondaryAmmoToFire()
+function SWEP:HasSecondaryAmmoToFire() -- Shared
 
 	if self:Clip2() == -1 then
 		if self.Secondary.SpareClip ~= -1 and self.Owner:GetAmmoCount(self:GetSecondaryAmmo()) < 1 then 
@@ -2621,7 +2604,7 @@ end
 
 
 
-function SWEP:HandleBurstFireShoot()
+function SWEP:HandleBurstFireShoot() -- Shared
 	if self.HasBurstFire or self.AlwaysBurst or self.BulletDelay > 0 then
 		if self:GetNextFireDelay() <= CurTime() and self:GetFireQueue() > 0 then
 		
@@ -2637,7 +2620,7 @@ function SWEP:HandleBurstFireShoot()
 	end
 end
 
-function SWEP:HandleReloadThink()
+function SWEP:HandleReloadThink() -- Shared
 
 	if self:GetIsNormalReload() then
 	
@@ -2685,19 +2668,19 @@ function SWEP:HandleReloadThink()
 	end
 end
 
-function SWEP:FinishShotgunReload()
+function SWEP:FinishShotgunReload() -- Shared
 	self:SendWeaponAnimation( ACT_SHOTGUN_RELOAD_FINISH )
 	self:SetNextPrimaryFire(CurTime() + self:GetTrueSequenceDuration())
 	self:SetIsShotgunReload(false)
 	self:SetIsReloading(false)
 end
 
-function SWEP:CancelReload()
+function SWEP:CancelReload() -- Shared
 	self:SetNextPrimaryFire(CurTime() + 0.1)
 	self:SetIsReloading(false)
 end
 
-function SWEP:DoHL2Pump()
+function SWEP:DoHL2Pump() -- Shared
 	self:SendWeaponAnimation( self.PumpAnimation )
 	self:SetNextPrimaryFire(CurTime() + self:GetTrueSequenceDuration())
 	if (CLIENT or IsSingleplayer) and IsFirstTimePredicted() then
@@ -2707,13 +2690,8 @@ function SWEP:DoHL2Pump()
 	end
 end
 
-function SWEP:HandleHL2Pump()
+function SWEP:HandleHL2Pump() -- Shared
 	if self.HasPumpAction and self.HasHL2Pump and self:GetNeedsHL2Pump() and self:GetNextHL2Pump() ~= 0 and self:GetNextHL2Pump() <= CurTime() and not (self:GetZoomed() and self.HasScope) then
-	
-		
-
-	
-	
 		if not (self:Clip1() == 0 or ( self:Ammo1() == 0 and self:Clip1() == -1) ) then
 			self:DoHL2Pump()
 			self:SetNeedsHL2Pump(false)
@@ -2744,7 +2722,7 @@ function SWEP:CustomAmmoDisplay()
 end
 --]]
 
-function SWEP:HandleShotgunReloadThinkAnimations()
+function SWEP:HandleShotgunReloadThinkAnimations() -- Shared
 	if self:GetNextPrimaryFire() <= CurTime() then
 		if self:GetIsShotgunReload() then
 			if self:GetNextShell() <= CurTime() then
@@ -2768,7 +2746,7 @@ function SWEP:HandleShotgunReloadThinkAnimations()
 	end
 end
 
-function SWEP:HandleCoolDown()
+function SWEP:HandleCoolDown() -- Shared
 
 	local CoolMul = FrameTime()*self.CoolSpeedMul*4
 	
@@ -2796,7 +2774,7 @@ function SWEP:HandleCoolDown()
 
 end
 
-function SWEP:HandleZoomMod()
+function SWEP:HandleZoomMod() -- Shared
 	if self:GetZoomed() and self:GetZoomOverlayDelay() <= CurTime() then
 		if self.ZoomDelay <= 0 or self:GetZoomOverlayDelay() == -1 then
 			if self.HasIronSights then
@@ -2814,7 +2792,7 @@ function SWEP:HandleZoomMod()
 	end
 end
 
-function SWEP:RemoveRecoil()
+function SWEP:RemoveRecoil() -- Client
 
 	local pUp = self:HandleLimits(self.PunchAngleUp.p)
 	local yUp = self:HandleLimits(self.PunchAngleUp.y)
@@ -2848,7 +2826,7 @@ function SWEP:RemoveRecoil()
 	
 end
 
-function SWEP:HandleLimits(value)
+function SWEP:HandleLimits(value) -- Unknown
 
 	local Limit = 0.001
 
@@ -2860,148 +2838,12 @@ function SWEP:HandleLimits(value)
 	
 end
 
-function SWEP:AdjustMouseSensitivity()
-	local Sensitivity = self.Owner:GetFOV() / self.DesiredFOV
-	return Sensitivity
-end
-
-function SWEP:DrawHUDBackground()
-
-	local x = ScrW()
-	local y = ScrH()
-	
-	self:DrawContextMenu(x,y)
-	
-	if LocalPlayer():ShouldDrawLocalPlayer() then
-	
-		local HitPos = LocalPlayer():GetEyeTrace().HitPos
-		local Screen = HitPos:ToScreen()
-		
-		x = Screen.x * 2
-		y = Screen.y * 2
-
-	end
-	
-	local length = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_length",true):GetFloat()
-	local width = 1
-	
-	local fovbonus = self.DesiredFOV / self.Owner:GetFOV()
-
-	local r = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_color_r",true):GetFloat()
-	local g = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_color_g",true):GetFloat()
-	local b = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_color_b",true):GetFloat()
-	local a = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_color_a",true):GetFloat()
-	
-	local VelCone = self.Owner:GetVelocity():Length()*0.0001
-	
-	local LeftCone = 0
-	local RightCone = 0
-	
-	--[[
-	if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_dynamic",true):GetFloat() == 0 then
-		LeftCone = math.Clamp(self.Primary.Cone*900,0,x/2)
-		RightCone = math.Clamp(self.Primary.Cone*900,0,x/2)
-	else
-		LeftCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,true)*900,0,x/2)*fovbonus
-		RightCone = math.Clamp(self:HandleCone(self.Primary.Cone,true,false)*900,0,x/2)*fovbonus
-	end
-	--]]
-	
-	--LeftCone = self:HandleCone(self.Primary.Cone,true,true) * fovbonus
-	
-	--RightCone = ( *ScrW()*0.5 ) * (90/self.Owner:GetFOV())
-	
-	local ConeAngle = (self:HandleCone(self.Primary.Cone,true,false)*360) -- THE IS THE CONE, IN AN ANGLE. 360 MEANS IT SHOOTS ALL AROUND
-	local LeftConeAngle = (self:HandleCone(self.Primary.Cone,true,true)*360) -- THE IS THE CONE, IN AN ANGLE. 360 MEANS IT SHOOTS ALL AROUND
-	
-	
-	
-	local FOV = self.Owner:GetFOV() -- THIS IS THE FOV. 360 MEANS IT SHOWS ALL AROUND
-	-- OK SO A FOV OF 360 AND A CONEANGLE OF 360 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
-	-- OK SO A FOV OF 90 AND A CONEANGLE OF 90 MEANS THAT THE CONE GAP SHOULD BE 1 * ScrW()
-	-- OK SO A FOV OF 90 AND A CONEANGLE OF 45 MEANS THAT THE CONE GAP SHOULD BE 0.5 * ScrW()
-	
-	--print(ConeAngle)
-
-	RightCone = (ConeAngle/FOV) * ScrH() * 0.25
-	LeftCone = (LeftConeAngle/FOV) * ScrH() * 0.25
-
-	--[[
-	if not IsSingleplayer then	
-		if BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_smoothing",true):GetFloat() == 1 then
-		
-			if not self.StoredCrosshair then
-				self.StoredCrosshair = Cone
-			end
-			
-			local SmoothingMul = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_smoothing_mul",true):GetFloat() * 0.015 * fovbonus
-			
-			if Cone > self.StoredCrosshair then
-				self.StoredCrosshair = math.min(Cone,self.StoredCrosshair + 500 * SmoothingMul )
-			elseif Cone < self.StoredCrosshair then
-				self.StoredCrosshair = math.max(Cone,self.StoredCrosshair - 300 * SmoothingMul )
-			end
-			
-			ConeToSend = self.StoredCrosshair
-
-		end
-	end
-	--]]
-	
-	if self.HasScope then
-
-		if self:GetZoomed() then
-			if self.ZoomDelay <= 0 or self:GetZoomOverlayDelay() <= CurTime() then
-		
-				if LocalPlayer():ShouldDrawLocalPlayer() then
-					self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,a)
-				else
-					self:DrawCustomScope(x,y,RightCone,r,g,b,a)
-				end
-
-				if not self.IgnoreScopeHide then
-					self.Owner:DrawViewModel(false)	
-				end
-				
-			else
-				self.Owner:DrawViewModel(true)	
-			end
-		else
-			self.Owner:DrawViewModel(true)
-		end
-	end
-		
-	if (self.HasCrosshair or (self.Owner:IsPlayer() and self.Owner:IsBot())) and not self.Owner:InVehicle() then
-	
-		if self.HasDual then
-		
-			local LeftAlpha = a
-			local RightAlpha = a
-
-			if !self:GetIsLeftFire() then
-				RightAlpha = RightAlpha * 0.5
-			else
-				LeftAlpha = LeftAlpha * 0.5
-			end
-
-			self:DrawCustomCrosshair(x,y,LeftCone,length,width,r,g,b,LeftAlpha)
-			self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,RightAlpha)
-			
-		else
-			self:DrawCustomCrosshair(x,y,RightCone,length,width,r,g,b,a)
-		end
-	end
-
-	self:DrawSpecial(RightCone)
-	
-end
-
-function SWEP:SpecialFalloff(falloff)
+function SWEP:SpecialFalloff(falloff) -- Shared
 
 	return falloff
 end
 
-if CLIENT then
+if CLIENT then -- Cleint
 
 	BurgerBase_ContextMenuIsOpen = false
 
@@ -3020,11 +2862,11 @@ if CLIENT then
 end
 
 
-function SWEP:GetFakeDelay()
+function SWEP:GetFakeDelay() -- Shared
 	return -1
 end
 
-function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
+function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions) -- Shared
 
 	local ReturnTable = {}
 		
@@ -3071,7 +2913,6 @@ function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
 	local BulletsFired = 1
 	local SecondsPassed = 0
 	local TestKillTime = -1
-	
 
 	local ClipSizeMath = math.Clamp(ClipSize-1,0,20)
 	
@@ -3159,537 +3000,7 @@ function BURGERBASE_CalculateWeaponStats(owner,weapon,avoidfunctions)
 
 end
 
-
-
-
-function SWEP:DrawContextMenu(x,y)
-
-	if BurgerBase_ContextMenuIsOpen == true then
-	
-		local x = ScrW()
-		local y = ScrH()
-		local BasePosX = 192
-		local BasePosY = 108
-		local Font = "DermaLarge"
-		local FontSize = 36
-		
-		local EyeTrace = self.Owner:GetEyeTrace()
-		local EyePos = EyeTrace.StartPos
-		local HitPos = EyeTrace.HitPos
-		
-		
-		local WeaponStats = BURGERBASE_CalculateWeaponStats(self.Owner,self)
-		
-		
-			
-		draw.RoundedBox( 8, ScrW()*0.1 - FontSize , ScrH()*0.1 - FontSize, BasePosX*3 + FontSize*2, FontSize*15, Color(0,0,0,200 ) )
-	
-		local TextColor = Color(239,184,55,255)
-		local PrimaryColor = Color(239,184,55,100)
-		local SecondaryColor = TextColor
-	
-		surface.SetFont( "DermaLarge" )
-		surface.SetTextColor( TextColor )
-		surface.SetDrawColor( PrimaryColor )
-		draw.NoTexture()
-		
-		-- Title
-		local PosNumber = 0
-		surface.SetTextPos( BasePosX,BasePosY  )
-		surface.DrawText( WeaponStats.ammo .. " " .. WeaponStats.name )
-		surface.DrawRect( BasePosX, BasePosY + FontSize, BasePosX*3, 2 )
-		
-		-- Damage
-		local FullDamage = WeaponStats.damage * WeaponStats.shots
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((FullDamage/100),0,1), FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-		
-		local DamageText = " Damage: " .. math.Round(FullDamage,0)
-		
-		if WeaponStats.shots > 1 then
-			DamageText = DamageText .. " (" .. WeaponStats.damage .. " x " .. WeaponStats.shots .. ")"
-		end
-		
-		surface.DrawText( DamageText )
-		
-		-- Firerate
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp((WeaponStats.rpm/600),0,1), FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-		surface.DrawText( " RPM: " .. math.Round(WeaponStats.rpm,0))
-		
-		-- Damage Per Second
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(WeaponStats.dps/600,0,1), FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-		surface.DrawText( " DPS: " .. math.Round(WeaponStats.dps,2))
-		
-		-- Kill Time
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-
-		surface.SetDrawColor( SecondaryColor )
-		surface.SetTextColor( SecondaryColor )
-		surface.SetFont( "DermaDefault" )
-
-		local TimeOffset = 0
-		
-		for i=0, self:Clip1() - 1 do
-			
-			local Spacing = WeaponStats.delay
-			
-			if self:GetIsBurst() then
-				Spacing = self:GetBurstMath()
-
-				if (i+1) % self.BurstOverride == 0 then
-					Spacing = Spacing + WeaponStats.delay
-				end
-			end
-
-			local XPos = BasePosX + TimeOffset*BasePosX*3
-			local YOffset = (-(i % 2) * FontSize) - ((i % 2)*25)
-			
-			if TimeOffset <= 1 then
-				surface.DrawRect( XPos, BasePosY + FontSize*PosNumber, 2, FontSize )
-				draw.SimpleText( math.Round(TimeOffset,2), "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
-				draw.SimpleText( "(" .. (i+1)*math.Round(FullDamage,0) .. ")", "DermaDefault", XPos,BasePosY + FontSize*PosNumber + FontSize + 10 + YOffset,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)
-				TimeOffset = TimeOffset + Spacing
-			end
-			
-
-		end
-
-		surface.SetFont( "DermaLarge" )
-		surface.SetTextColor( TextColor )
-		surface.SetDrawColor( PrimaryColor )
-		
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * math.Clamp(WeaponStats.killtime/1,0,1), FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber  )
-		surface.DrawText( " Kill Time: " .. math.Round(WeaponStats.killtime,2) .. " seconds")
-
-		
-		-- Accuracy
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * WeaponStats.accuracy, FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-		surface.DrawText( " Accuracy: " .. math.Round(WeaponStats.accuracy*100,2) .. "%")
-		
-		--[[
-		--Bullet Penetration
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-		
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-		surface.DrawText( " Penetration: " .. BulletPenetration .. " units")
-		--]]
-		
-		-- Range
-		local BaseRange = WeaponStats.range*2
-		local ViewDistance = HitPos:Distance(EyePos)
-		local MatterScale = BURGERBASE:CONVARS_GetStoredConvar("sv_burgerbase_damagefalloffscale"):GetFloat()
-					
-		
-		PosNumber = PosNumber + 2
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3, FontSize )
-		surface.DrawRect( BasePosX, BasePosY + FontSize*PosNumber, BasePosX*3 * 0.5, FontSize )
-		surface.SetTextPos( BasePosX,BasePosY + FontSize*PosNumber )
-
-		surface.DrawText( " Range: " .. math.Round(WeaponStats.range/(64/1.22),2) .. " meters")
-		local PolyBaseX = BasePosX + (BasePosX*3 * 0.5)
-		local PolyBaseY = BasePosY + FontSize*PosNumber
-		local TriAngle = {
-			{x = PolyBaseX,y = PolyBaseY},
-			{x = PolyBaseX + BasePosX*3*0.5*(1-MatterScale),y = PolyBaseY + FontSize*(1-MatterScale)},
-			{x = PolyBaseX,y = PolyBaseY + FontSize*(1-MatterScale)},
-		}
-		surface.DrawPoly( TriAngle )
-		surface.DrawRect( PolyBaseX, PolyBaseY + FontSize * ( 1 - MatterScale), BasePosX*1.5 , FontSize*MatterScale )
-		surface.SetDrawColor( SecondaryColor )
-		surface.DrawRect( BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1), BasePosY + FontSize*PosNumber, 2, FontSize )	
-		local DamageScale = math.min( (2) - (ViewDistance/WeaponStats.range),1)
-		
-		draw.SimpleText(math.Round(math.Clamp(DamageScale * FullDamage,FullDamage * MatterScale,FullDamage),2) .. " Damage", "DermaDefault", BasePosX + BasePosX*3*math.Clamp(ViewDistance/(BaseRange),0,1),BasePosY + FontSize*PosNumber + FontSize,TextColor,TEXT_ALIGN_CENTER,TEXT_ALIGN_TOP)	
-		
-		surface.SetDrawColor( PrimaryColor )	
-
-	end
-
-
-end
-
-
-
-
-
-
-
-function SWEP:DrawCustomCrosshair(x,y,Cone,length,width,r,g,b,a)
-
-	local XRound = math.floor(x/2)
-	local YRound = math.floor(y/2)
-	local WRound = math.floor(width/2)
-	local LRound = math.floor(length/2)
-	
-	if BurgerBase_ContextMenuIsOpen then
-		XRound, YRound = self:ClientCursorClamp()
-	end
-
-	if self.CrosshairOverrideMat then
-		surface.SetDrawColor(Color(255,255,255,255))
-		surface.SetMaterial(self.CrosshairOverrideMat)
-		surface.DrawTexturedRectRotated(XRound,YRound,self.CrosshairOverrideSize,self.CrosshairOverrideSize,0)
-	else
-	
-		local SizeOffset = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_offset",true):GetFloat()
-		local FinalCone = math.floor( math.Max(Cone,WRound*2,LRound/2) + SizeOffset )
-		
-		local CrosshairShadow = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_shadow",true):GetFloat()
-		local CrosshairStyle = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_style",true):GetFloat()
-		local CrosshairDot = BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_dot",true):GetFloat()
-		
-		if !self:GetZoomed() or self.EnableIronCross or ( BURGERBASE:CONVARS_GetStoredConvar("cl_burgerbase_crosshair_neversights",true):GetFloat() == 1 and not self.HasScope) then
-
-			if  WRound == 0 then
-			
-				if CrosshairStyle >= 2 and CrosshairStyle <= 5 then
-					
-					local Offset = 0
-			
-					if CrosshairStyle == 4 then
-						Offset = LRound*2
-					elseif CrosshairStyle == 3 then
-						Offset = LRound
-					else
-						Offset = 0
-					end
-				
-					if CrosshairShadow >= 1 then
-						surface.DrawCircle(x/2,y/2, FinalCone + Offset - 1, Color(0,0,0,a))
-						surface.DrawCircle(x/2,y/2, FinalCone + Offset + 1, Color(0,0,0,a))
-					end
-					
-				end
-
-				if CrosshairStyle >= 1 and CrosshairStyle <= 4 then
-				
-					if CrosshairShadow >= 1 then
-					
-						local RealLength = LRound*2
-					
-						-- Start of Shadow Stuff
-						local x1 = XRound + FinalCone + RealLength
-						local x2 = XRound - FinalCone - RealLength
-						local y3 = YRound + FinalCone + RealLength
-						local y4 = YRound - FinalCone - RealLength
-
-						local Offset = 1
-
-						surface.SetDrawColor(Color(0,0,0,a))
-						
-						--Right
-						surface.DrawLine(x1 - RealLength,YRound - Offset,x1 + Offset*2,YRound - Offset)
-						surface.DrawLine(x1 - RealLength,YRound + Offset,x1 + Offset*2,YRound + Offset)
-						
-						--Left
-						surface.DrawLine(x2 + RealLength,YRound - Offset,x2 - Offset*2,YRound - Offset)
-						surface.DrawLine(x2 + RealLength,YRound + Offset,x2 - Offset*2,YRound + Offset)
-						
-						--Bottom
-						surface.DrawLine(XRound - Offset,y3 - RealLength,XRound - Offset,y3 + Offset*2)
-						surface.DrawLine(XRound + Offset,y3 - RealLength,XRound + Offset,y3 + Offset*2)
-						
-						--Top
-						surface.DrawLine(XRound - Offset,y4 + RealLength,XRound - Offset,y4 - Offset*2)
-						surface.DrawLine(XRound + Offset,y4 + RealLength,XRound + Offset,y4 - Offset*2)
-
-						
-						-- End of Shadow Stuff
-					end
-					
-					-- Start of Normal Stuff
-					if width > 1 then
-				
-						local x1 = XRound - WRound 
-						local x2 = XRound - WRound
-						local y3 = YRound - WRound
-						local y4 = YRound - WRound
-						
-						local y1 = YRound + math.max(FinalCone,0)
-						local y2 = YRound - (LRound*2) - math.max(FinalCone,0)
-						local x3 = XRound + math.max(FinalCone,0)
-						local x4 = XRound - (LRound*2) - math.max(FinalCone,0)
-
-						surface.SetDrawColor(r,g,b,a)
-						surface.DrawRect( x1, y1, WRound*2, LRound*2 )
-						surface.DrawRect( x2, y2, WRound*2, LRound*2 )
-						surface.DrawRect( x3, y3, LRound*2, WRound*2 )
-						surface.DrawRect( x4, y4, LRound*2, WRound*2 )
-				
-					else
-					
-						local x1 = XRound + FinalCone + LRound*2
-						local x2 = XRound - FinalCone - LRound*2
-						local y3 = YRound + FinalCone + LRound*2
-						local y4 = YRound - FinalCone - LRound*2
-						
-						surface.SetDrawColor(r,g,b,a)
-						surface.DrawLine( x1, YRound, XRound+FinalCone, YRound )
-						surface.DrawLine( x2, YRound, XRound-FinalCone, YRound )		
-						surface.DrawLine( XRound, y3, XRound, YRound+FinalCone )		
-						surface.DrawLine( XRound, y4, XRound, YRound-FinalCone )
-
-					end
-					-- End of Normal Stuff
-
-				end
-				
-				if CrosshairDot >= 1 then
-			
-					local Max = math.max(1,width)
-					
-					if CrosshairShadow >= 1 then
-
-						if width <= 1 then
-							surface.SetDrawColor(Color(0,0,0,a))
-							surface.DrawRect( XRound - WRound - 1, YRound - WRound - 1 , Max + 2, Max + 2 )
-						end
-					end
-					
-					-- Start of Normal Stuff
-					surface.SetDrawColor(r,g,b,a)
-					surface.DrawRect( XRound - WRound, YRound - WRound , Max, Max )
-
-
-				end
-				
-				if CrosshairStyle >= 2 and CrosshairStyle <= 5 then
-					
-					local Offset = 0
-			
-					if CrosshairStyle == 4 then
-						Offset = LRound*2
-					elseif CrosshairStyle == 3 then
-						Offset = LRound
-					else
-						Offset = 0
-					end
-					
-					-- Start of Normal Stuff
-					surface.DrawCircle(XRound,YRound, FinalCone + Offset, Color(r,g,b,a))
-					-- End of Normal Stuff
-					
-				end
-				
-			end
-			
-		end	
-		
-	end
-	
-end
-
-function SWEP:DrawSpecial(Cone)
-
-
-end
-
-
-
-function SWEP:DrawCustomScope(x,y,Cone,r,g,b,a)
-
-	local space = 1
-	
-	local PositionOffsetX = 0
-	local PositionOffsetY = 0
-	
-	if BurgerBase_ContextMenuIsOpen then
-		PositionOffsetX, PositionOffsetY = self:ClientCursorClamp()
-		PositionOffsetX = PositionOffsetX - x/2
-		PositionOffsetY = PositionOffsetY - y/2	
-	end
-
-	--[[
-	local XSub = 100*FrameTime()
-	local YSub = 100*FrameTime()
-
-	if self.DynamicScopeDesiredOffsetX > 0 and self.DynamicScopeDesiredOffsetX - XSub > 0 then
-		self.DynamicScopeDesiredOffsetX = self.DynamicScopeDesiredOffsetX - XSub
-	elseif self.DynamicScopeDesiredOffsetX < 0 and self.DynamicScopeDesiredOffsetX - XSub < 0 then
-		self.DynamicScopeDesiredOffsetX = self.DynamicScopeDesiredOffsetX + XSub
-	else
-		self.DynamicScopeDesiredOffsetX = 0
-	end
-	
-	if self.DynamicScopeDesiredOffsetY > 0 and self.DynamicScopeDesiredOffsetY - YSub > 0 then
-		self.DynamicScopeDesiredOffsetY = self.DynamicScopeDesiredOffsetY - YSub
-	elseif self.DynamicScopeDesiredOffsetY < 0 and self.DynamicScopeDesiredOffsetY - YSub < 0 then
-		self.DynamicScopeDesiredOffsetY = self.DynamicScopeDesiredOffsetY + YSub
-	else
-		self.DynamicScopeDesiredOffsetY = 0
-	end
-
-	self.DynamicScopeOffsetX = self.DynamicScopeOffsetX - (self.DynamicScopeOffsetX - self.DynamicScopeDesiredOffsetX)*FrameTime()
-	self.DynamicScopeOffsetY = self.DynamicScopeOffsetY - (self.DynamicScopeOffsetY - self.DynamicScopeDesiredOffsetY)*FrameTime()
-	
-	
-	PositionOffsetX = PositionOffsetX + self.DynamicScopeOffsetX
-	PositionOffsetY = PositionOffsetY + self.DynamicScopeOffsetY
-	--]]
-	
-	--[[
-	local MoveVel = self:GetMovementVelocity()
-	
-
-	if MoveVel ~= 0 then
-		self.ScopeMoveTime = self.ScopeMoveTime + 1*math.pi*FrameTime()
-		self.ScopeMoveTimeStored = math.sin(self.ScopeMoveTime)*50
-	else 
-		if self.ScopeMoveTimeStored > 0 then
-			self.ScopeMoveTimeStored = math.Clamp(self.ScopeMoveTimeStored - FrameTime(),0,1)
-		elseif self.ScopeMoveTimeStored < 0 then
-			self.ScopeMoveTimeStored = math.Clamp(self.ScopeMoveTimeStored + FrameTime(),-1,0)
-		else
-			self.ScopeMoveTimeStored = 0
-		end
-	end
-	
-	PositionOffsetX = PositionOffsetX + self.ScopeMoveTimeStored
-	--]]
-	
-	--[[
-	local Size = math.Clamp(Cone,3,x/2*0.33)/2
-	
-	local OffsetX = math.sin(CurTime())*Size
-	local OffsetY = math.cos(CurTime())*Size
-	
-	self.DynamicScopeOffsetX = self.DynamicScopeOffsetX - (self.DynamicScopeOffsetX - OffsetX)*FrameTime()*10
-	self.DynamicScopeOffsetY = self.DynamicScopeOffsetY - (self.DynamicScopeOffsetY - OffsetY)*FrameTime()*10
-	
-	PositionOffsetX = PositionOffsetX + self.DynamicScopeOffsetX
-	PositionOffsetY = PositionOffsetY + self.DynamicScopeOffsetY
-	--]]
-	
-	if self.ColorOverlay.a > 0 then
-		surface.SetDrawColor(self.ColorOverlay)
-		surface.DrawRect(0-x/2 + PositionOffsetX, 0-y/2 + PositionOffsetY, x*2, y*2 )
-	end
-	
-	if self.CustomScope == nil then
-	
-		if self.EnableDefaultScope then
-			surface.SetDrawColor(Color(0,0,0))
-			surface.SetMaterial(Material("gui/sniper_corner"))
-			
-			--[[
-			surface.DrawTexturedRectRotated(x/2 - y/4 + PositionOffsetX,y/2 - y/4 + PositionOffsetY,y/2 + space,y/2 + space,0-180-180)
-			surface.DrawTexturedRectRotated(x/2 - y/4 + PositionOffsetX,y/2 + y/4 + PositionOffsetY,y/2 + space,y/2 + space,90-180-180)
-			surface.DrawTexturedRectRotated(x/2 + y/4 + PositionOffsetX,y/2 + y/4 + PositionOffsetY,y/2 + space,y/2 + space,180-180-180)
-			surface.DrawTexturedRectRotated(x/2 + y/4 + PositionOffsetX,y/2 - y/4 + PositionOffsetY,y/2 + space,y/2 + space,270-180-180)
-			--]]
-			
-			local CenterX = x/2
-			local ScopeSize = y
-			local ScopeSegmentSize = ScopeSize/2
-			
-			
-			surface.DrawTexturedRectRotated(CenterX - ScopeSegmentSize/2 + PositionOffsetX,ScopeSegmentSize - ScopeSegmentSize/2 + PositionOffsetY,ScopeSegmentSize + space,ScopeSegmentSize + space,0-180-180)
-			surface.DrawTexturedRectRotated(CenterX - ScopeSegmentSize/2 + PositionOffsetX,ScopeSegmentSize + ScopeSegmentSize/2 + PositionOffsetY,ScopeSegmentSize + space,ScopeSegmentSize + space,90-180-180)
-			surface.DrawTexturedRectRotated(CenterX + ScopeSegmentSize/2 + PositionOffsetX,ScopeSegmentSize + ScopeSegmentSize/2 + PositionOffsetY,ScopeSegmentSize + space,ScopeSegmentSize + space,180-180-180)
-			surface.DrawTexturedRectRotated(CenterX + ScopeSegmentSize/2 + PositionOffsetX,ScopeSegmentSize - ScopeSegmentSize/2 + PositionOffsetY,ScopeSegmentSize + space,ScopeSegmentSize + space,270-180-180)
-			
-			
-			
-		end
-		
-		if self.ZoomAmount > 6 then
-			surface.SetDrawColor(Color(0,0,0))
-			surface.DrawLine(x/2 + PositionOffsetX,0 + PositionOffsetY,x/2 + PositionOffsetX,y + PositionOffsetY)
-			surface.DrawLine(0 + PositionOffsetX,y/2 + PositionOffsetY,x + PositionOffsetX,y/2 + PositionOffsetY)
-		else
-			if !self.EnableIronCross then
-				surface.DrawCircle( x/2 + PositionOffsetX, y/2 + PositionOffsetY, 1 , Color(r,g,b,a) )
-			end
-		end
-		
-	else
-	
-		local Size = y
-		
-		if self.CustomScopeSOverride then
-			Size = self.CustomScopeSOverride
-		end
-	
-		surface.SetDrawColor(self.CustomScopeCOverride)
-		surface.SetMaterial(self.CustomScope)
-		surface.DrawTexturedRectRotated(x/2 + PositionOffsetX,y/2 + PositionOffsetY,Size*self.CustomScopeSizeMul,Size*self.CustomScopeSizeMul,0)
-		
-		if self.EnableDefaultScope then
-			surface.SetDrawColor(Color(0,0,0,255))
-			surface.SetMaterial(Material("vgui/scope_lens"))
-			surface.DrawTexturedRectRotated(x/2 + PositionOffsetX,y/2 + PositionOffsetY,y,y,0)
-		end
-		
-	end
-	
-	if !self.EnableIronCross then
-		local Size = math.Clamp(Cone,3,x/2*0.33)
-				
-		if Size > 6 then
-			surface.DrawCircle( x/2 + PositionOffsetX, y/2 + PositionOffsetY, Size , Color(r,g,b,a) )
-		end
-	end
-
-	if self.EnableDefaultScope then
-		surface.SetDrawColor(Color(0,0,0))
-		
-		local CenterX = x/2
-		local ScopeSize = y
-		local ScopeSegmentSize = ScopeSize/2
-		
-		surface.DrawRect( 0 + PositionOffsetX, 0 + PositionOffsetY, CenterX - ScopeSegmentSize, ScopeSize ) -- Left
-		surface.DrawRect( CenterX + ScopeSegmentSize + PositionOffsetX, 0 + PositionOffsetY, CenterX - ScopeSegmentSize, ScopeSize ) -- Right
-
-	end
-	
-	surface.SetDrawColor(Color(0,0,0))
-	
-	surface.DrawRect( x + PositionOffsetX, 0 + PositionOffsetY, x, y) -- Right
-	surface.DrawRect(-x + PositionOffsetX, 0 + PositionOffsetY, x, y) -- Left
-	surface.DrawRect( -x + PositionOffsetX, y + PositionOffsetY, x*3, y) -- Bottom
-	surface.DrawRect( -x + PositionOffsetX, -y + PositionOffsetY, x*3, y) -- Top
-	
-end
-
-function SWEP:ClientCursorClamp()
-	local x,y = input.GetCursorPos()
-	x = math.Clamp(x,0,ScrW())
-	y = math.Clamp(y,0,ScrH())
-	return x,y
-end
-
-
-function SWEP:HUDShouldDraw( element )
-
-	if self:GetZoomed() and element == "CHudWeaponSelection" then
-		return false
-	end
-	
-	return true
-	
-end
-
-function SWEP:PrintWeaponInfo( x, y, alpha )
-	
-end
-
-function SWEP:EquipThink()
+function SWEP:EquipThink() -- Shared
 
 	if self.WeaponType ~= "Throwable" then return end
 
@@ -3735,9 +3046,7 @@ function SWEP:EquipThink()
 	
 end
 
-
-
-function SWEP:RemoveGrenade()
+function SWEP:RemoveGrenade() -- Shared
 
 	self:SetCanHolster( true )
 	self:SetIsThrowing( false )
@@ -3756,7 +3065,7 @@ function SWEP:RemoveGrenade()
 end
 
 
-function SWEP:SwitchToPrimary()
+function SWEP:SwitchToPrimary() -- Shared
 
 	
 	if self.Owner and self.Owner ~= NULL then
@@ -3783,11 +3092,11 @@ function SWEP:SwitchToPrimary()
 	
 end
 
-function SWEP:QuickThrow()
+function SWEP:QuickThrow() -- Shared
 	self:PreThrowObject(true)
 end
 
-function SWEP:PreThrowObject(override)
+function SWEP:PreThrowObject(override) -- Shared
 
 	if self:IsUsing() and not override then return end
 	
@@ -3808,7 +3117,7 @@ function SWEP:PreThrowObject(override)
 	
 end
 
-function SWEP:ThrowObject(object,force)
+function SWEP:ThrowObject(object,force) -- Shared
 
 	if (CLIENT) then return end
 	local EA =  self.Owner:EyeAngles()
@@ -3835,13 +3144,13 @@ function SWEP:ThrowObject(object,force)
 
 end
 
-function SWEP:QuickKnife()
+function SWEP:QuickKnife() -- Shared
 
 end
 
 SWEP.MeleeCanParry = true
 
-function SWEP:StartSwing(damage,delay,entoverride,delayoverride)
+function SWEP:StartSwing(damage,delay,entoverride,delayoverride) -- Shared
 
 	if self.MeleeCanParry and self.MeleeDelay > 0 then
 		self:SetClashTime(CurTime() + self.MeleeDelay*2)
@@ -3870,7 +3179,7 @@ end
 
 
 
-function SWEP:AddDurability(amount)
+function SWEP:AddDurability(amount) -- Shared
 
 	self:SetClip1( math.Clamp(self:Clip1() + amount,0,100) )
 
@@ -3883,7 +3192,7 @@ function SWEP:AddDurability(amount)
 	
 end
 
-function SWEP:SwingThink()
+function SWEP:SwingThink() -- Shared
 
 	if self:GetShouldMelee() and self:GetNextMelee() <= CurTime() then
 		local HitEntity = self:GetNextMeleeEnt()
@@ -3897,15 +3206,15 @@ function SWEP:SwingThink()
 
 end
 
-function SWEP:MeleeRange()
+function SWEP:MeleeRange() -- Shared
 	return 40
 end
 
-function SWEP:MeleeSize()
+function SWEP:MeleeSize() -- Shared
 	return 40
 end
 
-function SWEP:MidSwing(damage,entoverride)
+function SWEP:MidSwing(damage,entoverride) -- Shared
 
 	if entoverride and entoverride ~= NULL then
 		self:SendMeleeDamage(entoverride,damage,nil)
@@ -3933,11 +3242,11 @@ function SWEP:MidSwing(damage,entoverride)
 
 end
 
-function SWEP:FinishSwing(HitEntity,Damage)
+function SWEP:FinishSwing(HitEntity,Damage) -- Shared
 
 end
 
-function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullfilterfunction)
+function SWEP:DoDoubleTrace(startpos,endpos,mask,bounds,linefilterfunction,hullfilterfunction) -- Shared
 
 	local LineTraceData = {}
 	LineTraceData.start = startpos
@@ -3992,7 +3301,7 @@ SWEP.MeleeBackStabMul = 2
 SWEP.MeleeBlockRange = 90 + 45
 SWEP.MeleeBlockReduction = 0.1
 
-function SWEP:SendMeleeDamage(victim,damage,TraceResult)
+function SWEP:SendMeleeDamage(victim,damage,TraceResult) -- Shared
 
 	if (victim and victim ~= NULL) and (victim:IsPlayer() or victim:IsNPC()) then
 				
@@ -4026,7 +3335,7 @@ function SWEP:SendMeleeDamage(victim,damage,TraceResult)
 
 end
 
-function SWEP:BlockDamage(damage,attacker,attackerweapon)
+function SWEP:BlockDamage(damage,attacker,attackerweapon) -- Shared
 	attacker:ViewPunch(Angle(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1)))
 	self.Owner:ViewPunch(Angle(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1)))
 	self.Owner:DoAnimationEvent( ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND )
@@ -4038,7 +3347,7 @@ function SWEP:BlockDamage(damage,attacker,attackerweapon)
 	attackerweapon:EmitSound(self.MeleeSoundWallHit)
 end
 
-function SWEP:DoMeleeDamage(damage, victim, traceresult)
+function SWEP:DoMeleeDamage(damage, victim, traceresult) -- Shared
 
 	if victim and victim ~= NULL then
 	
@@ -4073,7 +3382,7 @@ function SWEP:DoMeleeDamage(damage, victim, traceresult)
 
 end
 
-function SWEP:MeleeFleshEffect(victim,traceresult)
+function SWEP:MeleeFleshEffect(victim,traceresult) -- Shared
 
 	local StartPos = self.Owner:EyePos()
 	local HitPos = victim:GetPos() + victim:OBBCenter()
@@ -4102,7 +3411,7 @@ function SWEP:MeleeFleshEffect(victim,traceresult)
 	
 end
 
-function SWEP:GetActivities()
+function SWEP:GetActivities() -- Shared
 
 	if CLIENT then
 
@@ -4124,473 +3433,15 @@ function SWEP:GetActivities()
   
 end
 
-function SWEP:SCK_OnRemove()
-	self:SCK_Holster()
-end
-
-function SWEP:DrawWorldModel()
-	self:SCK_DrawWorldModel()
-end
-
-function SWEP:ViewModelDrawn()
-	self:SCK_ViewModelDrawn()
-end
-
-function SWEP:OnRemove()
-	self:SCK_OnRemove()
+function SWEP:OnRemove() -- Shared
+	if CLIENT then
+		self:SCK_OnRemove()
+	end
 end
 
 --------------------------------
 --SWEP CONTSTRUCTION KIT STUFF--
 --------------------------------
-
-function SWEP:SCK_Initialize()
-	// other initialize code goes here
-	if CLIENT then
-	
-		// Create a new table for every weapon instance
-		self.VElements = table.FullCopy( self.VElements )
-		self.WElements = table.FullCopy( self.WElements )
-		self.ViewModelBoneMods = table.FullCopy( self.ViewModelBoneMods )
-		self:SCK_CreateModels(self.VElements) // create viewmodels
-		self:SCK_CreateModels(self.WElements) // create worldmodels
-		
-		// init view model bone build function
-		if IsValid(self.Owner) then
-			local vm = self.Owner:GetViewModel()
-			if IsValid(vm) then
-				self:SCK_ResetBonePositions(vm)
-				
-				// Init viewmodel visibility
-				if (self.ShowViewModel == nil or self.ShowViewModel) then
-					vm:SetColor(Color(255,255,255,255))
-				else
-					// we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
-					vm:SetColor(Color(255,255,255,1))
-					// ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
-					// however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
-					vm:SetMaterial("Debug/hsv")			
-				end
-			end
-		end
-		
-	end
-end
-
-function SWEP:SCK_Holster()
-	
-	if CLIENT and IsValid(self.Owner) then
-		local vm = self.Owner:GetViewModel()
-		if IsValid(vm) then
-			self:SCK_ResetBonePositions(vm)
-		end
-	end
-	
-	return true
-end
-
-if CLIENT then
-	SWEP.vRenderOrder = nil
-	function SWEP:SCK_ViewModelDrawn()
-		
-		local vm = self.Owner:GetViewModel()
-		if !IsValid(vm) then return end
-		
-		if (!self.VElements) then return end
-		
-		self:SCK_UpdateBonePositions(vm)
-		if (!self.vRenderOrder) then
-			
-			// we build a render order because sprites need to be drawn after models
-			self.vRenderOrder = {}
-			for k, v in pairs( self.VElements ) do
-				if (v.type == "Model") then
-					table.insert(self.vRenderOrder, 1, k)
-				elseif (v.type == "Sprite" or v.type == "Quad") then
-					table.insert(self.vRenderOrder, k)
-				end
-			end
-			
-		end
-		for k, name in ipairs( self.vRenderOrder ) do
-		
-			local v = self.VElements[name]
-			if (!v) then self.vRenderOrder = nil break end
-			if (v.hide) then continue end
-			
-			local model = v.modelEnt
-			local sprite = v.spriteMaterial
-			
-			if (!v.bone) then continue end
-			
-			local pos, ang = self:SCK_GetBoneOrientation( self.VElements, v, vm )
-			
-			if (!pos) then continue end
-			
-			if (v.type == "Model" and IsValid(model)) then
-				model:SetPos(pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z )
-				ang:RotateAroundAxis(ang:Up(), v.angle.y)
-				ang:RotateAroundAxis(ang:Right(), v.angle.p)
-				ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-				model:SetAngles(ang)
-				//model:SetModelScale(v.size)
-				local matrix = Matrix()
-				matrix:Scale(v.size)
-				model:EnableMatrix( "RenderMultiply", matrix )
-				
-				if (v.material == "") then
-					model:SetMaterial("")
-				elseif (model:GetMaterial() != v.material) then
-					model:SetMaterial( v.material )
-				end
-				
-				if (v.skin and v.skin != model:GetSkin()) then
-					model:SetSkin(v.skin)
-				end
-				
-				if (v.bodygroup) then
-					for k, v in pairs( v.bodygroup ) do
-						if (model:GetBodygroup(k) != v) then
-							model:SetBodygroup(k, v)
-						end
-					end
-				end
-				
-				if (v.surpresslightning) then
-					render.SuppressEngineLighting(true)
-				end
-				
-				render.SetColorModulation(v.color.r/255, v.color.g/255, v.color.b/255)
-				render.SetBlend(v.color.a/255)
-				model:DrawModel()
-				render.SetBlend(1)
-				render.SetColorModulation(1, 1, 1)
-				
-				if (v.surpresslightning) then
-					render.SuppressEngineLighting(false)
-				end
-				
-			elseif (v.type == "Sprite" and sprite) then
-				
-				local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-				render.SetMaterial(sprite)
-				render.DrawSprite(drawpos, v.size.x, v.size.y, v.color)
-				
-			elseif (v.type == "Quad" and v.draw_func) then
-				
-				local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-				ang:RotateAroundAxis(ang:Up(), v.angle.y)
-				ang:RotateAroundAxis(ang:Right(), v.angle.p)
-				ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-				
-				cam.Start3D2D(drawpos, ang, v.size)
-					v.draw_func( self )
-				cam.End3D2D()
-			end
-			
-		end
-		
-	end
-	SWEP.wRenderOrder = nil
-
-	function SWEP:SCK_DrawWorldModel()
-		
-		if (self.ShowWorldModel == nil or self.ShowWorldModel) then
-			self:DrawModel()
-		end
-		
-		if (!self.WElements) then return end
-		
-		if (!self.wRenderOrder) then
-			self.wRenderOrder = {}
-			for k, v in pairs( self.WElements ) do
-				if (v.type == "Model") then
-					table.insert(self.wRenderOrder, 1, k)
-				elseif (v.type == "Sprite" or v.type == "Quad") then
-					table.insert(self.wRenderOrder, k)
-				end
-			end
-		end
-		
-		if (IsValid(self.Owner)) then
-			bone_ent = self.Owner
-		else
-			// when the weapon is dropped
-			bone_ent = self
-		end
-		
-		for k, name in pairs( self.wRenderOrder ) do
-		
-			local v = self.WElements[name]
-			if (!v) then self.wRenderOrder = nil break end
-			if (v.hide) then continue end
-			
-			local pos, ang
-			
-			if (v.bone) then
-				pos, ang = self:SCK_GetBoneOrientation( self.WElements, v, bone_ent )
-			else
-				pos, ang = self:SCK_GetBoneOrientation( self.WElements, v, bone_ent, "ValveBiped.Bip01_R_Hand" )
-			end
-			
-			if (!pos) then continue end
-			
-			local model = v.modelEnt
-			local sprite = v.spriteMaterial
-			
-			if (v.type == "Model" and IsValid(model)) then
-				model:SetPos(pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z )
-				ang:RotateAroundAxis(ang:Up(), v.angle.y)
-				ang:RotateAroundAxis(ang:Right(), v.angle.p)
-				ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-				model:SetAngles(ang)
-				//model:SetModelScale(v.size)
-				local matrix = Matrix()
-				matrix:Scale(v.size)
-				model:EnableMatrix( "RenderMultiply", matrix )
-				
-				if (v.material == "") then
-					model:SetMaterial("")
-				elseif (model:GetMaterial() != v.material) then
-					model:SetMaterial( v.material )
-				end
-				
-				if (v.skin and v.skin != model:GetSkin()) then
-					model:SetSkin(v.skin)
-				end
-				
-				if (v.bodygroup) then
-					for k, v in pairs( v.bodygroup ) do
-						if (model:GetBodygroup(k) != v) then
-							model:SetBodygroup(k, v)
-						end
-					end
-				end
-				
-				if (v.surpresslightning) then
-					render.SuppressEngineLighting(true)
-				end
-				
-				render.SetColorModulation(v.color.r/255, v.color.g/255, v.color.b/255)
-				render.SetBlend(v.color.a/255)
-				model:DrawModel()
-				render.SetBlend(1)
-				render.SetColorModulation(1, 1, 1)
-				
-				if (v.surpresslightning) then
-					render.SuppressEngineLighting(false)
-				end
-				
-			elseif (v.type == "Sprite" and sprite) then
-				
-				local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-				render.SetMaterial(sprite)
-				render.DrawSprite(drawpos, v.size.x, v.size.y, v.color)
-				
-			elseif (v.type == "Quad" and v.draw_func) then
-				
-				local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-				ang:RotateAroundAxis(ang:Up(), v.angle.y)
-				ang:RotateAroundAxis(ang:Right(), v.angle.p)
-				ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-				
-				cam.Start3D2D(drawpos, ang, v.size)
-					v.draw_func( self )
-				cam.End3D2D()
-			end
-			
-		end
-		
-	end
-	function SWEP:SCK_GetBoneOrientation( basetab, tab, ent, bone_override )
-		
-		local bone, pos, ang
-		if (tab.rel and tab.rel != "") then
-			
-			local v = basetab[tab.rel]
-			
-			if (!v) then return end
-			
-			// Technically, if there exists an element with the same name as a bone
-			// you can get in an infinite loop. Let's just hope nobody's that stupid.
-			pos, ang = self:SCK_GetBoneOrientation( basetab, v, ent )
-			
-			if (!pos) then return end
-			
-			pos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-			ang:RotateAroundAxis(ang:Up(), v.angle.y)
-			ang:RotateAroundAxis(ang:Right(), v.angle.p)
-			ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-				
-		else
-		
-			bone = ent:LookupBone(bone_override or tab.bone)
-			if (!bone) then return end
-			
-			pos, ang = Vector(0,0,0), Angle(0,0,0)
-			local m = ent:GetBoneMatrix(bone)
-			if (m) then
-				pos, ang = m:GetTranslation(), m:GetAngles()
-			end
-			
-			if (IsValid(self.Owner) and self.Owner:IsPlayer() and 
-				ent == self.Owner:GetViewModel() and self.ViewModelFlip) then
-				ang.r = -ang.r // Fixes mirrored models
-			end
-		
-		end
-		
-		return pos, ang
-	end
-	function SWEP:SCK_CreateModels( tab )
-		if (!tab) then return end
-		// Create the clientside models here because Garry says we can't do it in the render hook
-		for k, v in pairs( tab ) do
-			if (v.type == "Model" and v.model and v.model != "" and (!IsValid(v.modelEnt) or v.createdModel != v.model) and 
-					string.find(v.model, ".mdl") and file.Exists (v.model, "GAME") ) then
-				
-				v.modelEnt = ClientsideModel(v.model, RENDER_GROUP_VIEW_MODEL_OPAQUE)
-				if (IsValid(v.modelEnt)) then
-					v.modelEnt:SetPos(self:GetPos())
-					v.modelEnt:SetAngles(self:GetAngles())
-					v.modelEnt:SetParent(self)
-					v.modelEnt:SetNoDraw(true)
-					v.createdModel = v.model
-				else
-					v.modelEnt = nil
-				end
-				
-			elseif (v.type == "Sprite" and v.sprite and v.sprite != "" and (!v.spriteMaterial or v.createdSprite != v.sprite) 
-				and file.Exists ("materials/"..v.sprite..".vmt", "GAME")) then
-				
-				local name = v.sprite.."-"
-				local params = { ["$basetexture"] = v.sprite }
-				// make sure we create a unique name based on the selected options
-				local tocheck = { "nocull", "additive", "vertexalpha", "vertexcolor", "ignorez" }
-				for i, j in pairs( tocheck ) do
-					if (v[j]) then
-						params["$"..j] = 1
-						name = name.."1"
-					else
-						name = name.."0"
-					end
-				end
-
-				v.createdSprite = v.sprite
-				v.spriteMaterial = CreateMaterial(name,"UnlitGeneric",params)
-				
-			end
-		end
-		
-	end
-	
-	local allbones
-	local hasGarryFixedBoneScalingYet = false
-
-	function SWEP:SCK_UpdateBonePositions(vm)
-		
-		if self.ViewModelBoneMods then
-			
-			if (!vm:GetBoneCount()) then return end
-			
-			// !! WORKAROUND !! //
-			// We need to check all model names :/
-			local loopthrough = self.ViewModelBoneMods
-			if (!hasGarryFixedBoneScalingYet) then
-				allbones = {}
-				for i=0, vm:GetBoneCount() do
-					local bonename = vm:GetBoneName(i)
-					if (self.ViewModelBoneMods[bonename]) then 
-						allbones[bonename] = self.ViewModelBoneMods[bonename]
-					else
-						allbones[bonename] = { 
-							scale = Vector(1,1,1),
-							pos = Vector(0,0,0),
-							angle = Angle(0,0,0)
-						}
-					end
-				end
-				
-				loopthrough = allbones
-			end
-			// !! ----------- !! //
-			
-			for k, v in pairs( loopthrough ) do
-				local bone = vm:LookupBone(k)
-				if (!bone) then continue end
-				
-				// !! WORKAROUND !! //
-				local s = Vector(v.scale.x,v.scale.y,v.scale.z)
-				local p = Vector(v.pos.x,v.pos.y,v.pos.z)
-				local ms = Vector(1,1,1)
-				if (!hasGarryFixedBoneScalingYet) then
-					local cur = vm:GetBoneParent(bone)
-					while(cur >= 0) do
-						local pscale = loopthrough[vm:GetBoneName(cur)].scale
-						ms = ms * pscale
-						cur = vm:GetBoneParent(cur)
-					end
-				end
-				
-				s = s * ms
-				// !! ----------- !! //
-				
-				if vm:GetManipulateBoneScale(bone) != s then
-					vm:ManipulateBoneScale( bone, s )
-				end
-				if vm:GetManipulateBoneAngles(bone) != v.angle then
-					vm:ManipulateBoneAngles( bone, v.angle )
-				end
-				if vm:GetManipulateBonePosition(bone) != p then
-					vm:ManipulateBonePosition( bone, p )
-				end
-			end
-		else
-			self:SCK_ResetBonePositions(vm)
-		end
-		   
-	end
-	 
-	function SWEP:SCK_ResetBonePositions(vm)
-		
-		if (!vm:GetBoneCount()) then return end
-		for i=0, vm:GetBoneCount() do
-			vm:ManipulateBoneScale( i, Vector(1, 1, 1) )
-			vm:ManipulateBoneAngles( i, Angle(0, 0, 0) )
-			vm:ManipulateBonePosition( i, Vector(0, 0, 0) )
-		end
-		
-	end
-
-	/**************************
-		Global utility code
-	**************************/
-
-	// Fully copies the table, meaning all tables inside this table are copied too and so on (normal table.Copy copies only their reference).
-	// Does not copy entities of course, only copies their reference.
-	// WARNING: do not use on tables that contain themselves somewhere down the line or you'll get an infinite loop
-	function table.FullCopy( tab )
-		if (!tab) then return nil end
-		
-		local res = {}
-		for k, v in pairs( tab ) do
-			if (type(v) == "table") then
-				res[k] = table.FullCopy(v) // recursion ho!
-			elseif (type(v) == "Vector") then
-				res[k] = Vector(v.x, v.y, v.z)
-			elseif (type(v) == "Angle") then
-				res[k] = Angle(v.p, v.y, v.r)
-			else
-				res[k] = v
-			end
-		end
-		
-		return res
-		
-	end
-	
-end
-
 
 local datatable = {}
 
