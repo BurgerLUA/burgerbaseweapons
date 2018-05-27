@@ -2187,9 +2187,9 @@ function SWEP:GetTrueShootAngles(IgnorePrediction) -- Shared
 	if self.Owner:IsPlayer() then
 		ShootDir = self.Owner:GetEyeTrace().Normal
 	end
-	--local WithPunchAngles = self.Owner:GetPunchAngle() + ShootDir:Angle()
-
-	local WithPunchAngles = (self.Owner:GetPunchAngle() + self:GetTrueAimAng() )
+	
+	local WithPunchAngles = self.Owner:GetPunchAngle() + ShootDir:Angle()
+	--local WithPunchAngles = (self.Owner:GetPunchAngle() + self:GetTrueAimAng() )
 	WithPunchAngles:Normalize()
 	return WithPunchAngles
 end
@@ -2212,6 +2212,28 @@ function BURGERBASE_SpecialGetBest(tab,dolarge)
 
 end
 
+function SWEP:CalculateAngleMovement(angle,movement)
+
+	local MoveAngle = Angle(0,0,0)
+	local Largest = math.abs(BURGERBASE_SpecialGetBest({angle.p,angle.y,angle.r},true))
+
+	if Largest ~= 0 then
+		if angle.p ~= 0 then
+			MoveAngle = MoveAngle + Angle(BURGERBASE_SpecialGetBest({angle.p,movement*(angle.p/Largest)},false),0,0)
+		end
+		if angle.y ~= 0 then
+			MoveAngle = MoveAngle + Angle(0,BURGERBASE_SpecialGetBest({angle.y,movement*(angle.y/Largest)},false),0)
+		end	
+		if angle.r ~= 0 then
+			MoveAngle = MoveAngle + Angle(0,0,BURGERBASE_SpecialGetBest({angle.r,movement*(angle.r/Largest)},false))
+		end	
+	end
+	
+	return MoveAngle
+	
+end
+
+
 function SWEP:HandleAimAngles() -- Shared
 	
 	local ShootAng = self.Owner:GetAimVector():Angle()
@@ -2232,36 +2254,16 @@ function SWEP:HandleAimAngles() -- Shared
 	ShootAng:RotateAroundAxis(ShootAng:Forward(), DesiredAngOffset.z)
 	-- End Angle
 	
+	if self:GetZoomed() then
+		self:SetTrueAimAng(ShootAng)
+		return
+	end
+
 	local TrueAng = self:GetTrueAimAng()
 	local AngDif = (ShootAng - TrueAng)
 	AngDif:Normalize()
-	local Largest = math.abs(BURGERBASE_SpecialGetBest({AngDif.p,AngDif.y,AngDif.r},true))
-	local MoveAngle = Angle(0,0,0)
-	local MoveMul = FrameTime()*180*(1/self.IronSightTime)
-	
-	
-	
-	if Largest ~= 0 then
-		if AngDif.p ~= 0 then
-			MoveAngle = MoveAngle + Angle(BURGERBASE_SpecialGetBest({AngDif.p,MoveMul*(AngDif.p/Largest)},false),0,0)
-		end
-		if AngDif.y ~= 0 then
-			MoveAngle = MoveAngle + Angle(0,BURGERBASE_SpecialGetBest({AngDif.y,MoveMul*(AngDif.y/Largest)},false),0)
-		end	
-		if AngDif.r ~= 0 then
-			MoveAngle = MoveAngle + Angle(0,0,BURGERBASE_SpecialGetBest({AngDif.r,MoveMul*(AngDif.r/Largest)},false))
-		end	
-	end
-
-	local FinalMove = self:GetTrueAimAng(true) + MoveAngle
-
-	--[[
-	local TotalDistance = math.NormalizeAngle((FinalMove.p + FinalMove.y + FinalMove.r) - (ShootAng.p + ShootAng.y + ShootAng.r))
-	if TotalDistance < FrameTime() then
-		FinalMove = ShootAng
-	end
-	--]]
-
+	local MoveMul = FrameTime()*4*(1/self.IronSightTime)
+	local FinalMove = self:GetTrueAimAng(true) + self:CalculateAngleMovement(AngDif,MoveMul)
 	
 	self:SetTrueAimAng(FinalMove)
 
@@ -2269,81 +2271,11 @@ end
 
 SWEP.ClientIronsightAng = nil
 
-function SWEP:GetViewModelPosition( pos, ang ) -- Shared
-	
-	local InputAng = ang
+function SWEP:GetViewModelPosition( pos, ang )
 
-	ang = self:GetTrueAimAng(true)
-
-	if not self.ClientIronsightAng then
-		self.ClientIronsightAng = ang
-	end
-
-	local Math = (ang - self.ClientIronsightAng)
-	Math:Normalize()
-	self.ClientIronsightAng = self.ClientIronsightAng + Math*FrameTime()*2*(1/self.IronSightTime)
-	self.ClientIronsightAng:Normalize()
-	
-	local ReturnAng = self.ClientIronsightAng
-	
-	
-	if ShouldSight then
-		self.SwayScale 				= 0
-		self.BobScale 				= 0
-	else
-		self.SwayScale 				= 1
-		self.BobScale 				= 1
-	end
-	
-	
-	--[[
-	
-	
-	if self.IronSightAngSnap and self.IronSightPosSnap then
-		TimeRate = 0.1
-	end
-	
-	if IsMelee then
-		TimeRate = self.MeleeDelay
-	end
-	
-
-
-
-
-	if not ShouldSight then 
-		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
-		
-		if self.Owner:Crouching() then
-			DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
-		end
-		
-		if not self.DistanceMod then
-			self.DistanceMod = DesiredDistanceMod
-		else
-			self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
-		end
-		
-		DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
-
-	end
-	-- End Postion
-	
-
-	
-
-	
-
-	if not ShouldSight then
-		DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
-		DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
-		DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
-	end
-	
-	--]]
-	
 	local OldPos = pos
 	local OldAng = ang
+
 	local DesiredPosOffset = Vector(0,0,0)
 	local DesiredAngOffset = Angle(0,0,0)
 	local ShouldSight = self:GetZoomed() or (self.EnableBlocking and self:GetIsBlocking() )
@@ -2357,7 +2289,22 @@ function SWEP:GetViewModelPosition( pos, ang ) -- Shared
 	local IsMelee = self:GetNextMelee() + self.MeleeDelay >= CurTime()
 	local MeleeDif = math.Clamp( (self:GetNextMelee() - CurTime())/0.15 , 0 , 1)
 	
+	if self.IronSightAngSnap and self.IronSightPosSnap then
+		TimeRate = 0.1
+	end
 	
+	if IsMelee then
+		TimeRate = self.MeleeDelay
+	end
+	
+	if ShouldSight then
+		self.SwayScale 				= 0
+		self.BobScale 				= 0
+	else
+		self.SwayScale 				= 1
+		self.BobScale 				= 1
+	end
+
 	-- Start Position
 	if self.IronSightsPos and ShouldSight then	
 		local BasePosOffset = self.IronSightsPos
@@ -2393,40 +2340,81 @@ function SWEP:GetViewModelPosition( pos, ang ) -- Shared
 	elseif self.IronIdlePos then
 		DesiredPosOffset = DesiredPosOffset + self.IronIdlePos
 	end
-	-- End Position
+
+	if not ShouldSight then 
+		DesiredPosOffset = DesiredPosOffset + Vector(math.sin(CurTime()*0.75),0,math.sin(CurTime()*0.75)) * 0.125
+		
+		if self.Owner:Crouching() then
+			DesiredPosOffset = DesiredPosOffset + Vector(0,0,2)
+		end
+		
+		if not self.DistanceMod then
+			self.DistanceMod = DesiredDistanceMod
+		else
+			self.DistanceMod = self.DistanceMod - (self.DistanceMod - DesiredDistanceMod)*TickRate
+		end
+		
+		DesiredPosOffset = DesiredPosOffset - Vector(0,self.DistanceMod,0)
+
+	end
+	-- End Postion
 	
 	-- Start Angle
 	if self.IronSightsAng and ShouldSight then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronSightsAng.x,self.IronSightsAng.y,self.IronSightsAng.z)
+	elseif self.IronMeleeAng and IsMelee then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronMeleeAng.x,self.IronMeleeAng.y,self.IronMeleeAng.z)
+	elseif self.IronReloadAng and self:GetIsReloading() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronReloadAng.x,self.IronReloadAng.y,self.IronReloadAng.z)
+	elseif self.IronRunAng and !self.CanShootWhileSprinting and self:IsSprinting() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronRunAng.x,self.IronRunAng.y,self.IronRunAng.z)
 	elseif self.IronShootAng and self:GetCoolDown() > 0 then 
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronShootAng.x,self.IronShootAng.y,self.IronShootAng.z)
+	elseif self.IronBoltAng and self:GetBoltDelay() - self.ZoomDelay >= CurTime() then
+		DesiredAngOffset = DesiredAngOffset + Angle(self.IronBoltAng.x,self.IronBoltAng.y,self.IronBoltAng.z)
 	elseif self.IronIdleAng then
 		DesiredAngOffset = DesiredAngOffset + Angle(self.IronIdleAng.x,self.IronIdleAng.y,self.IronIdleAng.z)
 	end
+
+	if not ShouldSight then
+		DesiredAngOffset = DesiredAngOffset + Angle(-DesiredDistanceMod,0,0)
+		DesiredPosOffset = Vector(DesiredPosOffset.x,DesiredPosOffset.y,DesiredPosOffset.z)
+		DesiredAngOffset = Angle(DesiredAngOffset.p,DesiredAngOffset.y,DesiredAngOffset.r)
+	end
 	-- End Angle
 	
-	--[[
-	print(DesiredAngOffset)
-	ReturnAng:RotateAroundAxis(ReturnAng:Right(),DesiredAngOffset.x)
-	ReturnAng:RotateAroundAxis(ReturnAng:Up(),DesiredAngOffset.y)
-	ReturnAng:RotateAroundAxis(ReturnAng:Forward(),DesiredAngOffset.z)
-	--]]
-	
-	
-	
+	-- Start Final Calculation
 	self.IronSightPosCurrent = self.IronSightPosCurrent - (self.IronSightPosCurrent-DesiredPosOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent = self.IronSightAngCurrent - (self.IronSightAngCurrent-DesiredAngOffset)*TickRate*(1/math.Clamp(TimeRate,TickRate,3))
 	self.IronSightAngCurrent:Normalize()
 	
-	pos = pos + self.IronSightPosCurrent.x * ReturnAng:Right()
-	pos = pos + self.IronSightPosCurrent.y * ReturnAng:Forward()
-	pos = pos + self.IronSightPosCurrent.z * ReturnAng:Up()
+	ang:RotateAroundAxis(ang:Right(), 	self.IronSightAngCurrent.x)
+	ang:RotateAroundAxis(ang:Up(), 	self.IronSightAngCurrent.y)
+	ang:RotateAroundAxis(ang:Forward(), self.IronSightAngCurrent.z)
 
+	pos = pos + self.IronSightPosCurrent.x * ang:Right()
+	pos = pos + self.IronSightPosCurrent.y * ang:Forward()
+	pos = pos + self.IronSightPosCurrent.z * ang:Up()
 
-	return pos, ReturnAng + self.IronSightAngCurrent
-	
+	if ShouldSight then	
+		local PosDistance = DesiredPosOffset:Distance(self.IronSightPosCurrent)
+		local AngDistance = Vector(DesiredAngOffset.x,DesiredAngOffset.y,DesiredAngOffset.z):Distance(Vector(self.IronSightAngCurrent.x,self.IronSightAngCurrent.y,self.IronSightAngCurrent.z))
+
+		if PosDistance < 0.25 then
+			self.IronSightPosSnap = true
+		end
+		
+		if AngDistance < 0.25 then
+			self.IronSightAngSnap = true
+		end
+	else
+		self.IronSightAngSnap = false
+		self.IronSightPosSnap = false
+	end
+	-- End Final Calculation
+
+	return pos, ang
 end
-
 
 function SWEP:Think() --Shared
 
@@ -2440,7 +2428,7 @@ function SWEP:Think() --Shared
 		end
 	end
 	
-	self:HandleAimAngles()
+	--self:HandleAimAngles()
 	self:HandleShotgunReloadCancel()
 	self:HandleBulletQueue()
 	self:HandleHoldType()

@@ -35,10 +35,10 @@ SWEP.Primary.Automatic 		= true
 SWEP.ReloadSound = Sound("weapons/shotgun/shotgun_reload3.wav")
 SWEP.BurstSound = Sound("weapons/shotgun/shotgun_dbl_fire.wav")
 
-SWEP.RecoilMul				= 0.5
+SWEP.RecoilMul				= 1
 SWEP.SideRecoilMul			= 0.5
 SWEP.RecoilSpeedMul			= 0.75
-SWEP.MoveConeMul			= 1
+SWEP.MoveConeMul			= 0.5
 SWEP.HeatMul				= 0.5
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 1
@@ -66,7 +66,7 @@ SWEP.Primary.Range			= 400
 SWEP.HasHL2Pump				= true
 SWEP.PumpSound				= Sound("weapons/shotgun/shotgun_cock.wav")
 SWEP.PenetrationLossScale	= 0.5
-SWEP.CanShootWhileSprinting = false
+SWEP.CanShootWhileSprinting = true
 
 SWEP.HasIronSights 			= true
 SWEP.EnableIronCross		= true

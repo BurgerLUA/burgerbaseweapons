@@ -37,7 +37,7 @@ SWEP.Primary.Automatic 		= true
 SWEP.RecoilMul				= 1.5
 SWEP.SideRecoilMul			= 0.25
 SWEP.RecoilSpeedMul			= 1.25
-SWEP.MoveConeMul			= 0.75
+SWEP.MoveConeMul			= 0.5
 SWEP.HeatMul				= 1
 SWEP.CoolMul				= 1
 SWEP.CoolSpeedMul			= 2
@@ -55,7 +55,7 @@ SWEP.HasDoubleZoom			= false
 SWEP.HasSideRecoil			= true
 SWEP.HasDownRecoil			= true
 SWEP.HasFirstShotAccurate	= true
-SWEP.CanShootWhileSprinting = false
+SWEP.CanShootWhileSprinting = true
 
 SWEP.DamageFalloff			= 600
 
