@@ -215,7 +215,7 @@ if (CLIENT or game.SinglePlayer()) then
 	SWEP.ClientCoolTimeLeft = 0 -- Data, Client
 	SWEP.StoredCrosshair 	= nil -- Data, Client
 	SWEP.BoltDelay 			= 0 -- Data, Client
-	SWEP.DesiredFOV			= GetConVar("fov_desired"):GetFloat()
+	SWEP.DesiredFOV			= GetConVar("fov_desired"):GetFloat() or 70 -- Data, Client
 	SWEP.ZoomOverlayDelay 	= 0 -- Data, Client
 	SWEP.ZoomMod 			= 0 -- Data, Client
 end
@@ -223,6 +223,7 @@ end
 if SERVER then
 	SWEP.AlreadyGiven			= false -- Data, Server
 	SWEP.HasMagIn				= true -- Data, Server
+	SWEP.DesiredFOV				= 70
 end
 
 SWEP.MeleeModel = Model("models/weapons/c_arms_cstrike.mdl")
@@ -3116,7 +3117,6 @@ function SWEP:ThrowObject(object,force) -- Shared
 	ent:SetAngles(EA)
 	ent:Spawn()
 	ent:Activate()
-	ent:Fire()
 	ent:SetOwner(self.Owner)
 	ent.ExplodeTime = self:GetGrenadeExplosion()
 	
